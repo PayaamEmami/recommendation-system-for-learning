@@ -65,7 +65,3 @@ recommendation-system-for-learning/
 ├─ tests/
 │  └─ Rsl.Tests/            # Unit and integration tests
 ```
-
-## Contributing
-
-This project is primarily a personal learning and experimentation space, but the code and ideas are shared publicly for transparency and inspiration.
