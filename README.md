@@ -54,13 +54,13 @@ The solution is organized as multiple projects following a modular, layered appr
 ```text
 recommendation-system-for-learning/
 ├─ src/
-│  ├─ Rsl.Web/              # Blazor frontend (UI, pages, components)
 │  ├─ Rsl.Api/              # ASP.NET Core REST API (HTTP endpoints)
 │  ├─ Rsl.Core/             # Domain models, interfaces, core business rules
+│  ├─ Rsl.Infrastructure/   # Persistence, logging, monitoring, email, external integrations, Azure services
+│  ├─ Rsl.Jobs/             # Background jobs (e.g., daily digest, retraining)
 │  ├─ Rsl.Recommendation/   # ML.NET-based recommendation logic
 │  ├─ Rsl.Llm/              # LLM / “agentic” orchestration and tool interfaces
-│  ├─ Rsl.Infrastructure/   # Persistence, logging, monitoring, email, external integrations, Azure services
-│  └─ Rsl.Jobs/             # Background jobs (e.g., daily digest, retraining)
+│  └─ Rsl.Web/              # Blazor frontend (UI, pages, components)
 │
 ├─ tests/
 │  └─ Rsl.Tests/            # Unit and integration tests
