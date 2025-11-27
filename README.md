@@ -12,10 +12,15 @@ RSL aims to:
 
 - Help users **log what they study** (papers, videos, blog posts, etc.).
 - **Recommend** what to learn next based on history, preferences, and resource metadata.
-- Provide a **daily “1 paper, 1 video, 1 blog post” digest** via email.
+- Provide **personalized feeds** in the web app for different content types:
+  - Papers
+  - Videos
+  - Blog posts
+  - Current Events
+  - Social Media Posts
 - Experiment with:
   - A traditional ML-based recommendation engine (ML.NET).
-  - An **LLM “agentic” layer** that can interpret, refine, and explain recommendations.
+  - An **LLM "agentic" layer** that can interpret, refine, and explain recommendations.
 
 ## High-Level Architecture
 
@@ -23,7 +28,8 @@ At a high level, RSL is composed of:
 
 ### 🎨 Blazor Frontend
 - Rich UI for interacting with the system.
-- User flows for logging study activity, viewing recommendations, and managing preferences.
+- User flows for logging study activity, browsing personalized feeds, and managing preferences.
+- Multiple feed types (Papers, Videos, Blog Posts, Current Events, Social Media Posts).
 
 ### 🔧 .NET Backend + REST API
 - Central application layer (business logic, validation, orchestration).
@@ -41,11 +47,11 @@ At a high level, RSL is composed of:
 - Exposed through the backend as a service/API.
 
 ### ⏰ Background Jobs & Scheduling
-- Daily job to generate and send the "1 paper, 1 video, 1 blog post" email.
+- Periodic jobs to refresh and populate recommendation feeds.
 - Periodic retraining or refreshing of ML models.
 
 ### ☁️ Infrastructure (Azure)
-- Application hosting, database, storage, observability, and email integration.
+- Application hosting, database, storage, observability, and notification services.
 
 ## Solution / Project Layout
 
