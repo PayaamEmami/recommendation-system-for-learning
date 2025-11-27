@@ -27,9 +27,8 @@ RSL aims to:
 At a high level, RSL is composed of:
 
 ### 🎨 Blazor Frontend
-- Rich UI for interacting with the system.
-- User flows for logging study activity, browsing personalized feeds, and managing preferences.
 - Multiple feed types (Papers, Videos, Blog Posts, Current Events, Social Media Posts).
+- User flows for logging study activity, browsing personalized feeds, and managing preferences.
 
 ### 🔧 .NET Backend + REST API
 - Central application layer (business logic, validation, orchestration).
