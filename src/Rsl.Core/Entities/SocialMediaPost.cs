@@ -18,15 +18,5 @@ public class SocialMediaPost : Resource
     /// The username or handle of the person who posted.
     /// </summary>
     public string? Username { get; set; }
-
-    /// <summary>
-    /// Number of likes/favorites the post received.
-    /// </summary>
-    public int? LikeCount { get; set; }
-
-    /// <summary>
-    /// Number of shares/retweets the post received.
-    /// </summary>
-    public int? ShareCount { get; set; }
 }
 

@@ -18,10 +18,5 @@ public class BlogPost : Resource
     /// The blog or website where the post was published.
     /// </summary>
     public string? Blog { get; set; }
-
-    /// <summary>
-    /// Estimated reading time in minutes.
-    /// </summary>
-    public int? ReadingTimeMinutes { get; set; }
 }
 

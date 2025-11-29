@@ -14,11 +14,6 @@ public class Topic
     public string Name { get; set; } = string.Empty;
 
     /// <summary>
-    /// A URL-friendly slug for the topic (e.g., "artificial-intelligence").
-    /// </summary>
-    public string Slug { get; set; } = string.Empty;
-
-    /// <summary>
     /// Optional description of what this topic covers.
     /// </summary>
     public string? Description { get; set; }
