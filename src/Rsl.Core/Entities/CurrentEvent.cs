@@ -7,7 +7,7 @@ namespace Rsl.Core.Entities;
 /// </summary>
 public class CurrentEvent : Resource
 {
-    public override ResourceType Type => ResourceType.CurrentEvent;
+    public override ResourceType Type { get; protected set; } = ResourceType.CurrentEvent;
 
     /// <summary>
     /// The news outlet or publication.

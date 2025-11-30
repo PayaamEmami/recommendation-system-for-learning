@@ -7,7 +7,7 @@ namespace Rsl.Core.Entities;
 /// </summary>
 public class Paper : Resource
 {
-    public override ResourceType Type => ResourceType.Paper;
+    public override ResourceType Type { get; protected set; } = ResourceType.Paper;
 
     /// <summary>
     /// Digital Object Identifier (DOI) for the paper.

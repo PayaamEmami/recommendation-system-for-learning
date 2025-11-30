@@ -48,7 +48,7 @@ public abstract class Resource
     /// <summary>
     /// The type of resource (discriminator for inheritance).
     /// </summary>
-    public abstract ResourceType Type { get; }
+    public abstract ResourceType Type { get; protected set; }
 
     // Navigation properties
 

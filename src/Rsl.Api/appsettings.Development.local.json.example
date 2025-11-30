@@ -1,0 +1,6 @@
+{
+  "JwtSettings": {
+    "SecretKey": "CHANGE_THIS_TO_A_SECURE_32_CHAR_MINIMUM_RANDOM_STRING"
+  }
+}
+

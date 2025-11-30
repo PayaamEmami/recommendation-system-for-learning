@@ -1,6 +1,162 @@
-@Rsl.Api_HostAddress = http://localhost:5235
+### RSL API Testing
+### This file contains example HTTP requests for testing the API endpoints
 
-GET {{Rsl.Api_HostAddress}}/weatherforecast/
-Accept: application/json
+@hostname = https://localhost:7000
+@apiVersion = v1
+@baseUrl = {{hostname}}/api/{{apiVersion}}
 
-###
+### Variables (set these after login)
+@accessToken = YOUR_ACCESS_TOKEN_HERE
+@userId = YOUR_USER_ID_HERE
+@topicId = YOUR_TOPIC_ID_HERE
+@resourceId = YOUR_RESOURCE_ID_HERE
+
+###############################################################################
+# Health Check
+###############################################################################
+
+### Health Check
+GET {{hostname}}/health
+
+###############################################################################
+# Authentication
+###############################################################################
+
+### Register a new user
+POST {{baseUrl}}/auth/register
+Content-Type: application/json
+
+{
+  "email": "user@example.com",
+  "password": "password123",
+  "displayName": "Test User"
+}
+
+### Login
+POST {{baseUrl}}/auth/login
+Content-Type: application/json
+
+{
+  "email": "user@example.com",
+  "password": "password123"
+}
+
+### Refresh Token
+POST {{baseUrl}}/auth/refresh
+Content-Type: application/json
+
+{
+  "refreshToken": "YOUR_REFRESH_TOKEN_HERE"
+}
+
+###############################################################################
+# Users
+###############################################################################
+
+### Get current user profile
+GET {{baseUrl}}/users/me
+Authorization: Bearer {{accessToken}}
+
+### Get user by ID
+GET {{baseUrl}}/users/{{userId}}
+Authorization: Bearer {{accessToken}}
+
+### Update current user profile
+PATCH {{baseUrl}}/users/me
+Authorization: Bearer {{accessToken}}
+Content-Type: application/json
+
+{
+  "displayName": "Updated Display Name"
+}
+
+### Get current user's topics
+GET {{baseUrl}}/users/me/topics
+Authorization: Bearer {{accessToken}}
+
+### Update current user's topics
+PUT {{baseUrl}}/users/me/topics
+Authorization: Bearer {{accessToken}}
+Content-Type: application/json
+
+{
+  "topicIds": [
+    "{{topicId}}"
+  ]
+}
+
+###############################################################################
+# Topics (Coming in Sprint 2)
+###############################################################################
+
+### Get all topics
+# GET {{baseUrl}}/topics
+# Authorization: Bearer {{accessToken}}
+
+### Get topic by ID
+# GET {{baseUrl}}/topics/{{topicId}}
+# Authorization: Bearer {{accessToken}}
+
+###############################################################################
+# Resources (Coming in Sprint 2)
+###############################################################################
+
+### Get all resources
+# GET {{baseUrl}}/resources?page=1&pageSize=20
+# Authorization: Bearer {{accessToken}}
+
+### Get resource by ID
+# GET {{baseUrl}}/resources/{{resourceId}}
+# Authorization: Bearer {{accessToken}}
+
+### Create a resource
+# POST {{baseUrl}}/resources
+# Authorization: Bearer {{accessToken}}
+# Content-Type: application/json
+#
+# {
+#   "title": "Example Paper",
+#   "description": "A research paper about machine learning",
+#   "url": "https://arxiv.org/abs/1234.5678",
+#   "publishedDate": "2025-01-01T00:00:00Z",
+#   "source": "arXiv",
+#   "topicIds": ["{{topicId}}"],
+#   "resourceType": 0
+# }
+
+###############################################################################
+# Votes (Coming in Sprint 2)
+###############################################################################
+
+### Vote on a resource
+# POST {{baseUrl}}/resources/{{resourceId}}/vote
+# Authorization: Bearer {{accessToken}}
+# Content-Type: application/json
+#
+# {
+#   "voteType": 1
+# }
+
+### Remove vote from resource
+# DELETE {{baseUrl}}/resources/{{resourceId}}/vote
+# Authorization: Bearer {{accessToken}}
+
+### Get current user's votes
+# GET {{baseUrl}}/users/me/votes
+# Authorization: Bearer {{accessToken}}
+
+###############################################################################
+# Recommendations (Coming in Sprint 2)
+###############################################################################
+
+### Get today's recommendations
+# GET {{baseUrl}}/users/me/recommendations
+# Authorization: Bearer {{accessToken}}
+
+### Get recommendations for specific feed type
+# GET {{baseUrl}}/users/me/recommendations/Paper
+# Authorization: Bearer {{accessToken}}
+
+### Get recommendations for specific date
+# GET {{baseUrl}}/users/me/recommendations/Paper/2025-11-30
+# Authorization: Bearer {{accessToken}}

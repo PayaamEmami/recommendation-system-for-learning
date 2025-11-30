@@ -18,7 +18,7 @@ public class ResourceConfiguration : IEntityTypeConfiguration<Resource>
         builder.HasKey(r => r.Id);
 
         // Set up inheritance discriminator based on ResourceType enum
-        builder.HasDiscriminator(r => r.Type)
+        builder.HasDiscriminator<ResourceType>("Type")
             .HasValue<Paper>(ResourceType.Paper)
             .HasValue<Video>(ResourceType.Video)
             .HasValue<BlogPost>(ResourceType.BlogPost)

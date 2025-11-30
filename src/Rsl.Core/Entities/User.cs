@@ -18,6 +18,11 @@ public class User
     public string? DisplayName { get; set; }
 
     /// <summary>
+    /// The user's hashed password.
+    /// </summary>
+    public string PasswordHash { get; set; } = string.Empty;
+
+    /// <summary>
     /// When the user account was created.
     /// </summary>
     public DateTime CreatedAt { get; set; }

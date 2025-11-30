@@ -1,0 +1,232 @@
+using Asp.Versioning;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
+using Rsl.Api.DTOs.Requests;
+using Rsl.Api.Extensions;
+using Rsl.Api.Services;
+
+namespace Rsl.Api.Controllers;
+
+/// <summary>
+/// Handles user-related operations (profile management, topics).
+/// </summary>
+[ApiController]
+[ApiVersion("1.0")]
+[Route("api/v{version:apiVersion}/[controller]")]
+[Authorize]
+[EnableRateLimiting("api")]
+public class UsersController : ControllerBase
+{
+    private readonly IUserService _userService;
+    private readonly ILogger<UsersController> _logger;
+
+    public UsersController(IUserService userService, ILogger<UsersController> logger)
+    {
+        _userService = userService;
+        _logger = logger;
+    }
+
+    /// <summary>
+    /// Gets the current authenticated user's profile.
+    /// </summary>
+    /// <param name="cancellationToken">Cancellation token.</param>
+    /// <returns>The user's detailed profile information.</returns>
+    [HttpGet("me")]
+    [ProducesResponseType(typeof(DTOs.Responses.UserDetailResponse), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> GetCurrentUser(CancellationToken cancellationToken)
+    {
+        var userId = User.GetUserId();
+        if (userId == null)
+        {
+            return Unauthorized();
+        }
+
+        var user = await _userService.GetUserByIdAsync(userId.Value, cancellationToken);
+        if (user == null)
+        {
+            return NotFound();
+        }
+
+        return Ok(user);
+    }
+
+    /// <summary>
+    /// Gets a user by their ID.
+    /// </summary>
+    /// <param name="id">The user's ID.</param>
+    /// <param name="cancellationToken">Cancellation token.</param>
+    /// <returns>The user's detailed profile information.</returns>
+    [HttpGet("{id}")]
+    [ProducesResponseType(typeof(DTOs.Responses.UserDetailResponse), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> GetUserById(Guid id, CancellationToken cancellationToken)
+    {
+        var user = await _userService.GetUserByIdAsync(id, cancellationToken);
+        if (user == null)
+        {
+            return NotFound();
+        }
+
+        return Ok(user);
+    }
+
+    /// <summary>
+    /// Updates the current user's profile.
+    /// </summary>
+    /// <param name="request">The updated profile information.</param>
+    /// <param name="cancellationToken">Cancellation token.</param>
+    /// <returns>The updated user information.</returns>
+    [HttpPatch("me")]
+    [ProducesResponseType(typeof(DTOs.Responses.UserResponse), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
+    public async Task<IActionResult> UpdateCurrentUser(
+        [FromBody] UpdateUserRequest request,
+        CancellationToken cancellationToken)
+    {
+        var userId = User.GetUserId();
+        if (userId == null)
+        {
+            return Unauthorized();
+        }
+
+        var user = await _userService.UpdateUserAsync(userId.Value, request, cancellationToken);
+        return Ok(user);
+    }
+
+    /// <summary>
+    /// Updates a specific user's profile (admin operation or same user).
+    /// </summary>
+    /// <param name="id">The user's ID.</param>
+    /// <param name="request">The updated profile information.</param>
+    /// <param name="cancellationToken">Cancellation token.</param>
+    /// <returns>The updated user information.</returns>
+    [HttpPatch("{id}")]
+    [ProducesResponseType(typeof(DTOs.Responses.UserResponse), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status403Forbidden)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
+    public async Task<IActionResult> UpdateUser(
+        Guid id,
+        [FromBody] UpdateUserRequest request,
+        CancellationToken cancellationToken)
+    {
+        var currentUserId = User.GetUserId();
+        if (currentUserId == null)
+        {
+            return Unauthorized();
+        }
+
+        // Only allow users to update their own profile (in a real system, admins could update any)
+        if (currentUserId.Value != id)
+        {
+            return Forbid();
+        }
+
+        var user = await _userService.UpdateUserAsync(id, request, cancellationToken);
+        return Ok(user);
+    }
+
+    /// <summary>
+    /// Gets the current user's interested topics.
+    /// </summary>
+    /// <param name="cancellationToken">Cancellation token.</param>
+    /// <returns>List of topics the user is interested in.</returns>
+    [HttpGet("me/topics")]
+    [ProducesResponseType(typeof(List<DTOs.Responses.TopicResponse>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> GetCurrentUserTopics(CancellationToken cancellationToken)
+    {
+        var userId = User.GetUserId();
+        if (userId == null)
+        {
+            return Unauthorized();
+        }
+
+        var topics = await _userService.GetUserTopicsAsync(userId.Value, cancellationToken);
+        return Ok(topics);
+    }
+
+    /// <summary>
+    /// Gets a specific user's interested topics.
+    /// </summary>
+    /// <param name="id">The user's ID.</param>
+    /// <param name="cancellationToken">Cancellation token.</param>
+    /// <returns>List of topics the user is interested in.</returns>
+    [HttpGet("{id}/topics")]
+    [ProducesResponseType(typeof(List<DTOs.Responses.TopicResponse>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> GetUserTopics(Guid id, CancellationToken cancellationToken)
+    {
+        var topics = await _userService.GetUserTopicsAsync(id, cancellationToken);
+        return Ok(topics);
+    }
+
+    /// <summary>
+    /// Updates the current user's interested topics.
+    /// </summary>
+    /// <param name="request">The list of topic IDs.</param>
+    /// <param name="cancellationToken">Cancellation token.</param>
+    /// <returns>The updated list of topics.</returns>
+    [HttpPut("me/topics")]
+    [ProducesResponseType(typeof(List<DTOs.Responses.TopicResponse>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
+    public async Task<IActionResult> UpdateCurrentUserTopics(
+        [FromBody] UpdateUserTopicsRequest request,
+        CancellationToken cancellationToken)
+    {
+        var userId = User.GetUserId();
+        if (userId == null)
+        {
+            return Unauthorized();
+        }
+
+        var topics = await _userService.UpdateUserTopicsAsync(userId.Value, request, cancellationToken);
+        return Ok(topics);
+    }
+
+    /// <summary>
+    /// Updates a specific user's interested topics.
+    /// </summary>
+    /// <param name="id">The user's ID.</param>
+    /// <param name="request">The list of topic IDs.</param>
+    /// <param name="cancellationToken">Cancellation token.</param>
+    /// <returns>The updated list of topics.</returns>
+    [HttpPut("{id}/topics")]
+    [ProducesResponseType(typeof(List<DTOs.Responses.TopicResponse>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status403Forbidden)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
+    public async Task<IActionResult> UpdateUserTopics(
+        Guid id,
+        [FromBody] UpdateUserTopicsRequest request,
+        CancellationToken cancellationToken)
+    {
+        var currentUserId = User.GetUserId();
+        if (currentUserId == null)
+        {
+            return Unauthorized();
+        }
+
+        // Only allow users to update their own topics
+        if (currentUserId.Value != id)
+        {
+            return Forbid();
+        }
+
+        var topics = await _userService.UpdateUserTopicsAsync(id, request, cancellationToken);
+        return Ok(topics);
+    }
+}
+

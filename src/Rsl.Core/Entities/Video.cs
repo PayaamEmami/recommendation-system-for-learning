@@ -7,7 +7,7 @@ namespace Rsl.Core.Entities;
 /// </summary>
 public class Video : Resource
 {
-    public override ResourceType Type => ResourceType.Video;
+    public override ResourceType Type { get; protected set; } = ResourceType.Video;
 
     /// <summary>
     /// The duration of the video.

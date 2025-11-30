@@ -27,6 +27,11 @@ public class UserConfiguration : IEntityTypeConfiguration<User>
         builder.Property(u => u.DisplayName)
             .HasMaxLength(100);
 
+        // PasswordHash: required, max length 500
+        builder.Property(u => u.PasswordHash)
+            .IsRequired()
+            .HasMaxLength(500);
+
         // Timestamps
         builder.Property(u => u.CreatedAt)
             .IsRequired();

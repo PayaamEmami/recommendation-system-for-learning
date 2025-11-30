@@ -7,7 +7,7 @@ namespace Rsl.Core.Entities;
 /// </summary>
 public class SocialMediaPost : Resource
 {
-    public override ResourceType Type => ResourceType.SocialMediaPost;
+    public override ResourceType Type { get; protected set; } = ResourceType.SocialMediaPost;
 
     /// <summary>
     /// The platform where the post was published (e.g., "Twitter", "LinkedIn").

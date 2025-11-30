@@ -1,12 +1,39 @@
+using Rsl.Api.Extensions;
+using Rsl.Api.Middleware;
+using Rsl.Infrastructure;
+
 var builder = WebApplication.CreateBuilder(args);
 
-// Add services to the container.
-// Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
-builder.Services.AddOpenApi();
+// Add services to the container
+builder.Services.AddControllers();
+builder.Services.AddEndpointsApiExplorer();
+
+// Configure custom services
+builder.Services.AddJwtAuthentication(builder.Configuration);
+builder.Services.AddApiVersioningConfiguration();
+builder.Services.AddOpenApiConfiguration();
+builder.Services.AddCorsConfiguration(builder.Configuration);
+builder.Services.AddRateLimitingConfiguration();
+
+// Add Infrastructure layer (DbContext, repositories)
+builder.Services.AddInfrastructure(builder.Configuration);
+
+// Add application services
+builder.Services.AddScoped<Rsl.Api.Services.IAuthService, Rsl.Api.Services.AuthService>();
+builder.Services.AddScoped<Rsl.Api.Services.IUserService, Rsl.Api.Services.UserService>();
+
+// Add health checks
+builder.Services.AddHealthChecks()
+    .AddDbContextCheck<Rsl.Infrastructure.Data.RslDbContext>();
+
+// Configure Problem Details
+builder.Services.AddProblemDetails();
 
 var app = builder.Build();
 
-// Configure the HTTP request pipeline.
+// Configure the HTTP request pipeline
+app.UseMiddleware<ExceptionHandlingMiddleware>();
+
 if (app.Environment.IsDevelopment())
 {
     app.MapOpenApi();
@@ -14,28 +41,15 @@ if (app.Environment.IsDevelopment())
 
 app.UseHttpsRedirection();
 
-var summaries = new[]
-{
-    "Freezing", "Bracing", "Chilly", "Cool", "Mild", "Warm", "Balmy", "Hot", "Sweltering", "Scorching"
-};
+app.UseCors("DefaultCorsPolicy");
 
-app.MapGet("/weatherforecast", () =>
-{
-    var forecast =  Enumerable.Range(1, 5).Select(index =>
-        new WeatherForecast
-        (
-            DateOnly.FromDateTime(DateTime.Now.AddDays(index)),
-            Random.Shared.Next(-20, 55),
-            summaries[Random.Shared.Next(summaries.Length)]
-        ))
-        .ToArray();
-    return forecast;
-})
-.WithName("GetWeatherForecast");
+app.UseRateLimiter();
+
+app.UseAuthentication();
+app.UseAuthorization();
+
+app.MapControllers();
+
+app.MapHealthChecks("/health");
 
 app.Run();
-
-record WeatherForecast(DateOnly Date, int TemperatureC, string? Summary)
-{
-    public int TemperatureF => 32 + (int)(TemperatureC / 0.5556);
-}
