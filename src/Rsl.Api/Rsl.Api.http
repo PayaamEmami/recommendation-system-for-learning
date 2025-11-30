@@ -86,77 +86,127 @@ Content-Type: application/json
 }
 
 ###############################################################################
-# Topics (Coming in Sprint 2)
+# Topics
 ###############################################################################
 
 ### Get all topics
-# GET {{baseUrl}}/topics
-# Authorization: Bearer {{accessToken}}
+GET {{baseUrl}}/topics
+Authorization: Bearer {{accessToken}}
 
 ### Get topic by ID
-# GET {{baseUrl}}/topics/{{topicId}}
-# Authorization: Bearer {{accessToken}}
+GET {{baseUrl}}/topics/{{topicId}}
+Authorization: Bearer {{accessToken}}
 
 ###############################################################################
-# Resources (Coming in Sprint 2)
+# Resources
 ###############################################################################
 
-### Get all resources
-# GET {{baseUrl}}/resources?page=1&pageSize=20
-# Authorization: Bearer {{accessToken}}
+### Get all resources (paginated)
+GET {{baseUrl}}/resources?pageNumber=1&pageSize=20
+Authorization: Bearer {{accessToken}}
+
+### Get resources filtered by type
+GET {{baseUrl}}/resources?pageNumber=1&pageSize=20&type=Paper
+Authorization: Bearer {{accessToken}}
+
+### Get resources filtered by topics
+GET {{baseUrl}}/resources?pageNumber=1&pageSize=20&topicIds={{topicId}}
+Authorization: Bearer {{accessToken}}
 
 ### Get resource by ID
-# GET {{baseUrl}}/resources/{{resourceId}}
-# Authorization: Bearer {{accessToken}}
+GET {{baseUrl}}/resources/{{resourceId}}
+Authorization: Bearer {{accessToken}}
 
-### Create a resource
-# POST {{baseUrl}}/resources
-# Authorization: Bearer {{accessToken}}
-# Content-Type: application/json
-#
-# {
-#   "title": "Example Paper",
-#   "description": "A research paper about machine learning",
-#   "url": "https://arxiv.org/abs/1234.5678",
-#   "publishedDate": "2025-01-01T00:00:00Z",
-#   "source": "arXiv",
-#   "topicIds": ["{{topicId}}"],
-#   "resourceType": 0
-# }
+### Create a resource (Paper)
+POST {{baseUrl}}/resources
+Authorization: Bearer {{accessToken}}
+Content-Type: application/json
+
+{
+  "title": "Example Research Paper on Machine Learning",
+  "description": "A comprehensive study on neural networks",
+  "url": "https://arxiv.org/abs/1234.5678",
+  "publishedDate": "2025-01-01T00:00:00Z",
+  "source": "arXiv",
+  "topicIds": ["{{topicId}}"],
+  "resourceType": 0
+}
+
+### Create a resource (Video)
+POST {{baseUrl}}/resources
+Authorization: Bearer {{accessToken}}
+Content-Type: application/json
+
+{
+  "title": "Introduction to Deep Learning",
+  "description": "Video tutorial series",
+  "url": "https://youtube.com/watch?v=example",
+  "publishedDate": "2025-01-15T00:00:00Z",
+  "source": "YouTube",
+  "topicIds": ["{{topicId}}"],
+  "resourceType": 1
+}
+
+### Update a resource
+PUT {{baseUrl}}/resources/{{resourceId}}
+Authorization: Bearer {{accessToken}}
+Content-Type: application/json
+
+{
+  "title": "Updated Title",
+  "description": "Updated description"
+}
+
+### Delete a resource
+DELETE {{baseUrl}}/resources/{{resourceId}}
+Authorization: Bearer {{accessToken}}
 
 ###############################################################################
-# Votes (Coming in Sprint 2)
+# Voting
 ###############################################################################
 
-### Vote on a resource
-# POST {{baseUrl}}/resources/{{resourceId}}/vote
-# Authorization: Bearer {{accessToken}}
-# Content-Type: application/json
-#
-# {
-#   "voteType": 1
-# }
+### Upvote a resource
+POST {{baseUrl}}/resources/{{resourceId}}/vote
+Authorization: Bearer {{accessToken}}
+Content-Type: application/json
+
+{
+  "voteType": 1
+}
+
+### Downvote a resource
+POST {{baseUrl}}/resources/{{resourceId}}/vote
+Authorization: Bearer {{accessToken}}
+Content-Type: application/json
+
+{
+  "voteType": -1
+}
+
+### Get your vote on a resource
+GET {{baseUrl}}/resources/{{resourceId}}/vote
+Authorization: Bearer {{accessToken}}
 
 ### Remove vote from resource
-# DELETE {{baseUrl}}/resources/{{resourceId}}/vote
-# Authorization: Bearer {{accessToken}}
-
-### Get current user's votes
-# GET {{baseUrl}}/users/me/votes
-# Authorization: Bearer {{accessToken}}
+DELETE {{baseUrl}}/resources/{{resourceId}}/vote
+Authorization: Bearer {{accessToken}}
 
 ###############################################################################
-# Recommendations (Coming in Sprint 2)
+# Recommendations
 ###############################################################################
 
-### Get today's recommendations
-# GET {{baseUrl}}/users/me/recommendations
-# Authorization: Bearer {{accessToken}}
+### Get today's recommendations (all feeds)
+GET {{baseUrl}}/recommendations
+Authorization: Bearer {{accessToken}}
 
-### Get recommendations for specific feed type
-# GET {{baseUrl}}/users/me/recommendations/Paper
-# Authorization: Bearer {{accessToken}}
+### Get recommendations for Papers feed
+GET {{baseUrl}}/recommendations/Paper
+Authorization: Bearer {{accessToken}}
+
+### Get recommendations for Videos feed
+GET {{baseUrl}}/recommendations/Video
+Authorization: Bearer {{accessToken}}
 
 ### Get recommendations for specific date
-# GET {{baseUrl}}/users/me/recommendations/Paper/2025-11-30
-# Authorization: Bearer {{accessToken}}
+GET {{baseUrl}}/recommendations/Paper?date=2025-11-30
+Authorization: Bearer {{accessToken}}

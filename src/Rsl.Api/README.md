@@ -33,6 +33,13 @@ URL-based versioning (`/api/v1/...`) for easy discovery. Version is required in 
 ### Problem Details (RFC 7807)
 Standardized error responses. All exceptions are converted to Problem Details format by `ExceptionHandlingMiddleware`.
 
+### Pagination
+Resources API supports pagination with query parameters:
+- `pageNumber` - Page number (default: 1)
+- `pageSize` - Items per page (default: 20, max: 100)
+- `type` - Filter by resource type (Paper, Video, BlogPost, CurrentEvent, SocialMediaPost)
+- `topicIds` - Comma-separated topic IDs for filtering
+
 ### Service Layer
 Business logic lives in service classes (`AuthService`, `UserService`), not controllers. Controllers handle HTTP concerns only.
 
@@ -79,6 +86,24 @@ API starts at `https://localhost:7000`. OpenAPI spec available at `/openapi/v1.j
 - `PATCH /api/v1/users/me` - Update current user profile
 - `GET /api/v1/users/me/topics` - Get user's interested topics
 - `PUT /api/v1/users/me/topics` - Update user's interested topics
+
+### Topics (requires auth)
+- `GET /api/v1/topics` - List all topics
+- `GET /api/v1/topics/{id}` - Get topic by ID
+
+### Resources (requires auth)
+- `GET /api/v1/resources` - List resources (paginated, filterable by type/topics)
+- `GET /api/v1/resources/{id}` - Get resource by ID
+- `POST /api/v1/resources` - Create resource
+- `PUT /api/v1/resources/{id}` - Update resource
+- `DELETE /api/v1/resources/{id}` - Delete resource
+- `POST /api/v1/resources/{id}/vote` - Vote on resource (upvote/downvote)
+- `DELETE /api/v1/resources/{id}/vote` - Remove vote
+- `GET /api/v1/resources/{id}/vote` - Get user's vote on resource
+
+### Recommendations (requires auth)
+- `GET /api/v1/recommendations` - Get today's recommendations (all feeds)
+- `GET /api/v1/recommendations/{feedType}` - Get recommendations for specific feed
 
 ### Health
 - `GET /health` - Health check (includes DB connectivity)
