@@ -15,5 +15,7 @@ public interface IRecommendationRepository
     Task<IEnumerable<Recommendation>> CreateBatchAsync(IEnumerable<Recommendation> recommendations, CancellationToken cancellationToken = default);
     Task DeleteAsync(Guid id, CancellationToken cancellationToken = default);
     Task<bool> HasRecommendationsForDateAsync(Guid userId, DateOnly date, ResourceType feedType, CancellationToken cancellationToken = default);
+    Task<IEnumerable<Recommendation>> GetRecentByUserAsync(Guid userId, DateOnly startDate, DateOnly endDate, CancellationToken cancellationToken = default);
+    Task AddAsync(Recommendation recommendation, CancellationToken cancellationToken = default);
 }
 

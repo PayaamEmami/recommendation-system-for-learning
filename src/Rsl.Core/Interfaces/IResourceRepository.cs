@@ -17,5 +17,7 @@ public interface IResourceRepository
     Task<Resource> UpdateAsync(Resource resource, CancellationToken cancellationToken = default);
     Task DeleteAsync(Guid id, CancellationToken cancellationToken = default);
     Task<bool> ExistsAsync(Guid id, CancellationToken cancellationToken = default);
+    Task<bool> ExistsByUrlAsync(string url, CancellationToken cancellationToken = default);
+    Task AddAsync(Resource resource, CancellationToken cancellationToken = default);
 }
 

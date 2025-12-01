@@ -86,5 +86,16 @@ public class ResourceRepository : IResourceRepository
     {
         return await _context.Resources.AnyAsync(r => r.Id == id, cancellationToken);
     }
+
+    public async Task<bool> ExistsByUrlAsync(string url, CancellationToken cancellationToken = default)
+    {
+        return await _context.Resources.AnyAsync(r => r.Url == url, cancellationToken);
+    }
+
+    public async Task AddAsync(Resource resource, CancellationToken cancellationToken = default)
+    {
+        _context.Resources.Add(resource);
+        await _context.SaveChangesAsync(cancellationToken);
+    }
 }
 

@@ -1,6 +1,7 @@
 using Rsl.Api.Extensions;
 using Rsl.Api.Middleware;
 using Rsl.Infrastructure;
+using Rsl.Recommendation;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -17,6 +18,9 @@ builder.Services.AddRateLimitingConfiguration();
 
 // Add Infrastructure layer (DbContext, repositories)
 builder.Services.AddInfrastructure(builder.Configuration);
+
+// Add Recommendation Engine
+builder.Services.AddRecommendationEngine();
 
 // Add application services
 builder.Services.AddScoped<Rsl.Api.Services.IAuthService, Rsl.Api.Services.AuthService>();

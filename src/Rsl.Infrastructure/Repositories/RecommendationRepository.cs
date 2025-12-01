@@ -91,5 +91,20 @@ public class RecommendationRepository : IRecommendationRepository
         return await _context.Recommendations
             .AnyAsync(r => r.UserId == userId && r.Date == date && r.FeedType == feedType, cancellationToken);
     }
+
+    public async Task<IEnumerable<Recommendation>> GetRecentByUserAsync(Guid userId, DateOnly startDate, DateOnly endDate, CancellationToken cancellationToken = default)
+    {
+        return await _context.Recommendations
+            .Where(r => r.UserId == userId && r.Date >= startDate && r.Date <= endDate)
+            .Include(r => r.Resource)
+                .ThenInclude(res => res.Topics)
+            .ToListAsync(cancellationToken);
+    }
+
+    public async Task AddAsync(Recommendation recommendation, CancellationToken cancellationToken = default)
+    {
+        _context.Recommendations.Add(recommendation);
+        await _context.SaveChangesAsync(cancellationToken);
+    }
 }
 

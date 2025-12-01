@@ -23,6 +23,7 @@
   <ItemGroup>
     <ProjectReference Include="..\Rsl.Core\Rsl.Core.csproj" />
     <ProjectReference Include="..\Rsl.Infrastructure\Rsl.Infrastructure.csproj" />
+    <ProjectReference Include="..\Rsl.Recommendation\Rsl.Recommendation.csproj" />
   </ItemGroup>
 
 </Project>
