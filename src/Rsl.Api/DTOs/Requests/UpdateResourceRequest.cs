@@ -32,14 +32,8 @@ public class UpdateResourceRequest
     public DateTime? PublishedDate { get; set; }
 
     /// <summary>
-    /// The source or platform.
+    /// Optional source ID if this resource was ingested from a configured source.
     /// </summary>
-    [StringLength(200, ErrorMessage = "Source cannot exceed 200 characters")]
-    public string? Source { get; set; }
-
-    /// <summary>
-    /// List of topic IDs this resource belongs to.
-    /// </summary>
-    public List<Guid>? TopicIds { get; set; }
+    public Guid? SourceId { get; set; }
 }
 

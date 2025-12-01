@@ -59,17 +59,24 @@ public class RecommendationService : IRecommendationService
                         Description = r.Resource.Description,
                         Url = r.Resource.Url,
                         PublishedDate = r.Resource.PublishedDate,
-                        Source = r.Resource.Source,
                         Type = r.Resource.Type,
                         CreatedAt = r.Resource.CreatedAt,
                         UpdatedAt = r.Resource.UpdatedAt,
-                        Topics = r.Resource.Topics.Select(t => new TopicResponse
+                        SourceInfo = r.Resource.Source != null ? new SourceResponse
                         {
-                            Id = t.Id,
-                            Name = t.Name,
-                            Description = t.Description,
-                            CreatedAt = t.CreatedAt
-                        }).ToList()
+                            Id = r.Resource.Source.Id,
+                            UserId = r.Resource.Source.UserId,
+                            Name = r.Resource.Source.Name,
+                            Url = r.Resource.Source.Url,
+                            Description = r.Resource.Source.Description,
+                            Category = r.Resource.Source.Category,
+                            IsActive = r.Resource.Source.IsActive,
+                            CreatedAt = r.Resource.Source.CreatedAt,
+                            UpdatedAt = r.Resource.Source.UpdatedAt,
+                            LastFetchedAt = r.Resource.Source.LastFetchedAt,
+                            LastFetchError = r.Resource.Source.LastFetchError,
+                            ResourceCount = r.Resource.Source.Resources?.Count ?? 0
+                        } : null
                     },
                     Position = r.Position,
                     Score = r.Score,
@@ -121,17 +128,24 @@ public class RecommendationService : IRecommendationService
                                 Description = r.Resource.Description,
                                 Url = r.Resource.Url,
                                 PublishedDate = r.Resource.PublishedDate,
-                                Source = r.Resource.Source,
                                 Type = r.Resource.Type,
                                 CreatedAt = r.Resource.CreatedAt,
                                 UpdatedAt = r.Resource.UpdatedAt,
-                                Topics = r.Resource.Topics.Select(t => new TopicResponse
+                                SourceInfo = r.Resource.Source != null ? new SourceResponse
                                 {
-                                    Id = t.Id,
-                                    Name = t.Name,
-                                    Description = t.Description,
-                                    CreatedAt = t.CreatedAt
-                                }).ToList()
+                                    Id = r.Resource.Source.Id,
+                                    UserId = r.Resource.Source.UserId,
+                                    Name = r.Resource.Source.Name,
+                                    Url = r.Resource.Source.Url,
+                                    Description = r.Resource.Source.Description,
+                                    Category = r.Resource.Source.Category,
+                                    IsActive = r.Resource.Source.IsActive,
+                                    CreatedAt = r.Resource.Source.CreatedAt,
+                                    UpdatedAt = r.Resource.Source.UpdatedAt,
+                                    LastFetchedAt = r.Resource.Source.LastFetchedAt,
+                                    LastFetchError = r.Resource.Source.LastFetchError,
+                                    ResourceCount = r.Resource.Source.Resources?.Count ?? 0
+                                } : null
                             },
                             Position = r.Position,
                             Score = r.Score,

@@ -39,10 +39,11 @@ public class UserConfiguration : IEntityTypeConfiguration<User>
         builder.Property(u => u.LastLoginAt)
             .IsRequired(false);
 
-        // Many-to-Many relationship with Topics (User interests)
-        builder.HasMany(u => u.InterestedTopics)
-            .WithMany(t => t.InterestedUsers)
-            .UsingEntity(j => j.ToTable("UserTopics"));
+        // One-to-Many relationship with Sources
+        builder.HasMany(u => u.Sources)
+            .WithOne(s => s.User)
+            .HasForeignKey(s => s.UserId)
+            .OnDelete(DeleteBehavior.Cascade);
 
         // One-to-Many relationship with ResourceVotes
         builder.HasMany(u => u.Votes)

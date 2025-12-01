@@ -20,7 +20,7 @@ public class UserRepository : IUserRepository
     public async Task<User?> GetByIdAsync(Guid id, CancellationToken cancellationToken = default)
     {
         return await _context.Users
-            .Include(u => u.InterestedTopics)
+            .Include(u => u.Sources)
             .Include(u => u.Votes)
             .Include(u => u.Recommendations)
             .FirstOrDefaultAsync(u => u.Id == id, cancellationToken);
@@ -29,14 +29,14 @@ public class UserRepository : IUserRepository
     public async Task<User?> GetByEmailAsync(string email, CancellationToken cancellationToken = default)
     {
         return await _context.Users
-            .Include(u => u.InterestedTopics)
+            .Include(u => u.Sources)
             .FirstOrDefaultAsync(u => u.Email == email, cancellationToken);
     }
 
     public async Task<IEnumerable<User>> GetAllAsync(CancellationToken cancellationToken = default)
     {
         return await _context.Users
-            .Include(u => u.InterestedTopics)
+            .Include(u => u.Sources)
             .ToListAsync(cancellationToken);
     }
 

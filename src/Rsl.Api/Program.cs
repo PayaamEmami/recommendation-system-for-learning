@@ -25,7 +25,7 @@ builder.Services.AddRecommendationEngine();
 // Add application services
 builder.Services.AddScoped<Rsl.Api.Services.IAuthService, Rsl.Api.Services.AuthService>();
 builder.Services.AddScoped<Rsl.Api.Services.IUserService, Rsl.Api.Services.UserService>();
-builder.Services.AddScoped<Rsl.Api.Services.ITopicService, Rsl.Api.Services.TopicService>();
+builder.Services.AddScoped<Rsl.Api.Services.ISourceService, Rsl.Api.Services.SourceService>();
 builder.Services.AddScoped<Rsl.Api.Services.IResourceService, Rsl.Api.Services.ResourceService>();
 builder.Services.AddScoped<Rsl.Api.Services.IVoteService, Rsl.Api.Services.VoteService>();
 builder.Services.AddScoped<Rsl.Api.Services.IRecommendationService, Rsl.Api.Services.RecommendationService>();

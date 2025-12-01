@@ -35,9 +35,9 @@ public class User
     // Navigation properties
 
     /// <summary>
-    /// Topics the user is interested in.
+    /// URL-based sources configured by the user.
     /// </summary>
-    public List<Topic> InterestedTopics { get; set; } = new();
+    public List<Source> Sources { get; set; } = new();
 
     /// <summary>
     /// Votes the user has cast on resources.

@@ -12,16 +12,16 @@ namespace Rsl.Api.Services;
 public class ResourceService : IResourceService
 {
     private readonly IResourceRepository _resourceRepository;
-    private readonly ITopicRepository _topicRepository;
+    private readonly ISourceRepository _sourceRepository;
     private readonly ILogger<ResourceService> _logger;
 
     public ResourceService(
         IResourceRepository resourceRepository,
-        ITopicRepository topicRepository,
+        ISourceRepository sourceRepository,
         ILogger<ResourceService> logger)
     {
         _resourceRepository = resourceRepository;
-        _topicRepository = topicRepository;
+        _sourceRepository = sourceRepository;
         _logger = logger;
     }
 
@@ -29,7 +29,7 @@ public class ResourceService : IResourceService
         int pageNumber,
         int pageSize,
         ResourceType? type = null,
-        List<Guid>? topicIds = null,
+        List<Guid>? sourceIds = null,
         CancellationToken cancellationToken = default)
     {
         // Get resources (apply type filter if specified)
@@ -44,10 +44,10 @@ public class ResourceService : IResourceService
             resources = await _resourceRepository.GetAllAsync(cancellationToken);
         }
 
-        // Apply topic filter if specified
-        if (topicIds != null && topicIds.Any())
+        // Apply source filter if specified
+        if (sourceIds != null && sourceIds.Any())
         {
-            resources = resources.Where(r => r.Topics.Any(t => topicIds.Contains(t.Id)));
+            resources = resources.Where(r => r.SourceId.HasValue && sourceIds.Contains(r.SourceId.Value));
         }
 
         // Get total count before pagination
@@ -86,16 +86,14 @@ public class ResourceService : IResourceService
         CreateResourceRequest request,
         CancellationToken cancellationToken = default)
     {
-        // Fetch topics
-        var topics = new List<Topic>();
-        foreach (var topicId in request.TopicIds)
+        // Validate source if provided
+        if (request.SourceId.HasValue)
         {
-            var topic = await _topicRepository.GetByIdAsync(topicId, cancellationToken);
-            if (topic == null)
+            var source = await _sourceRepository.GetByIdAsync(request.SourceId.Value, cancellationToken);
+            if (source == null)
             {
-                throw new ArgumentException($"Topic with ID {topicId} not found");
+                throw new ArgumentException($"Source with ID {request.SourceId} not found");
             }
-            topics.Add(topic);
         }
 
         // Create resource based on type
@@ -115,10 +113,9 @@ public class ResourceService : IResourceService
         resource.Description = request.Description;
         resource.Url = request.Url;
         resource.PublishedDate = request.PublishedDate;
-        resource.Source = request.Source;
+        resource.SourceId = request.SourceId;
         resource.CreatedAt = DateTime.UtcNow;
         resource.UpdatedAt = DateTime.UtcNow;
-        resource.Topics = topics;
 
         await _resourceRepository.CreateAsync(resource, cancellationToken);
 
@@ -159,25 +156,15 @@ public class ResourceService : IResourceService
             resource.PublishedDate = request.PublishedDate;
         }
 
-        if (request.Source != null)
+        // Update source if provided
+        if (request.SourceId.HasValue)
         {
-            resource.Source = request.Source;
-        }
-
-        // Update topics if provided
-        if (request.TopicIds != null)
-        {
-            var topics = new List<Topic>();
-            foreach (var topicId in request.TopicIds)
+            var source = await _sourceRepository.GetByIdAsync(request.SourceId.Value, cancellationToken);
+            if (source == null)
             {
-                var topic = await _topicRepository.GetByIdAsync(topicId, cancellationToken);
-                if (topic == null)
-                {
-                    throw new ArgumentException($"Topic with ID {topicId} not found");
-                }
-                topics.Add(topic);
+                throw new ArgumentException($"Source with ID {request.SourceId} not found");
             }
-            resource.Topics = topics;
+            resource.SourceId = request.SourceId;
         }
 
         resource.UpdatedAt = DateTime.UtcNow;
@@ -211,17 +198,24 @@ public class ResourceService : IResourceService
             Description = resource.Description,
             Url = resource.Url,
             PublishedDate = resource.PublishedDate,
-            Source = resource.Source,
             Type = resource.Type,
             CreatedAt = resource.CreatedAt,
             UpdatedAt = resource.UpdatedAt,
-            Topics = resource.Topics.Select(t => new TopicResponse
+            SourceInfo = resource.Source != null ? new SourceResponse
             {
-                Id = t.Id,
-                Name = t.Name,
-                Description = t.Description,
-                CreatedAt = t.CreatedAt
-            }).ToList()
+                Id = resource.Source.Id,
+                UserId = resource.Source.UserId,
+                Name = resource.Source.Name,
+                Url = resource.Source.Url,
+                Description = resource.Source.Description,
+                Category = resource.Source.Category,
+                IsActive = resource.Source.IsActive,
+                CreatedAt = resource.Source.CreatedAt,
+                UpdatedAt = resource.Source.UpdatedAt,
+                LastFetchedAt = resource.Source.LastFetchedAt,
+                LastFetchError = resource.Source.LastFetchError,
+                ResourceCount = resource.Source.Resources?.Count ?? 0
+            } : null
         };
     }
 }

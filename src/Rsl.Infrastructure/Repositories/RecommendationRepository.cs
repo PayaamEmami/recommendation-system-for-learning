@@ -23,7 +23,7 @@ public class RecommendationRepository : IRecommendationRepository
         return await _context.Recommendations
             .Include(r => r.User)
             .Include(r => r.Resource)
-                .ThenInclude(res => res.Topics)
+                .ThenInclude(res => res.Source)
             .FirstOrDefaultAsync(r => r.Id == id, cancellationToken);
     }
 
@@ -32,7 +32,7 @@ public class RecommendationRepository : IRecommendationRepository
         return await _context.Recommendations
             .Where(r => r.UserId == userId && r.Date == date)
             .Include(r => r.Resource)
-                .ThenInclude(res => res.Topics)
+                .ThenInclude(res => res.Source)
             .OrderBy(r => r.FeedType)
             .ThenBy(r => r.Position)
             .ToListAsync(cancellationToken);
@@ -43,7 +43,7 @@ public class RecommendationRepository : IRecommendationRepository
         return await _context.Recommendations
             .Where(r => r.UserId == userId && r.Date == date && r.FeedType == feedType)
             .Include(r => r.Resource)
-                .ThenInclude(res => res.Topics)
+                .ThenInclude(res => res.Source)
             .OrderBy(r => r.Position)
             .ToListAsync(cancellationToken);
     }
@@ -64,7 +64,7 @@ public class RecommendationRepository : IRecommendationRepository
             .Skip((pageNumber - 1) * pageSize)
             .Take(pageSize)
             .Include(r => r.Resource)
-                .ThenInclude(res => res.Topics)
+                .ThenInclude(res => res.Source)
             .ToListAsync(cancellationToken);
     }
 
@@ -97,7 +97,7 @@ public class RecommendationRepository : IRecommendationRepository
         return await _context.Recommendations
             .Where(r => r.UserId == userId && r.Date >= startDate && r.Date <= endDate)
             .Include(r => r.Resource)
-                .ThenInclude(res => res.Topics)
+                .ThenInclude(res => res.Source)
             .ToListAsync(cancellationToken);
     }
 

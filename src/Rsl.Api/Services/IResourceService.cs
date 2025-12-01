@@ -16,7 +16,7 @@ public interface IResourceService
         int pageNumber,
         int pageSize,
         ResourceType? type = null,
-        List<Guid>? topicIds = null,
+        List<Guid>? sourceIds = null,
         CancellationToken cancellationToken = default);
 
     /// <summary>

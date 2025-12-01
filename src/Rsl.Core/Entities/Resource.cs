@@ -31,11 +31,6 @@ public abstract class Resource
     public DateTime? PublishedDate { get; set; }
 
     /// <summary>
-    /// The source or platform (e.g., "arXiv", "YouTube", "Medium").
-    /// </summary>
-    public string? Source { get; set; }
-
-    /// <summary>
     /// When this resource was added to the system.
     /// </summary>
     public DateTime CreatedAt { get; set; }
@@ -50,12 +45,17 @@ public abstract class Resource
     /// </summary>
     public abstract ResourceType Type { get; protected set; }
 
+    /// <summary>
+    /// The ID of the source this resource was ingested from (optional - can be null for manually added resources).
+    /// </summary>
+    public Guid? SourceId { get; set; }
+
     // Navigation properties
 
     /// <summary>
-    /// Topics/categories this resource belongs to.
+    /// The source this resource was ingested from.
     /// </summary>
-    public List<Topic> Topics { get; set; } = new();
+    public Source? Source { get; set; }
 
     /// <summary>
     /// User votes (upvotes/downvotes) on this resource.

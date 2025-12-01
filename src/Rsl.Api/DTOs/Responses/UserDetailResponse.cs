@@ -31,8 +31,8 @@ public class UserDetailResponse
     public DateTime? LastLoginAt { get; set; }
 
     /// <summary>
-    /// Topics the user is interested in.
+    /// URL-based sources configured by the user.
     /// </summary>
-    public List<TopicResponse> InterestedTopics { get; set; } = new();
+    public List<SourceResponse> Sources { get; set; } = new();
 }
 

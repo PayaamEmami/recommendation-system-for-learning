@@ -7,8 +7,8 @@ namespace Rsl.Recommendation.Scorers;
 
 /// <summary>
 /// Scores resources based on similarity to previously upvoted content.
-/// Boosts resources with topics similar to upvoted items.
-/// Penalizes resources similar to downvoted items.
+/// Boosts resources from sources with upvoted items.
+/// Penalizes resources from sources with downvoted items.
 /// </summary>
 public class VoteHistoryScorer : IResourceScorer
 {
@@ -29,12 +29,12 @@ public class VoteHistoryScorer : IResourceScorer
         // Get user's vote history
         var userVotes = await _voteRepository.GetByUserAsync(context.UserId, cancellationToken);
 
-        if (!userVotes.Any() || !resource.Topics.Any())
+        if (!userVotes.Any() || !resource.SourceId.HasValue)
         {
             return 0.5; // Neutral score
         }
 
-        var resourceTopicIds = resource.Topics.Select(t => t.Id).ToHashSet();
+        var resourceSourceId = resource.SourceId.Value;
 
         double upvoteScore = 0;
         double downvoteScore = 0;
@@ -43,32 +43,34 @@ public class VoteHistoryScorer : IResourceScorer
 
         foreach (var vote in userVotes)
         {
-            var votedResourceTopics = vote.Resource.Topics.Select(t => t.Id).ToHashSet();
-            var overlap = resourceTopicIds.Intersect(votedResourceTopics).Count();
-
-            if (overlap == 0) continue;
-
-            // Calculate topic similarity (0.0 to 1.0)
-            var similarity = (double)overlap / Math.Max(resourceTopicIds.Count, votedResourceTopics.Count);
-
-            if (vote.VoteType == VoteType.Upvote)
+            // Check if voted resource is from the same source
+            if (vote.Resource.SourceId == resourceSourceId)
             {
-                upvoteScore += similarity;
-                upvoteCount++;
-            }
-            else if (vote.VoteType == VoteType.Downvote)
-            {
-                downvoteScore += similarity;
-                downvoteCount++;
+                if (vote.VoteType == VoteType.Upvote)
+                {
+                    upvoteScore += 1.0;
+                    upvoteCount++;
+                }
+                else if (vote.VoteType == VoteType.Downvote)
+                {
+                    downvoteScore += 1.0;
+                    downvoteCount++;
+                }
             }
         }
 
-        // Calculate average similarity to upvoted/downvoted content
-        var avgUpvoteScore = upvoteCount > 0 ? upvoteScore / upvoteCount : 0;
-        var avgDownvoteScore = downvoteCount > 0 ? downvoteScore / downvoteCount : 0;
+        // Calculate average sentiment for this source
+        var totalVotes = upvoteCount + downvoteCount;
+        if (totalVotes == 0)
+        {
+            return 0.5; // No history with this source
+        }
 
-        // Combine: boost for upvote similarity, penalty for downvote similarity
-        var finalScore = 0.5 + (avgUpvoteScore * 0.5) - (avgDownvoteScore * 0.5);
+        // Calculate score based on upvote ratio
+        var upvoteRatio = (double)upvoteCount / totalVotes;
+
+        // Convert ratio to score (0.0 = all downvotes, 1.0 = all upvotes)
+        var finalScore = upvoteRatio;
 
         return Math.Clamp(finalScore, 0.0, 1.0);
     }

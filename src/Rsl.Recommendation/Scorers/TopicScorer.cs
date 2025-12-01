@@ -4,7 +4,7 @@ using Rsl.Recommendation.Models;
 namespace Rsl.Recommendation.Scorers;
 
 /// <summary>
-/// Scores resources based on topic alignment with user interests.
+/// Scores resources based on source alignment with user interests.
 /// </summary>
 public class TopicScorer : IResourceScorer
 {
@@ -15,31 +15,16 @@ public class TopicScorer : IResourceScorer
         RecommendationContext context,
         CancellationToken cancellationToken = default)
     {
-        // If no user profile or no topics, return neutral score
-        if (context.UserProfile == null || !resource.Topics.Any())
+        // If no user profile or no source, return neutral score
+        if (context.UserProfile == null || !resource.SourceId.HasValue)
         {
             return Task.FromResult(0.5);
         }
 
-        // Calculate average interest score across all resource topics
-        var topicScores = resource.Topics
-            .Select(topic => context.UserProfile.GetTopicScore(topic.Id))
-            .ToList();
+        // Get the score for this resource's source
+        var sourceScore = context.UserProfile.GetTopicScore(resource.SourceId.Value);
 
-        if (!topicScores.Any())
-        {
-            return Task.FromResult(0.5);
-        }
-
-        // Use average of topic scores
-        var averageScore = topicScores.Average();
-
-        // Boost resources with multiple relevant topics
-        var topicBonus = Math.Min(topicScores.Count * 0.05, 0.2); // Up to 20% bonus
-
-        var finalScore = Math.Clamp(averageScore + topicBonus, 0.0, 1.0);
-
-        return Task.FromResult(finalScore);
+        return Task.FromResult(sourceScore);
     }
 }
 

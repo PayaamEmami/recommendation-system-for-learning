@@ -3,20 +3,20 @@ using Rsl.Recommendation.Models;
 namespace Rsl.Recommendation.Filters;
 
 /// <summary>
-/// Ensures topic diversity in recommendations.
-/// Prevents all recommendations from being about the same topic.
+/// Ensures source diversity in recommendations.
+/// Prevents all recommendations from being from the same source.
 /// </summary>
 public class DiversityFilter : IRecommendationFilter
 {
-    // Maximum number of resources from the same topic
-    private const int MaxPerTopic = 2;
+    // Maximum number of resources from the same source
+    private const int MaxPerSource = 3;
 
     public Task<List<ScoredResource>> FilterAsync(
         List<ScoredResource> candidates,
         RecommendationContext context,
         CancellationToken cancellationToken = default)
     {
-        var topicCounts = new Dictionary<Guid, int>();
+        var sourceCounts = new Dictionary<Guid, int>();
         var diversified = new List<ScoredResource>();
 
         // Sort by score descending (best first)
@@ -24,44 +24,46 @@ public class DiversityFilter : IRecommendationFilter
 
         foreach (var candidate in sortedCandidates)
         {
-            // Check topic counts for this resource
-            var resourceTopicIds = candidate.Resource.Topics.Select(t => t.Id).ToList();
-
-            // Check if any topic is at max count
-            var hasOverrepresentedTopic = resourceTopicIds.Any(topicId =>
-                topicCounts.TryGetValue(topicId, out var count) && count >= MaxPerTopic);
-
-            if (!hasOverrepresentedTopic)
+            // Check if this resource has a source
+            if (candidate.Resource.SourceId.HasValue)
             {
-                // Add this resource
-                diversified.Add(candidate);
+                var sourceId = candidate.Resource.SourceId.Value;
+                var currentCount = sourceCounts.GetValueOrDefault(sourceId, 0);
 
-                // Increment topic counts
-                foreach (var topicId in resourceTopicIds)
+                // Check if source is at max count
+                if (currentCount >= MaxPerSource)
                 {
-                    topicCounts[topicId] = topicCounts.GetValueOrDefault(topicId, 0) + 1;
+                    continue; // Skip this resource
                 }
 
+                // Add this resource
+                diversified.Add(candidate);
+                sourceCounts[sourceId] = currentCount + 1;
+
                 // Apply small diversity penalty to score (for transparency)
-                var diversityPenalty = CalculateDiversityPenalty(resourceTopicIds, topicCounts);
+                var diversityPenalty = CalculateDiversityPenalty(currentCount);
                 candidate.Scores.DiversityPenalty = diversityPenalty;
                 candidate.FinalScore -= diversityPenalty;
+            }
+            else
+            {
+                // No source - always include (manual entries)
+                diversified.Add(candidate);
             }
         }
 
         return Task.FromResult(diversified);
     }
 
-    private double CalculateDiversityPenalty(List<Guid> topicIds, Dictionary<Guid, int> topicCounts)
+    private double CalculateDiversityPenalty(int currentCount)
     {
-        // Penalize topics that are becoming overrepresented
-        var maxCount = topicIds.Select(id => topicCounts.GetValueOrDefault(id, 0)).Max();
-
-        return maxCount switch
+        // Penalize sources that are becoming overrepresented
+        return currentCount switch
         {
             0 => 0.0,      // First occurrence - no penalty
             1 => 0.02,     // Second occurrence - small penalty
-            _ => 0.05      // Beyond - larger penalty
+            2 => 0.04,     // Third occurrence - larger penalty
+            _ => 0.05      // Beyond - largest penalty
         };
     }
 }

@@ -15,13 +15,13 @@ public class RslDbContext : DbContext
 
     // Entity DbSets
     public DbSet<User> Users { get; set; }
+    public DbSet<Source> Sources { get; set; }
     public DbSet<Resource> Resources { get; set; }
     public DbSet<Paper> Papers { get; set; }
     public DbSet<Video> Videos { get; set; }
     public DbSet<BlogPost> BlogPosts { get; set; }
     public DbSet<CurrentEvent> CurrentEvents { get; set; }
     public DbSet<SocialMediaPost> SocialMediaPosts { get; set; }
-    public DbSet<Topic> Topics { get; set; }
     public DbSet<ResourceVote> ResourceVotes { get; set; }
     public DbSet<Recommendation> Recommendations { get; set; }
 

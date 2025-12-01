@@ -35,17 +35,10 @@ public class CreateResourceRequest
     public DateTime? PublishedDate { get; set; }
 
     /// <summary>
-    /// The source or platform (e.g., "arXiv", "YouTube").
+    /// Optional source ID if this resource was ingested from a configured source.
+    /// If provided, the resource will be linked to the configured source.
     /// </summary>
-    [StringLength(200, ErrorMessage = "Source cannot exceed 200 characters")]
-    public string? Source { get; set; }
-
-    /// <summary>
-    /// List of topic IDs this resource belongs to.
-    /// </summary>
-    [Required(ErrorMessage = "At least one topic is required")]
-    [MinLength(1, ErrorMessage = "At least one topic is required")]
-    public List<Guid> TopicIds { get; set; } = new();
+    public Guid? SourceId { get; set; }
 
     /// <summary>
     /// The type of resource.

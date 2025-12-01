@@ -1,0 +1,160 @@
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
+using Rsl.Api.DTOs.Requests;
+using Rsl.Api.Extensions;
+using Rsl.Api.Services;
+using Rsl.Core.Enums;
+
+namespace Rsl.Api.Controllers;
+
+/// <summary>
+/// Controller for managing user sources (RSS feeds, YouTube channels, etc.).
+/// </summary>
+[Authorize]
+[ApiController]
+[Route("api/[controller]")]
+public class SourcesController : ControllerBase
+{
+    private readonly ISourceService _sourceService;
+    private readonly ILogger<SourcesController> _logger;
+
+    public SourcesController(ISourceService sourceService, ILogger<SourcesController> logger)
+    {
+        _sourceService = sourceService;
+        _logger = logger;
+    }
+
+    /// <summary>
+    /// Gets a source by ID.
+    /// </summary>
+    [HttpGet("{id}")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> GetSourceById(Guid id, CancellationToken cancellationToken)
+    {
+        var source = await _sourceService.GetSourceByIdAsync(id, cancellationToken);
+        if (source == null)
+        {
+            return NotFound(new { message = $"Source with ID {id} not found." });
+        }
+
+        return Ok(source);
+    }
+
+    /// <summary>
+    /// Gets all sources for the current user.
+    /// </summary>
+    [HttpGet]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    public async Task<IActionResult> GetUserSources(CancellationToken cancellationToken)
+    {
+        var userId = User.GetUserId();
+        if (!userId.HasValue)
+        {
+            return Unauthorized();
+        }
+
+        var sources = await _sourceService.GetUserSourcesAsync(userId.Value, cancellationToken);
+        return Ok(sources);
+    }
+
+    /// <summary>
+    /// Gets all active sources for the current user.
+    /// </summary>
+    [HttpGet("active")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    public async Task<IActionResult> GetActiveUserSources(CancellationToken cancellationToken)
+    {
+        var userId = User.GetUserId();
+        if (!userId.HasValue)
+        {
+            return Unauthorized();
+        }
+
+        var sources = await _sourceService.GetActiveUserSourcesAsync(userId.Value, cancellationToken);
+        return Ok(sources);
+    }
+
+    /// <summary>
+    /// Gets sources by category.
+    /// </summary>
+    [HttpGet("category/{category}")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    public async Task<IActionResult> GetSourcesByCategory(ResourceType category, CancellationToken cancellationToken)
+    {
+        var sources = await _sourceService.GetSourcesByCategoryAsync(category, cancellationToken);
+        return Ok(sources);
+    }
+
+    /// <summary>
+    /// Creates a new source.
+    /// </summary>
+    [HttpPost]
+    [ProducesResponseType(StatusCodes.Status201Created)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    public async Task<IActionResult> CreateSource([FromBody] CreateSourceRequest request, CancellationToken cancellationToken)
+    {
+        try
+        {
+            var userId = User.GetUserId();
+            if (!userId.HasValue)
+            {
+                return Unauthorized();
+            }
+
+            var source = await _sourceService.CreateSourceAsync(userId.Value, request, cancellationToken);
+            return CreatedAtAction(nameof(GetSourceById), new { id = source.Id }, source);
+        }
+        catch (InvalidOperationException ex)
+        {
+            return BadRequest(new { message = ex.Message });
+        }
+    }
+
+    /// <summary>
+    /// Updates an existing source.
+    /// </summary>
+    [HttpPut("{id}")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> UpdateSource(Guid id, [FromBody] UpdateSourceRequest request, CancellationToken cancellationToken)
+    {
+        try
+        {
+            var source = await _sourceService.UpdateSourceAsync(id, request, cancellationToken);
+            return Ok(source);
+        }
+        catch (ArgumentException)
+        {
+            return NotFound(new { message = $"Source with ID {id} not found." });
+        }
+        catch (InvalidOperationException ex)
+        {
+            return BadRequest(new { message = ex.Message });
+        }
+    }
+
+    /// <summary>
+    /// Deletes a source.
+    /// </summary>
+    [HttpDelete("{id}")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> DeleteSource(Guid id, CancellationToken cancellationToken)
+    {
+        try
+        {
+            await _sourceService.DeleteSourceAsync(id, cancellationToken);
+            return NoContent();
+        }
+        catch (ArgumentException)
+        {
+            return NotFound(new { message = $"Source with ID {id} not found." });
+        }
+    }
+}
+

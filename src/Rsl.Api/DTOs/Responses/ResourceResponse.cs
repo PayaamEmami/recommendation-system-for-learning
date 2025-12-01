@@ -33,11 +33,6 @@ public class ResourceResponse
     public DateTime? PublishedDate { get; set; }
 
     /// <summary>
-    /// The source or platform.
-    /// </summary>
-    public string? Source { get; set; }
-
-    /// <summary>
     /// The type of resource.
     /// </summary>
     public ResourceType Type { get; set; }
@@ -53,8 +48,8 @@ public class ResourceResponse
     public DateTime UpdatedAt { get; set; }
 
     /// <summary>
-    /// Topics this resource belongs to.
+    /// The source this resource was ingested from (if any).
     /// </summary>
-    public List<TopicResponse> Topics { get; set; } = new();
+    public SourceResponse? SourceInfo { get; set; }
 }
 

@@ -39,46 +39,49 @@ public class UserProfileService : IUserProfileService
 
         profile.TotalInteractions = votesList.Count;
 
-        // Calculate topic scores based on votes
-        var topicScores = new Dictionary<Guid, double>();
-        var topicCounts = new Dictionary<Guid, int>();
+        // Calculate source scores based on votes
+        var sourceScores = new Dictionary<Guid, double>();
+        var sourceCounts = new Dictionary<Guid, int>();
 
         foreach (var vote in votesList)
         {
             var weight = vote.VoteType == VoteType.Upvote ? 1.0 : -0.5;
 
-            foreach (var topic in vote.Resource.Topics)
+            // If resource has a source, track score for that source
+            if (vote.Resource.SourceId.HasValue)
             {
-                if (!topicScores.ContainsKey(topic.Id))
+                var sourceId = vote.Resource.SourceId.Value;
+
+                if (!sourceScores.ContainsKey(sourceId))
                 {
-                    topicScores[topic.Id] = 0;
-                    topicCounts[topic.Id] = 0;
+                    sourceScores[sourceId] = 0;
+                    sourceCounts[sourceId] = 0;
                 }
 
-                topicScores[topic.Id] += weight;
-                topicCounts[topic.Id]++;
+                sourceScores[sourceId] += weight;
+                sourceCounts[sourceId]++;
             }
         }
 
         // Normalize scores to 0.0 - 1.0 range
-        if (topicScores.Any())
+        if (sourceScores.Any())
         {
-            var maxScore = topicScores.Values.Max();
-            var minScore = topicScores.Values.Min();
+            var maxScore = sourceScores.Values.Max();
+            var minScore = sourceScores.Values.Min();
             var range = maxScore - minScore;
 
-            foreach (var topicId in topicScores.Keys.ToList())
+            foreach (var sourceId in sourceScores.Keys.ToList())
             {
                 if (range > 0)
                 {
                     // Normalize to 0-1
-                    var normalizedScore = (topicScores[topicId] - minScore) / range;
-                    profile.SetTopicScore(topicId, normalizedScore);
+                    var normalizedScore = (sourceScores[sourceId] - minScore) / range;
+                    profile.SetTopicScore(sourceId, normalizedScore);
                 }
                 else
                 {
                     // All scores are the same
-                    profile.SetTopicScore(topicId, 0.5);
+                    profile.SetTopicScore(sourceId, 0.5);
                 }
             }
         }

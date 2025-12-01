@@ -21,7 +21,7 @@ public class ResourceRepository : IResourceRepository
     public async Task<Resource?> GetByIdAsync(Guid id, CancellationToken cancellationToken = default)
     {
         return await _context.Resources
-            .Include(r => r.Topics)
+            .Include(r => r.Source)
             .Include(r => r.Votes)
             .FirstOrDefaultAsync(r => r.Id == id, cancellationToken);
     }
@@ -29,7 +29,7 @@ public class ResourceRepository : IResourceRepository
     public async Task<IEnumerable<Resource>> GetAllAsync(CancellationToken cancellationToken = default)
     {
         return await _context.Resources
-            .Include(r => r.Topics)
+            .Include(r => r.Source)
             .ToListAsync(cancellationToken);
     }
 
@@ -37,25 +37,20 @@ public class ResourceRepository : IResourceRepository
     {
         return await _context.Resources
             .Where(r => r.Type == type)
-            .Include(r => r.Topics)
+            .Include(r => r.Source)
             .ToListAsync(cancellationToken);
     }
 
     public async Task<IEnumerable<Resource>> GetByTopicAsync(Guid topicId, CancellationToken cancellationToken = default)
     {
-        return await _context.Resources
-            .Where(r => r.Topics.Any(t => t.Id == topicId))
-            .Include(r => r.Topics)
-            .ToListAsync(cancellationToken);
+        // Topics no longer exist - return empty list for backward compatibility
+        return await Task.FromResult(Enumerable.Empty<Resource>());
     }
 
     public async Task<IEnumerable<Resource>> GetByTopicsAsync(IEnumerable<Guid> topicIds, CancellationToken cancellationToken = default)
     {
-        var topicIdList = topicIds.ToList();
-        return await _context.Resources
-            .Where(r => r.Topics.Any(t => topicIdList.Contains(t.Id)))
-            .Include(r => r.Topics)
-            .ToListAsync(cancellationToken);
+        // Topics no longer exist - return empty list for backward compatibility
+        return await Task.FromResult(Enumerable.Empty<Resource>());
     }
 
     public async Task<Resource> CreateAsync(Resource resource, CancellationToken cancellationToken = default)

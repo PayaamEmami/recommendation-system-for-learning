@@ -39,10 +39,6 @@ public class ResourceConfiguration : IEntityTypeConfiguration<Resource>
         builder.Property(r => r.Description)
             .HasMaxLength(5000);
 
-        // Source: optional, max length 200
-        builder.Property(r => r.Source)
-            .HasMaxLength(200);
-
         // Timestamps
         builder.Property(r => r.PublishedDate)
             .IsRequired(false);
@@ -53,10 +49,12 @@ public class ResourceConfiguration : IEntityTypeConfiguration<Resource>
         builder.Property(r => r.UpdatedAt)
             .IsRequired();
 
-        // Many-to-Many relationship with Topics
-        builder.HasMany(r => r.Topics)
-            .WithMany(t => t.Resources)
-            .UsingEntity(j => j.ToTable("ResourceTopics"));
+        // Many-to-One relationship with Source (optional)
+        builder.HasOne(r => r.Source)
+            .WithMany(s => s.Resources)
+            .HasForeignKey(r => r.SourceId)
+            .OnDelete(DeleteBehavior.SetNull)
+            .IsRequired(false);
 
         // One-to-Many relationship with ResourceVotes
         builder.HasMany(r => r.Votes)
