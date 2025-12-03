@@ -2,6 +2,7 @@ using Rsl.Api.Extensions;
 using Rsl.Api.Middleware;
 using Rsl.Infrastructure;
 using Rsl.Recommendation;
+using Rsl.Llm;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -21,6 +22,9 @@ builder.Services.AddInfrastructure(builder.Configuration);
 
 // Add Recommendation Engine
 builder.Services.AddRecommendationEngine();
+
+// Add LLM services for ingestion
+builder.Services.AddLlmServices(builder.Configuration);
 
 // Add application services
 builder.Services.AddScoped<Rsl.Api.Services.IAuthService, Rsl.Api.Services.AuthService>();
