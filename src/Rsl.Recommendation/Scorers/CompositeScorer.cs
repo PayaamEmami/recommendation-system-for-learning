@@ -40,7 +40,7 @@ public class CompositeScorer
             // Store individual scores for transparency
             switch (scorer)
             {
-                case TopicScorer:
+                case SourceScorer:
                     scoredResource.Scores.TopicScore = score;
                     break;
                 case RecencyScorer:

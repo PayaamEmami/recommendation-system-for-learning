@@ -5,8 +5,9 @@ namespace Rsl.Recommendation.Scorers;
 
 /// <summary>
 /// Scores resources based on source alignment with user interests.
+/// Boosts resources from sources the user has historically liked.
 /// </summary>
-public class TopicScorer : IResourceScorer
+public class SourceScorer : IResourceScorer
 {
     public double Weight => 0.5; // 50% of final score
 

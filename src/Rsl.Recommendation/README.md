@@ -19,19 +19,19 @@ User Interest Profile → Resource Scoring → Filtering → Ranked Recommendati
 ### Components
 
 #### 1. **Models**
-- `UserInterestProfile` - Tracks user's topic preferences based on voting history
+- `UserInterestProfile` - Tracks user's source preferences based on voting history
 - `ScoredResource` - Resource with calculated recommendation scores
 - `RecommendationContext` - Context for generating recommendations
 
 #### 2. **Scorers**
-- `TopicScorer` (50% weight) - Matches resources to user's topic interests
+- `SourceScorer` (50% weight) - Matches resources to user's preferred sources
 - `RecencyScorer` (30% weight) - Boosts newer content with exponential decay
-- `VoteHistoryScorer` (20% weight) - Scores based on similarity to upvoted content
+- `VoteHistoryScorer` (20% weight) - Scores based on sources of upvoted content
 - `CompositeScorer` - Combines all scorers into weighted final score
 
 #### 3. **Filters**
 - `SeenResourceFilter` - Removes already-seen and recently-recommended resources
-- `DiversityFilter` - Ensures topic diversity, prevents over-representation
+- `DiversityFilter` - Ensures source diversity, prevents over-representation
 
 #### 4. **Engine**
 - `RecommendationEngine` - Orchestrates the recommendation pipeline:
@@ -48,9 +48,9 @@ User Interest Profile → Resource Scoring → Filtering → Ranked Recommendati
 
 ### Daily Feed Generation
 
-1. **Build User Profile**: Analyze voting history to determine topic interests
+1. **Build User Profile**: Analyze voting history to determine source preferences
 2. **Fetch Candidates**: Get recent resources of the specified feed type (last 90 days)
-3. **Score Resources**: Calculate scores based on topic match, recency, and vote history
+3. **Score Resources**: Calculate scores based on source preference, recency, and vote history
 4. **Apply Filters**: Remove seen resources and ensure diversity
 5. **Rank & Select**: Sort by score and select top N
 6. **Persist**: Save recommendations to database with position and scores
@@ -60,12 +60,12 @@ User Interest Profile → Resource Scoring → Filtering → Ranked Recommendati
 Each resource receives a weighted score:
 
 ```
-Final Score = (TopicScore × 0.5) + (RecencyScore × 0.3) + (VoteHistoryScore × 0.2)
+Final Score = (SourceScore × 0.5) + (RecencyScore × 0.3) + (VoteHistoryScore × 0.2)
 ```
 
-- **TopicScore**: Average interest score across resource topics, with bonus for multiple relevant topics
+- **SourceScore**: User's interest score for the resource's source (based on voting history)
 - **RecencyScore**: Exponential decay (e^(-age/30 days))
-- **VoteHistoryScore**: Similarity to upvoted content minus similarity to downvoted content
+- **VoteHistoryScore**: Positive score if source has upvotes, negative if downvotes
 
 ## Usage
 
@@ -121,7 +121,7 @@ The engine handles cold start gracefully:
 Default settings:
 - Feed count: 5 recommendations per feed
 - Candidate window: Last 90 days
-- Diversity limit: Max 2 resources per topic
+- Diversity limit: Max 3 resources per source
 - Recent recommendations window: Last 7 days
 - Recency half-life: 30 days
 
