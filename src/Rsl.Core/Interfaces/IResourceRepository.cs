@@ -9,6 +9,7 @@ namespace Rsl.Core.Interfaces;
 public interface IResourceRepository
 {
     Task<Resource?> GetByIdAsync(Guid id, CancellationToken cancellationToken = default);
+    Task<IEnumerable<Resource>> GetByIdsAsync(IEnumerable<Guid> ids, CancellationToken cancellationToken = default);
     Task<IEnumerable<Resource>> GetAllAsync(CancellationToken cancellationToken = default);
     Task<IEnumerable<Resource>> GetByTypeAsync(ResourceType type, CancellationToken cancellationToken = default);
     Task<IEnumerable<Resource>> GetByTopicAsync(Guid topicId, CancellationToken cancellationToken = default);

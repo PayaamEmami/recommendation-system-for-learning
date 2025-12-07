@@ -8,64 +8,87 @@ This project contains the core recommendation logic that generates personalized 
 
 ## Architecture
 
-### Phase 1: Content-Based Engine (Current)
+### Hybrid Recommendation Engine
 
-The current implementation uses a **content-based recommendation approach** that works immediately without historical data:
+The system uses a **hybrid recommendation approach** combining semantic similarity with traditional content-based signals:
 
 ```
-User Interest Profile → Resource Scoring → Filtering → Ranked Recommendations
+User Embedding (from upvotes) → Vector Search → Heuristic Scoring → Filtering → Ranked Recommendations
+                                      ↓
+                            Azure AI Search (Vector DB)
 ```
+
+**Primary Signal (70% weight)**: Vector similarity using embeddings
+**Secondary Signals (30% weight)**: Recency, source preferences, vote history
 
 ### Components
 
 #### 1. **Models**
-- `UserInterestProfile` - Tracks user's source preferences based on voting history
+- `UserInterestProfile` - User preference representation
+  - `UserEmbedding` - Aggregated embedding vector from upvoted resources (primary)
+  - `TopicScores` - Source preference scores (legacy, used by heuristic scorers)
 - `ScoredResource` - Resource with calculated recommendation scores
 - `RecommendationContext` - Context for generating recommendations
 
-#### 2. **Scorers**
-- `SourceScorer` (50% weight) - Matches resources to user's preferred sources
-- `RecencyScorer` (30% weight) - Boosts newer content with exponential decay
-- `VoteHistoryScorer` (20% weight) - Scores based on sources of upvoted content
-- `CompositeScorer` - Combines all scorers into weighted final score
+#### 2. **Engine**
+- `HybridRecommendationEngine` - Main orchestrator:
+  1. **Vector Search Phase**: Get candidates via semantic similarity using user embedding
+  2. **Heuristic Scoring Phase**: Apply traditional signals (recency, source, votes)
+  3. **Filtering Phase**: Remove duplicates, ensure diversity
+  4. **Ranking Phase**: Combine scores (70% vector + 30% heuristic) and sort
 
-#### 3. **Filters**
+#### 3. **Scorers** (Heuristic Signals)
+- `SourceScorer` (50% of heuristic weight) - Matches resources to user's preferred sources
+- `RecencyScorer` (30% of heuristic weight) - Exponential decay favoring newer content
+- `VoteHistoryScorer` (20% of heuristic weight) - Scores based on voting patterns
+- `CompositeScorer` - Combines heuristic scorers into weighted score
+
+#### 4. **Filters**
 - `SeenResourceFilter` - Removes already-seen and recently-recommended resources
 - `DiversityFilter` - Ensures source diversity, prevents over-representation
 
-#### 4. **Engine**
-- `RecommendationEngine` - Orchestrates the recommendation pipeline:
-  1. Fetch candidate resources
-  2. Score all candidates
-  3. Apply filters
-  4. Return top N ranked recommendations
-
 #### 5. **Services**
-- `UserProfileService` - Builds user interest profiles from voting history
+- `UserProfileService` - Builds user profiles:
+  - Generates user embedding by averaging embeddings of upvoted resources
+  - Calculates source preference scores for legacy scorers
 - `FeedGenerator` - Generates and persists daily recommendation feeds
 
 ## How It Works
 
 ### Daily Feed Generation
 
-1. **Build User Profile**: Analyze voting history to determine source preferences
-2. **Fetch Candidates**: Get recent resources of the specified feed type (last 90 days)
-3. **Score Resources**: Calculate scores based on source preference, recency, and vote history
-4. **Apply Filters**: Remove seen resources and ensure diversity
-5. **Rank & Select**: Sort by score and select top N
-6. **Persist**: Save recommendations to database with position and scores
+1. **Build User Profile**:
+   - Aggregate embeddings of all upvoted resources → User embedding vector
+   - Calculate source preference scores from voting history (for heuristic scorers)
+2. **Vector Search**: Query Azure AI Search for semantically similar resources
+   - Uses user embedding as query vector
+   - Applies filters: resource type, recency (90 days), exclude seen/recommended
+   - Returns top candidates with similarity scores
+3. **Heuristic Scoring**: Apply traditional signals to vector candidates
+   - Recency: Exponential decay favoring newer content
+   - Source preference: Boost resources from user's preferred sources
+   - Vote history: Consider patterns in user's voting behavior
+4. **Combine Scores**: Hybrid ranking
+   - 70% weight on vector similarity
+   - 30% weight on combined heuristic signals
+5. **Apply Filters**: Remove seen resources, ensure diversity
+6. **Rank & Select**: Sort by final score and select top N
+7. **Persist**: Save recommendations to database
 
 ### Scoring Algorithm
 
-Each resource receives a weighted score:
+Each resource receives a hybrid score:
 
 ```
-Final Score = (SourceScore × 0.5) + (RecencyScore × 0.3) + (VoteHistoryScore × 0.2)
+Final Score = (VectorSimilarity × 0.7) + (HeuristicScore × 0.3)
+
+where HeuristicScore = (SourceScore × 0.5) + (RecencyScore × 0.3) + (VoteHistoryScore × 0.2)
 ```
 
-- **SourceScore**: User's interest score for the resource's source (based on voting history)
+- **VectorSimilarity**: Cosine similarity between user embedding and resource embedding
+- **SourceScore**: User's preference for the resource's source
 - **RecencyScore**: Exponential decay (e^(-age/30 days))
-- **VoteHistoryScore**: Positive score if source has upvotes, negative if downvotes
+- **VoteHistoryScore**: Based on voting patterns for similar sources
 
 ## Usage
 
@@ -96,17 +119,25 @@ var allRecommendations = await feedGenerator.GenerateAllFeedsAsync(
 );
 ```
 
+## Dependencies
+
+The recommendation engine integrates with:
+- **Azure AI Search** (via `IVectorStore`) - Semantic similarity search
+- **Azure OpenAI** (via `IEmbeddingService`) - Text embedding generation
+- **SQL Server** (via EF Core repositories) - Persistence
+
 ## Future Enhancements
 
-### Phase 2: ML.NET Integration
-- Add collaborative filtering using matrix factorization
-- Periodic model retraining
-- Hybrid scoring (content + collaborative)
+### Phase 2: Advanced Features
+- **Multi-modal embeddings**: Combine text with metadata (authors, topics, citations)
+- **Temporal dynamics**: Weight recent upvotes more heavily in user embedding
+- **Collaborative signals**: Leverage similar users' preferences
+- **Fine-tuned embeddings**: Domain-specific embedding models for academic content
 
-### Phase 3: LLM Layer
-- Context-aware filtering and reranking
-- Natural language explanations
-- Personalized study plan generation
+### Phase 3: LLM Integration
+- **Explanation generation**: LLM-generated reasons for each recommendation
+- **Query refinement**: Natural language queries to adjust recommendations
+- **Study plan generation**: Personalized learning paths based on goals
 
 ## Cold Start Problem
 
@@ -127,11 +158,14 @@ Default settings:
 
 These can be adjusted in the respective scorer/filter implementations.
 
-## Dependencies
+## Configuration
 
-- `Rsl.Core` - Domain models and interfaces
-- `Microsoft.Extensions.DependencyInjection`
-- `Microsoft.Extensions.Logging`
+The engine requires:
+- Azure AI Search configured with vector index (via `IVectorStore`)
+- Azure OpenAI embeddings service (via `IEmbeddingService`)
+- Database with user votes and resources
+
+See `Rsl.Infrastructure` for configuration details.
 
 ## Testing
 

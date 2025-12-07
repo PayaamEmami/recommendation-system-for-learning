@@ -37,19 +37,9 @@ public class CompositeScorer
             weightedSum += score * scorer.Weight;
             totalWeight += scorer.Weight;
 
-            // Store individual scores for transparency
-            switch (scorer)
-            {
-                case SourceScorer:
-                    scoredResource.Scores.TopicScore = score;
-                    break;
-                case RecencyScorer:
-                    scoredResource.Scores.RecencyScore = score;
-                    break;
-                case VoteHistoryScorer:
-                    scoredResource.Scores.VoteHistoryScore = score;
-                    break;
-            }
+            // Store individual scores for transparency (using scorer type name as key)
+            var scorerName = scorer.GetType().Name.Replace("Scorer", "").ToLowerInvariant();
+            scoredResource.Scores[scorerName] = score;
         }
 
         // Calculate final weighted average
@@ -71,4 +61,5 @@ public class CompositeScorer
         return scoredResources.ToList();
     }
 }
+
 

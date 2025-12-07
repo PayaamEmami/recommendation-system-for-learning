@@ -42,7 +42,7 @@ public class DiversityFilter : IRecommendationFilter
 
                 // Apply small diversity penalty to score (for transparency)
                 var diversityPenalty = CalculateDiversityPenalty(currentCount);
-                candidate.Scores.DiversityPenalty = diversityPenalty;
+                candidate.Scores["diversity_penalty"] = diversityPenalty;
                 candidate.FinalScore -= diversityPenalty;
             }
             else

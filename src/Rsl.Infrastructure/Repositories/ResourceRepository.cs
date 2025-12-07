@@ -26,6 +26,15 @@ public class ResourceRepository : IResourceRepository
             .FirstOrDefaultAsync(r => r.Id == id, cancellationToken);
     }
 
+    public async Task<IEnumerable<Resource>> GetByIdsAsync(IEnumerable<Guid> ids, CancellationToken cancellationToken = default)
+    {
+        var idList = ids.ToList();
+        return await _context.Resources
+            .Where(r => idList.Contains(r.Id))
+            .Include(r => r.Source)
+            .ToListAsync(cancellationToken);
+    }
+
     public async Task<IEnumerable<Resource>> GetAllAsync(CancellationToken cancellationToken = default)
     {
         return await _context.Resources

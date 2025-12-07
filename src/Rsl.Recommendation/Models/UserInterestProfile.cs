@@ -2,7 +2,7 @@ namespace Rsl.Recommendation.Models;
 
 /// <summary>
 /// Represents a user's interest profile based on their interaction history.
-/// Used to score resources based on topic alignment.
+/// Used to score resources based on topic alignment and semantic similarity.
 /// </summary>
 public class UserInterestProfile
 {
@@ -14,8 +14,15 @@ public class UserInterestProfile
     /// <summary>
     /// Topic scores - higher values indicate stronger interest.
     /// Key: Topic ID, Value: Interest score (0.0 - 1.0)
+    /// (Kept for backward compatibility, used by legacy scorers)
     /// </summary>
     public Dictionary<Guid, double> TopicScores { get; set; } = new();
+
+    /// <summary>
+    /// User preference embedding vector built from aggregating embeddings of liked resources.
+    /// This is the primary representation for semantic similarity matching.
+    /// </summary>
+    public float[]? UserEmbedding { get; set; }
 
     /// <summary>
     /// When this profile was last calculated.
@@ -43,4 +50,5 @@ public class UserInterestProfile
         TopicScores[topicId] = Math.Clamp(score, 0.0, 1.0);
     }
 }
+
 

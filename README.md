@@ -20,8 +20,8 @@ RSL aims to:
   - Current Events
   - Social Media Posts
 - Experiment with:
-  - A traditional ML-based recommendation engine (ML.NET).
-  - An **LLM "agentic" layer** that can interpret, refine, and explain recommendations.
+  - A **hybrid recommendation engine** combining vector embeddings with traditional signals.
+  - An **LLM "agentic" layer** for content ingestion and future recommendation refinement.
 
 ## High-Level Architecture
 
@@ -50,24 +50,38 @@ At a high level, RSL is composed of:
 - Associates resources with their originating Source
 
 ### 🤖 Recommendation Engine
-- Simple, practical recommendation logic based on:
-  - Recency (prioritize newer content)
-  - Source preferences (from user's configured sources)
-  - User feedback (upvotes/downvotes)
+- **Hybrid recommendation system** combining:
+  - **Vector similarity search** using text embeddings (primary signal, 70% weight)
+    - Resources embedded using Azure OpenAI embeddings
+    - User preferences represented as aggregated embeddings of upvoted content
+    - Semantic similarity matching via Azure AI Search vector database
+  - **Heuristic signals** (secondary signals, 30% weight)
+    - Recency (exponential decay favoring newer content)
+    - Source preferences (from user's configured sources and voting history)
+    - User feedback patterns (upvotes/downvotes)
+- Filters for diversity, deduplication, and personalization
 
 ### 🧠 LLM Orchestration Layer
-- LLM "agent" that can:
-  - Request candidate recommendations from the engine.
-  - Refine them based on user constraints (time, difficulty, topics).
-  - Generate textual explanations and study plans.
-- Exposed through the backend as a service/API.
+- **Ingestion Agent**: LLM-powered content extraction from any URL
+  - Automatically categorizes resources (Papers, Videos, Blog Posts, etc.)
+  - Extracts metadata and handles duplicate detection
+  - Flexible, no custom parsers needed per source
+- **Future**: LLM-based recommendation refinement and explanations
 
 ### ⏰ Background Jobs & Scheduling
-- Periodic jobs to refresh and populate recommendation feeds.
-- Periodic retraining or refreshing of ML models.
+- **Source Ingestion Job**: Runs every 24 hours
+  - Pulls new content from all active sources
+  - Generates embeddings for new resources
+  - Indexes resources in vector database
+- **Daily Feed Generation Job**: Runs daily at 2 AM
+  - Builds personalized feeds for each user and content type
+  - Leverages vector similarity + heuristic signals
+  - Pre-generates recommendations for fast UI access
 
 ### ☁️ Infrastructure (Azure)
-- Application hosting, database, storage, observability, and notification services.
+- **Azure AI Search**: Vector database for semantic similarity search
+- **Azure OpenAI**: Embedding generation (text-embedding-3-small)
+- Application hosting, database (SQL Server), storage, and observability
 
 ## Solution / Project Layout
 
@@ -78,10 +92,10 @@ recommendation-system-for-learning/
 ├─ src/
 │  ├─ Rsl.Api/              # ASP.NET Core REST API (HTTP endpoints)
 │  ├─ Rsl.Core/             # Domain models, interfaces, core business rules
-│  ├─ Rsl.Infrastructure/   # Persistence, logging, monitoring, email, external integrations, Azure services
-│  ├─ Rsl.Jobs/             # Background jobs (e.g., daily digest, retraining)
-│  ├─ Rsl.Recommendation/   # ML.NET-based recommendation logic
-│  ├─ Rsl.Llm/              # LLM / “agentic” orchestration and tool interfaces
+│  ├─ Rsl.Infrastructure/   # Persistence (EF Core), Azure AI Search, Azure OpenAI embeddings
+│  ├─ Rsl.Jobs/             # Background jobs (source ingestion, daily feed generation)
+│  ├─ Rsl.Recommendation/   # Hybrid recommendation engine (vector similarity + heuristics)
+│  ├─ Rsl.Llm/              # LLM-based ingestion agent with function calling
 │  └─ Rsl.Web/              # Blazor frontend (UI, pages, components)
 │
 ├─ tests/

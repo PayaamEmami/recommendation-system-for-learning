@@ -10,4 +10,11 @@
   <ItemGroup>
     <PackageReference Include="Microsoft.Extensions.Hosting" Version="10.0.0" />
   </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Rsl.Core\Rsl.Core.csproj" />
+    <ProjectReference Include="..\Rsl.Infrastructure\Rsl.Infrastructure.csproj" />
+    <ProjectReference Include="..\Rsl.Recommendation\Rsl.Recommendation.csproj" />
+    <ProjectReference Include="..\Rsl.Llm\Rsl.Llm.csproj" />
+  </ItemGroup>
 </Project>

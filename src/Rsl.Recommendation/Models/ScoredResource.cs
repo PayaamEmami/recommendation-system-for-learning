@@ -10,9 +10,9 @@ public class ScoredResource
     public Resource Resource { get; set; } = null!;
 
     /// <summary>
-    /// Individual component scores.
+    /// Individual component scores (key is scorer name, value is score).
     /// </summary>
-    public ScoreBreakdown Scores { get; set; } = new();
+    public Dictionary<string, double> Scores { get; set; } = new();
 
     /// <summary>
     /// Final combined score used for ranking.
@@ -20,14 +20,8 @@ public class ScoredResource
     public double FinalScore { get; set; }
 
     /// <summary>
-    /// Breakdown of score components for debugging/explanation.
+    /// Get a specific score by name, or 0.0 if not found.
     /// </summary>
-    public class ScoreBreakdown
-    {
-        public double TopicScore { get; set; }
-        public double RecencyScore { get; set; }
-        public double VoteHistoryScore { get; set; }
-        public double DiversityPenalty { get; set; }
-    }
+    public double GetScore(string scoreName) => Scores.TryGetValue(scoreName, out var score) ? score : 0.0;
 }
 

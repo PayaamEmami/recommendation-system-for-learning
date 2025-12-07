@@ -2,8 +2,11 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Rsl.Core.Interfaces;
+using Rsl.Infrastructure.Configuration;
 using Rsl.Infrastructure.Data;
 using Rsl.Infrastructure.Repositories;
+using Rsl.Infrastructure.Services;
+using Rsl.Infrastructure.VectorStore;
 
 namespace Rsl.Infrastructure;
 
@@ -13,7 +16,7 @@ namespace Rsl.Infrastructure;
 public static class DependencyInjection
 {
     /// <summary>
-    /// Registers all Infrastructure layer services (DbContext, repositories) into the DI container.
+    /// Registers all Infrastructure layer services (DbContext, repositories, vector store, embeddings) into the DI container.
     /// </summary>
     /// <param name="services">The service collection to add services to.</param>
     /// <param name="configuration">The application configuration.</param>
@@ -35,7 +38,18 @@ public static class DependencyInjection
         services.AddScoped<IResourceVoteRepository, ResourceVoteRepository>();
         services.AddScoped<IRecommendationRepository, RecommendationRepository>();
 
+        // Register configuration settings
+        services.Configure<EmbeddingSettings>(configuration.GetSection(EmbeddingSettings.SectionName));
+        services.Configure<AzureAISearchSettings>(configuration.GetSection(AzureAISearchSettings.SectionName));
+
+        // Register embedding service
+        services.AddSingleton<IEmbeddingService, AzureOpenAIEmbeddingService>();
+
+        // Register vector store
+        services.AddSingleton<IVectorStore, AzureAISearchVectorStore>();
+
         return services;
     }
 }
+
 
