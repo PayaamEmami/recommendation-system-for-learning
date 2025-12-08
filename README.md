@@ -101,7 +101,7 @@ recommendation-system-for-learning/
 ├─ tests/
 │  └─ Rsl.Tests/            # Unit and integration tests
 │
-├─ infrastructure/           # Azure deployment infrastructure
+├─ infrastructure/          # Azure deployment infrastructure
 │  ├─ bicep/                # Azure Bicep IaC templates
 │  └─ scripts/              # Deployment automation scripts
 ```
