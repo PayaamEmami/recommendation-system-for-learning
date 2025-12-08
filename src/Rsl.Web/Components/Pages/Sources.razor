@@ -1,0 +1,234 @@
+@page "/sources"
+@rendermode InteractiveServer
+@using Rsl.Web.Services
+@using Rsl.Core.Enums
+@inject AuthService AuthService
+@inject SourceService SourceService
+@inject ThemeService ThemeService
+@inject NavigationManager Navigation
+@implements IDisposable
+
+<PageTitle>Sources - RSL</PageTitle>
+
+<div class="page-container">
+    <div class="page-header">
+        <h1>My Sources</h1>
+        <p class="subtitle">Manage your learning resource sources</p>
+    </div>
+
+    <div class="content-card">
+        <h2>Add New Source</h2>
+
+        @if (!string.IsNullOrEmpty(_errorMessage))
+        {
+            <div class="error-message">@_errorMessage</div>
+        }
+
+        @if (!string.IsNullOrEmpty(_successMessage))
+        {
+            <div class="success-message">@_successMessage</div>
+        }
+
+        <EditForm Model="@_newSource" OnValidSubmit="HandleAddSource" FormName="addSourceForm">
+            <DataAnnotationsValidator />
+
+            <div class="form-row">
+                <div class="form-group">
+                    <label for="name">Name</label>
+                    <InputText id="name" @bind-Value="_newSource.Name" class="form-input" placeholder="ArXiv AI Papers" />
+                    <ValidationMessage For="@(() => _newSource.Name)" />
+                </div>
+
+                <div class="form-group">
+                    <label for="category">Category</label>
+                    <InputSelect id="category" @bind-Value="_newSource.Category" class="form-input">
+                        <option value="">Select category...</option>
+                        @foreach (var type in Enum.GetValues<ResourceType>())
+                        {
+                            <option value="@type">@GetResourceTypeDisplay(type)</option>
+                        }
+                    </InputSelect>
+                    <ValidationMessage For="@(() => _newSource.Category)" />
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label for="url">URL</label>
+                <InputText id="url" @bind-Value="_newSource.Url" class="form-input" placeholder="https://example.com/feed" />
+                <ValidationMessage For="@(() => _newSource.Url)" />
+            </div>
+
+            <div class="form-group">
+                <label for="description">Description (optional)</label>
+                <InputTextArea id="description" @bind-Value="_newSource.Description" class="form-input" placeholder="A brief description of this source" rows="2" />
+            </div>
+
+            <button type="submit" class="btn-primary" disabled="@_isLoading">
+                @if (_isLoading)
+                {
+                    <span>Adding...</span>
+                }
+                else
+                {
+                    <span>Add Source</span>
+                }
+            </button>
+        </EditForm>
+    </div>
+
+    <div class="content-card">
+        <h2>Your Sources</h2>
+
+        @if (_sources == null)
+        {
+            <p>Loading sources...</p>
+        }
+        else if (!_sources.Any())
+        {
+            <p class="empty-state">No sources yet. Add your first source above!</p>
+        }
+        else
+        {
+            <div class="sources-list">
+                @foreach (var source in _sources)
+                {
+                    <div class="source-item">
+                        <div class="source-header">
+                            <h3>@source.Name</h3>
+                            <span class="source-badge @(source.IsActive ? "active" : "inactive")">
+                                @(source.IsActive ? "Active" : "Inactive")
+                            </span>
+                        </div>
+                        <div class="source-details">
+                            <span class="source-category">@GetResourceTypeDisplay(source.Category)</span>
+                            <a href="@source.Url" target="_blank" class="source-url">@source.Url</a>
+                        </div>
+                        @if (!string.IsNullOrEmpty(source.Description))
+                        {
+                            <p class="source-description">@source.Description</p>
+                        }
+                        <div class="source-actions">
+                            <button @onclick="() => ToggleSource(source.Id)" class="btn-secondary">
+                                @(source.IsActive ? "Deactivate" : "Activate")
+                            </button>
+                            <button @onclick="() => DeleteSource(source.Id)" class="btn-danger">Delete</button>
+                        </div>
+                    </div>
+                }
+            </div>
+        }
+    </div>
+</div>
+
+@code {
+    private List<SourceItem>? _sources;
+    private AddSourceModel _newSource = new();
+    private string? _errorMessage;
+    private string? _successMessage;
+    private bool _isLoading;
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            await ThemeService.InitializeAsync();
+        }
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (!AuthService.CurrentState.IsAuthenticated)
+        {
+            Navigation.NavigateTo("/login");
+            return;
+        }
+
+        AuthService.OnAuthStateChanged += HandleAuthStateChanged;
+        await LoadSources();
+    }
+
+    private async Task LoadSources()
+    {
+        _sources = await SourceService.GetUserSourcesAsync();
+    }
+
+    private async Task HandleAddSource()
+    {
+        _isLoading = true;
+        _errorMessage = null;
+        _successMessage = null;
+
+        var success = await SourceService.AddSourceAsync(
+            _newSource.Name,
+            _newSource.Url,
+            _newSource.Category,
+            _newSource.Description
+        );
+
+        if (success)
+        {
+            _successMessage = "Source added successfully!";
+            _newSource = new AddSourceModel();
+            await LoadSources();
+        }
+        else
+        {
+            _errorMessage = "Failed to add source. Please try again.";
+        }
+
+        _isLoading = false;
+    }
+
+    private async Task ToggleSource(Guid sourceId)
+    {
+        await SourceService.ToggleSourceActiveAsync(sourceId);
+        await LoadSources();
+    }
+
+    private async Task DeleteSource(Guid sourceId)
+    {
+        await SourceService.DeleteSourceAsync(sourceId);
+        await LoadSources();
+    }
+
+    private void HandleAuthStateChanged()
+    {
+        if (!AuthService.CurrentState.IsAuthenticated)
+        {
+            Navigation.NavigateTo("/login");
+        }
+    }
+
+    private static string GetResourceTypeDisplay(ResourceType type)
+    {
+        return type switch
+        {
+            ResourceType.Paper => "Papers",
+            ResourceType.Video => "Videos",
+            ResourceType.BlogPost => "Blog Posts",
+            ResourceType.CurrentEvent => "Current Events",
+            ResourceType.SocialMediaPost => "Social Media",
+            _ => type.ToString()
+        };
+    }
+
+    public void Dispose()
+    {
+        AuthService.OnAuthStateChanged -= HandleAuthStateChanged;
+    }
+
+    private class AddSourceModel
+    {
+        [Required(ErrorMessage = "Name is required")]
+        public string Name { get; set; } = string.Empty;
+
+        [Required(ErrorMessage = "URL is required")]
+        [Url(ErrorMessage = "Please enter a valid URL")]
+        public string Url { get; set; } = string.Empty;
+
+        [Required(ErrorMessage = "Category is required")]
+        public ResourceType Category { get; set; }
+
+        public string? Description { get; set; }
+    }
+}

@@ -1,0 +1,69 @@
+@rendermode InteractiveServer
+@using Rsl.Web.Services
+@inject AuthService AuthService
+@inject ThemeService ThemeService
+@implements IDisposable
+
+<header class="app-header">
+    <div class="header-content">
+        <a href="/feeds" class="logo">RSL</a>
+
+        <nav class="main-nav">
+            <a href="/feeds" class="nav-link">Feeds</a>
+            <a href="/sources" class="nav-link">Sources</a>
+        </nav>
+
+        <div class="header-actions">
+            <button @onclick="ToggleTheme" class="icon-button" title="Toggle theme">
+                @if (_themeService.IsDarkMode)
+                {
+                    <span>☀️</span>
+                }
+                else
+                {
+                    <span>🌙</span>
+                }
+            </button>
+
+            <div class="user-menu">
+                <span class="user-name">@_authService.CurrentState.DisplayName</span>
+                <button @onclick="HandleLogout" class="btn-text">Logout</button>
+            </div>
+        </div>
+    </div>
+</header>
+
+@code {
+    private AuthService _authService = default!;
+    private ThemeService _themeService = default!;
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            await _themeService.InitializeAsync();
+            _themeService.OnThemeChanged += StateHasChanged;
+        }
+    }
+
+    protected override void OnInitialized()
+    {
+        _authService = AuthService;
+        _themeService = ThemeService;
+    }
+
+    private async Task ToggleTheme()
+    {
+        await _themeService.ToggleThemeAsync();
+    }
+
+    private void HandleLogout()
+    {
+        _authService.Logout();
+    }
+
+    public void Dispose()
+    {
+        _themeService.OnThemeChanged -= StateHasChanged;
+    }
+}

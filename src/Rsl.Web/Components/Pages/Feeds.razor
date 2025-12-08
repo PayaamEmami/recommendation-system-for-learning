@@ -1,0 +1,171 @@
+@page "/feeds"
+@page "/feeds/{FeedType}"
+@rendermode InteractiveServer
+@using Rsl.Web.Services
+@using Rsl.Core.Enums
+@inject AuthService AuthService
+@inject FeedService FeedService
+@inject ThemeService ThemeService
+@inject NavigationManager Navigation
+@implements IDisposable
+
+<PageTitle>@GetPageTitle() - RSL</PageTitle>
+
+<div class="page-container">
+    <div class="page-header">
+        <h1>@GetPageTitle()</h1>
+        <p class="subtitle">Discover and explore learning resources</p>
+    </div>
+
+    <div class="feed-filters">
+        <a href="/feeds" class="filter-button @(string.IsNullOrEmpty(FeedType) ? "active" : "")">
+            All
+        </a>
+        @foreach (var type in Enum.GetValues<ResourceType>())
+        {
+            var typeName = type.ToString().ToLower();
+            <a href="/feeds/@typeName" class="filter-button @(FeedType?.Equals(typeName, StringComparison.OrdinalIgnoreCase) == true ? "active" : "")">
+                @GetResourceTypeDisplay(type)
+            </a>
+        }
+    </div>
+
+    <div class="feed-container">
+        @if (_resources == null)
+        {
+            <p>Loading feed...</p>
+        }
+        else if (!_resources.Any())
+        {
+            <div class="empty-state">
+                <p>No resources found.</p>
+                <p>Add some sources to start seeing content!</p>
+                <a href="/sources" class="btn-primary">Add Sources</a>
+            </div>
+        }
+        else
+        {
+            <div class="resources-list">
+                @foreach (var resource in _resources)
+                {
+                    <div class="resource-card">
+                        <div class="resource-header">
+                            <span class="resource-type">@GetResourceTypeDisplay(resource.Type)</span>
+                            <span class="resource-date">@FormatDate(resource.PublishedAt)</span>
+                        </div>
+                        <h3 class="resource-title">
+                            <a href="@resource.Url" target="_blank">@resource.Title</a>
+                        </h3>
+                        @if (!string.IsNullOrEmpty(resource.Description))
+                        {
+                            <p class="resource-description">@resource.Description</p>
+                        }
+                        <div class="resource-footer">
+                            <a href="@resource.Url" target="_blank" class="resource-link">View Resource →</a>
+                        </div>
+                    </div>
+                }
+            </div>
+        }
+    </div>
+</div>
+
+@code {
+    [Parameter]
+    public string? FeedType { get; set; }
+
+    private List<ResourceItem>? _resources;
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            await ThemeService.InitializeAsync();
+        }
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (!AuthService.CurrentState.IsAuthenticated)
+        {
+            Navigation.NavigateTo("/login");
+            return;
+        }
+
+        AuthService.OnAuthStateChanged += HandleAuthStateChanged;
+        await LoadFeed();
+    }
+
+    protected override async Task OnParametersSetAsync()
+    {
+        await LoadFeed();
+    }
+
+    private async Task LoadFeed()
+    {
+        ResourceType? type = null;
+
+        if (!string.IsNullOrEmpty(FeedType))
+        {
+            if (Enum.TryParse<ResourceType>(FeedType, ignoreCase: true, out var parsedType))
+            {
+                type = parsedType;
+            }
+        }
+
+        _resources = await FeedService.GetFeedAsync(type);
+    }
+
+    private void HandleAuthStateChanged()
+    {
+        if (!AuthService.CurrentState.IsAuthenticated)
+        {
+            Navigation.NavigateTo("/login");
+        }
+    }
+
+    private string GetPageTitle()
+    {
+        if (string.IsNullOrEmpty(FeedType))
+            return "All Feeds";
+
+        if (Enum.TryParse<ResourceType>(FeedType, ignoreCase: true, out var type))
+        {
+            return GetResourceTypeDisplay(type);
+        }
+
+        return "Feed";
+    }
+
+    private static string GetResourceTypeDisplay(ResourceType type)
+    {
+        return type switch
+        {
+            ResourceType.Paper => "Papers",
+            ResourceType.Video => "Videos",
+            ResourceType.BlogPost => "Blog Posts",
+            ResourceType.CurrentEvent => "Current Events",
+            ResourceType.SocialMediaPost => "Social Media",
+            _ => type.ToString()
+        };
+    }
+
+    private static string FormatDate(DateTime date)
+    {
+        var span = DateTime.UtcNow - date;
+
+        if (span.TotalDays < 1)
+            return $"{(int)span.TotalHours}h ago";
+        if (span.TotalDays < 7)
+            return $"{(int)span.TotalDays}d ago";
+        if (span.TotalDays < 30)
+            return $"{(int)(span.TotalDays / 7)}w ago";
+
+        return date.ToString("MMM d, yyyy");
+    }
+
+    public void Dispose()
+    {
+        AuthService.OnAuthStateChanged -= HandleAuthStateChanged;
+    }
+}

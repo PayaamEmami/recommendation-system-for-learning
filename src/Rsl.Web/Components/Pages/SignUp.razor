@@ -1,0 +1,127 @@
+@page "/signup"
+@rendermode InteractiveServer
+@using Rsl.Web.Services
+@inject AuthService AuthService
+@inject NavigationManager Navigation
+@inject ThemeService ThemeService
+
+<PageTitle>Sign Up - RSL</PageTitle>
+
+<div class="auth-container">
+    <div class="auth-card">
+        <h1>Sign Up</h1>
+        <p class="subtitle">Create your RSL account</p>
+
+        @if (!string.IsNullOrEmpty(_errorMessage))
+        {
+            <div class="error-message">@_errorMessage</div>
+        }
+
+        <EditForm Model="@_model" OnValidSubmit="HandleSignUp" FormName="signupForm">
+            <DataAnnotationsValidator />
+
+            <div class="form-group">
+                <label for="displayName">Display Name</label>
+                <InputText id="displayName" @bind-Value="_model.DisplayName" class="form-input" placeholder="John Doe" />
+                <ValidationMessage For="@(() => _model.DisplayName)" />
+            </div>
+
+            <div class="form-group">
+                <label for="email">Email</label>
+                <InputText id="email" @bind-Value="_model.Email" class="form-input" placeholder="your@email.com" />
+                <ValidationMessage For="@(() => _model.Email)" />
+            </div>
+
+            <div class="form-group">
+                <label for="password">Password</label>
+                <InputText id="password" type="password" @bind-Value="_model.Password" class="form-input" placeholder="••••••••" />
+                <ValidationMessage For="@(() => _model.Password)" />
+            </div>
+
+            <div class="form-group">
+                <label for="confirmPassword">Confirm Password</label>
+                <InputText id="confirmPassword" type="password" @bind-Value="_model.ConfirmPassword" class="form-input" placeholder="••••••••" />
+                <ValidationMessage For="@(() => _model.ConfirmPassword)" />
+            </div>
+
+            <button type="submit" class="btn-primary" disabled="@_isLoading">
+                @if (_isLoading)
+                {
+                    <span>Creating account...</span>
+                }
+                else
+                {
+                    <span>Sign Up</span>
+                }
+            </button>
+        </EditForm>
+
+        <p class="auth-footer">
+            Already have an account? <a href="/login">Login</a>
+        </p>
+    </div>
+</div>
+
+@code {
+    private SignUpModel _model = new();
+    private string? _errorMessage;
+    private bool _isLoading;
+
+    private async Task HandleSignUp()
+    {
+        _isLoading = true;
+        _errorMessage = null;
+
+        if (_model.Password != _model.ConfirmPassword)
+        {
+            _errorMessage = "Passwords do not match";
+            _isLoading = false;
+            return;
+        }
+
+        var result = await AuthService.SignUpAsync(_model.Email, _model.Password, _model.DisplayName);
+
+        if (result.Success)
+        {
+            Navigation.NavigateTo("/feeds");
+        }
+        else
+        {
+            _errorMessage = result.ErrorMessage;
+        }
+
+        _isLoading = false;
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            await ThemeService.InitializeAsync();
+        }
+    }
+
+    protected override void OnInitialized()
+    {
+        if (AuthService.CurrentState.IsAuthenticated)
+        {
+            Navigation.NavigateTo("/feeds");
+        }
+    }
+
+    private class SignUpModel
+    {
+        public string? DisplayName { get; set; }
+
+        [Required(ErrorMessage = "Email is required")]
+        [EmailAddress(ErrorMessage = "Invalid email address")]
+        public string Email { get; set; } = string.Empty;
+
+        [Required(ErrorMessage = "Password is required")]
+        [MinLength(6, ErrorMessage = "Password must be at least 6 characters")]
+        public string Password { get; set; } = string.Empty;
+
+        [Required(ErrorMessage = "Please confirm your password")]
+        public string ConfirmPassword { get; set; } = string.Empty;
+    }
+}

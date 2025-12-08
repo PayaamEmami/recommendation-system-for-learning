@@ -1,10 +1,17 @@
 using Rsl.Web.Components;
+using Rsl.Web.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
 builder.Services.AddRazorComponents()
     .AddInteractiveServerComponents();
+
+// Register application services
+builder.Services.AddSingleton<AuthService>();
+builder.Services.AddScoped<ThemeService>();
+builder.Services.AddScoped<SourceService>();
+builder.Services.AddScoped<FeedService>();
 
 var app = builder.Build();
 
