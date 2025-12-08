@@ -1,0 +1,141 @@
+name: Build and Deploy to Azure
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: 'Environment to deploy to'
+        required: true
+        default: 'dev'
+        type: choice
+        options:
+          - dev
+          - staging
+          - prod
+
+env:
+  DOTNET_VERSION: '10.0.x'
+  REGISTRY_NAME: ${{ secrets.AZURE_CONTAINER_REGISTRY }}
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Setup .NET
+      uses: actions/setup-dotnet@v4
+      with:
+        dotnet-version: ${{ env.DOTNET_VERSION }}
+
+    - name: Restore dependencies
+      run: dotnet restore
+
+    - name: Build solution
+      run: dotnet build --configuration Release --no-restore
+
+    - name: Run tests
+      run: dotnet test --configuration Release --no-build --verbosity normal
+
+    - name: Login to Azure Container Registry
+      uses: docker/login-action@v3
+      with:
+        registry: ${{ env.REGISTRY_NAME }}.azurecr.io
+        username: ${{ secrets.ACR_USERNAME }}
+        password: ${{ secrets.ACR_PASSWORD }}
+
+    - name: Build and push API Docker image
+      uses: docker/build-push-action@v5
+      with:
+        context: .
+        file: ./src/Rsl.Api/Dockerfile
+        push: true
+        tags: |
+          ${{ env.REGISTRY_NAME }}.azurecr.io/rsl-api:latest
+          ${{ env.REGISTRY_NAME }}.azurecr.io/rsl-api:${{ github.sha }}
+
+    - name: Build and push Web Docker image
+      uses: docker/build-push-action@v5
+      with:
+        context: .
+        file: ./src/Rsl.Web/Dockerfile
+        push: true
+        tags: |
+          ${{ env.REGISTRY_NAME }}.azurecr.io/rsl-web:latest
+          ${{ env.REGISTRY_NAME }}.azurecr.io/rsl-web:${{ github.sha }}
+
+    - name: Build and push Jobs Docker image
+      uses: docker/build-push-action@v5
+      with:
+        context: .
+        file: ./src/Rsl.Jobs/Dockerfile
+        push: true
+        tags: |
+          ${{ env.REGISTRY_NAME }}.azurecr.io/rsl-jobs:latest
+          ${{ env.REGISTRY_NAME }}.azurecr.io/rsl-jobs:${{ github.sha }}
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push' || github.event_name == 'workflow_dispatch'
+    environment:
+      name: ${{ github.event.inputs.environment || 'dev' }}
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Azure Login
+      uses: azure/login@v2
+      with:
+        creds: ${{ secrets.AZURE_CREDENTIALS }}
+
+    - name: Deploy Infrastructure
+      uses: azure/arm-deploy@v2
+      with:
+        subscriptionId: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+        resourceGroupName: ${{ secrets.AZURE_RESOURCE_GROUP }}
+        template: ./infrastructure/bicep/main.bicep
+        parameters: ./infrastructure/bicep/parameters.${{ github.event.inputs.environment || 'dev' }}.json
+        failOnStdErr: false
+
+    - name: Restart API App Service
+      run: |
+        az webapp restart \
+          --name rsl-${{ github.event.inputs.environment || 'dev' }}-api \
+          --resource-group ${{ secrets.AZURE_RESOURCE_GROUP }}
+
+    - name: Restart Web App Service
+      run: |
+        az webapp restart \
+          --name rsl-${{ github.event.inputs.environment || 'dev' }}-web \
+          --resource-group ${{ secrets.AZURE_RESOURCE_GROUP }}
+
+    - name: Restart Jobs App Service
+      run: |
+        az webapp restart \
+          --name rsl-${{ github.event.inputs.environment || 'dev' }}-jobs \
+          --resource-group ${{ secrets.AZURE_RESOURCE_GROUP }}
+
+    - name: Run Database Migrations
+      run: |
+        # Get connection string from Key Vault
+        CONNECTION_STRING=$(az keyvault secret show \
+          --vault-name rsl-${{ github.event.inputs.environment || 'dev' }}-kv \
+          --name SqlConnectionString \
+          --query value -o tsv)
+
+        # Run migrations using the API container
+        # Note: This requires EF Core CLI tools in the container or a migration script
+        echo "Database migrations should be run manually or via a migration job"
+
+    - name: Azure Logout
+      run: az logout

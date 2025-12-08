@@ -5,9 +5,27 @@
 
 # dotenv files
 .env
+.env.local
+.env.*.local
 
 # Local configuration overrides (secrets)
 appsettings.*.local.json
+appsettings.secrets.json
+**/appsettings.Secrets.json
+
+# Azure local settings (Functions/Jobs)
+local.settings.json
+
+# User secrets (managed via dotnet user-secrets)
+secrets.json
+
+# Azure credentials and publish profiles
+*.azurepubxml
+*.azurewebsites.net.pubxml
+
+# Infrastructure secrets (never commit actual secrets!)
+infrastructure/**/*.secrets.*
+infrastructure/**/*-secrets.*
 
 # User-specific files
 *.rsuser

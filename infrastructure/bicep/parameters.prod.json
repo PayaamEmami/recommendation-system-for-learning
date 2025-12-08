@@ -1,0 +1,64 @@
+{
+  "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentParameters.json#",
+  "contentVersion": "1.0.0.0",
+  "parameters": {
+    "appName": {
+      "value": "rsl"
+    },
+    "environment": {
+      "value": "prod"
+    },
+    "sqlAdminUsername": {
+      "reference": {
+        "keyVault": {
+          "id": "/subscriptions/{subscription-id}/resourceGroups/{rg-name}/providers/Microsoft.KeyVault/vaults/{kv-name}"
+        },
+        "secretName": "SqlAdminUsername"
+      }
+    },
+    "sqlAdminPassword": {
+      "reference": {
+        "keyVault": {
+          "id": "/subscriptions/{subscription-id}/resourceGroups/{rg-name}/providers/Microsoft.KeyVault/vaults/{kv-name}"
+        },
+        "secretName": "SqlAdminPassword"
+      }
+    },
+    "azureOpenAIEndpoint": {
+      "value": "https://your-openai-resource.openai.azure.com/"
+    },
+    "azureOpenAIApiKey": {
+      "reference": {
+        "keyVault": {
+          "id": "/subscriptions/{subscription-id}/resourceGroups/{rg-name}/providers/Microsoft.KeyVault/vaults/{kv-name}"
+        },
+        "secretName": "AzureOpenAIApiKey"
+      }
+    },
+    "azureOpenAIEmbeddingDeployment": {
+      "value": "text-embedding-3-small"
+    },
+    "azureOpenAIChatDeployment": {
+      "value": "gpt-4o"
+    },
+    "azureSearchEndpoint": {
+      "value": "https://your-search-service.search.windows.net"
+    },
+    "azureSearchApiKey": {
+      "reference": {
+        "keyVault": {
+          "id": "/subscriptions/{subscription-id}/resourceGroups/{rg-name}/providers/Microsoft.KeyVault/vaults/{kv-name}"
+        },
+        "secretName": "AzureSearchApiKey"
+      }
+    },
+    "jwtSecretKey": {
+      "reference": {
+        "keyVault": {
+          "id": "/subscriptions/{subscription-id}/resourceGroups/{rg-name}/providers/Microsoft.KeyVault/vaults/{kv-name}"
+        },
+        "secretName": "JwtSecretKey"
+      }
+    }
+  }
+}
