@@ -7,7 +7,8 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddRazorComponents()
     .AddInteractiveServerComponents();
 
-// Register application services
+// Register HttpClient and application services
+builder.Services.AddHttpClient();
 builder.Services.AddSingleton<AuthService>();
 builder.Services.AddScoped<ThemeService>();
 builder.Services.AddScoped<SourceService>();
