@@ -1,3 +1,5 @@
+using Microsoft.Extensions.Configuration;
+
 namespace Rsl.Web.Services;
 
 /// <summary>
@@ -8,13 +10,23 @@ public class AuthService
 {
     private AuthState _currentState = new();
     private readonly List<UserAccount> _users = new();
+    private readonly IConfiguration _configuration;
 
     public event Action? OnAuthStateChanged;
 
     public AuthState CurrentState => _currentState;
 
-    public AuthService()
+    public bool IsRegistrationEnabled =>
+        _configuration.GetValue<bool>("Registration:Enabled", true);
+
+    public string RegistrationDisabledMessage =>
+        _configuration.GetValue<string>("Registration:DisabledMessage",
+            "New account registrations are currently closed. Please check back later.") ?? string.Empty;
+
+    public AuthService(IConfiguration configuration)
     {
+        _configuration = configuration;
+
         // Add a default test user for development
         _users.Add(new UserAccount
         {
@@ -28,6 +40,10 @@ public class AuthService
     public async Task<AuthResult> SignUpAsync(string email, string password, string? displayName)
     {
         await Task.Delay(100); // Simulate async operation
+
+        // Check if registrations are enabled
+        if (!IsRegistrationEnabled)
+            return new AuthResult { Success = false, ErrorMessage = RegistrationDisabledMessage };
 
         if (string.IsNullOrWhiteSpace(email))
             return new AuthResult { Success = false, ErrorMessage = "Email is required" };

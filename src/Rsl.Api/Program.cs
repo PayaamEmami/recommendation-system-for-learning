@@ -17,6 +17,7 @@ builder.Services.AddApiVersioningConfiguration();
 builder.Services.AddOpenApiConfiguration();
 builder.Services.AddCorsConfiguration(builder.Configuration);
 builder.Services.AddRateLimitingConfiguration();
+builder.Services.AddRegistrationSettings(builder.Configuration);
 
 // Add Infrastructure layer (DbContext, repositories)
 builder.Services.AddInfrastructure(builder.Configuration);

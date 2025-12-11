@@ -100,5 +100,20 @@ public static class ServiceCollectionExtensions
 
         return services;
     }
+
+    /// <summary>
+    /// Configures registration settings.
+    /// </summary>
+    public static IServiceCollection AddRegistrationSettings(
+        this IServiceCollection services,
+        IConfiguration configuration)
+    {
+        var registrationSettings = configuration.GetSection("Registration").Get<RegistrationSettings>()
+            ?? new RegistrationSettings();
+
+        services.AddSingleton(registrationSettings);
+
+        return services;
+    }
 }
 

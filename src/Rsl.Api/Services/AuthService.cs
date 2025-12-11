@@ -19,6 +19,7 @@ public class AuthService : IAuthService
 {
     private readonly IUserRepository _userRepository;
     private readonly JwtSettings _jwtSettings;
+    private readonly RegistrationSettings _registrationSettings;
     private readonly ILogger<AuthService> _logger;
     private readonly PasswordHasher<User> _passwordHasher;
 
@@ -28,10 +29,12 @@ public class AuthService : IAuthService
     public AuthService(
         IUserRepository userRepository,
         JwtSettings jwtSettings,
+        RegistrationSettings registrationSettings,
         ILogger<AuthService> logger)
     {
         _userRepository = userRepository;
         _jwtSettings = jwtSettings;
+        _registrationSettings = registrationSettings;
         _logger = logger;
         _passwordHasher = new PasswordHasher<User>();
     }
@@ -71,6 +74,13 @@ public class AuthService : IAuthService
 
     public async Task<LoginResponse> RegisterAsync(RegisterRequest request, CancellationToken cancellationToken = default)
     {
+        // Check if registrations are enabled (defense in depth)
+        if (!_registrationSettings.Enabled)
+        {
+            _logger.LogWarning("Registration attempt rejected at service layer - registrations are disabled");
+            throw new InvalidOperationException(_registrationSettings.DisabledMessage);
+        }
+
         // Check if user already exists
         var existingUser = await _userRepository.GetByEmailAsync(request.Email, cancellationToken);
         if (existingUser != null)

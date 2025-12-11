@@ -1,6 +1,7 @@
 using Asp.Versioning;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.RateLimiting;
+using Rsl.Api.Configuration;
 using Rsl.Api.DTOs.Requests;
 using Rsl.Api.Services;
 
@@ -17,11 +18,31 @@ public class AuthController : ControllerBase
 {
     private readonly IAuthService _authService;
     private readonly ILogger<AuthController> _logger;
+    private readonly RegistrationSettings _registrationSettings;
 
-    public AuthController(IAuthService authService, ILogger<AuthController> logger)
+    public AuthController(
+        IAuthService authService,
+        ILogger<AuthController> logger,
+        RegistrationSettings registrationSettings)
     {
         _authService = authService;
         _logger = logger;
+        _registrationSettings = registrationSettings;
+    }
+
+    /// <summary>
+    /// Gets the registration status.
+    /// </summary>
+    /// <returns>Registration status information.</returns>
+    [HttpGet("registration-status")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    public IActionResult GetRegistrationStatus()
+    {
+        return Ok(new
+        {
+            enabled = _registrationSettings.Enabled,
+            message = _registrationSettings.Enabled ? null : _registrationSettings.DisabledMessage
+        });
     }
 
     /// <summary>
@@ -53,10 +74,21 @@ public class AuthController : ControllerBase
     [HttpPost("register")]
     [ProducesResponseType(typeof(DTOs.Responses.LoginResponse), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status403Forbidden)]
     public async Task<IActionResult> Register(
         [FromBody] RegisterRequest request,
         CancellationToken cancellationToken)
     {
+        // Check if registrations are enabled
+        if (!_registrationSettings.Enabled)
+        {
+            _logger.LogWarning("Registration attempt rejected - registrations are disabled");
+            return Problem(
+                statusCode: StatusCodes.Status403Forbidden,
+                title: "Registration Disabled",
+                detail: _registrationSettings.DisabledMessage);
+        }
+
         _logger.LogInformation("Registration attempt for email: {Email}", request.Email);
 
         var response = await _authService.RegisterAsync(request, cancellationToken);

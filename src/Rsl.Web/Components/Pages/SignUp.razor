@@ -12,53 +12,71 @@
         <h1>Sign Up</h1>
         <p class="subtitle">Create your RSL account</p>
 
-        @if (!string.IsNullOrEmpty(_errorMessage))
+        @if (!AuthService.IsRegistrationEnabled)
         {
-            <div class="error-message">@_errorMessage</div>
+            <div class="info-message" style="background-color: #fef3c7; border-left: 4px solid #f59e0b; padding: 1rem; margin-bottom: 1.5rem; border-radius: 0.375rem;">
+                <p style="margin: 0; color: #92400e;">
+                    <strong>Registration Closed</strong>
+                </p>
+                <p style="margin: 0.5rem 0 0 0; color: #78350f;">
+                    @AuthService.RegistrationDisabledMessage
+                </p>
+            </div>
+
+            <p class="auth-footer">
+                Already have an account? <a href="/login">Login</a>
+            </p>
         }
+        else
+        {
+            @if (!string.IsNullOrEmpty(_errorMessage))
+            {
+                <div class="error-message">@_errorMessage</div>
+            }
 
-        <EditForm Model="@_model" OnValidSubmit="HandleSignUp" FormName="signupForm">
-            <DataAnnotationsValidator />
+            <EditForm Model="@_model" OnValidSubmit="HandleSignUp" FormName="signupForm">
+                <DataAnnotationsValidator />
 
-            <div class="form-group">
-                <label for="displayName">Display Name</label>
-                <InputText id="displayName" @bind-Value="_model.DisplayName" class="form-input" placeholder="John Doe" />
-                <ValidationMessage For="@(() => _model.DisplayName)" />
-            </div>
+                <div class="form-group">
+                    <label for="displayName">Display Name</label>
+                    <InputText id="displayName" @bind-Value="_model.DisplayName" class="form-input" placeholder="John Doe" />
+                    <ValidationMessage For="@(() => _model.DisplayName)" />
+                </div>
 
-            <div class="form-group">
-                <label for="email">Email</label>
-                <InputText id="email" @bind-Value="_model.Email" class="form-input" placeholder="your@email.com" />
-                <ValidationMessage For="@(() => _model.Email)" />
-            </div>
+                <div class="form-group">
+                    <label for="email">Email</label>
+                    <InputText id="email" @bind-Value="_model.Email" class="form-input" placeholder="your@email.com" />
+                    <ValidationMessage For="@(() => _model.Email)" />
+                </div>
 
-            <div class="form-group">
-                <label for="password">Password</label>
-                <InputText id="password" type="password" @bind-Value="_model.Password" class="form-input" placeholder="••••••••" />
-                <ValidationMessage For="@(() => _model.Password)" />
-            </div>
+                <div class="form-group">
+                    <label for="password">Password</label>
+                    <InputText id="password" type="password" @bind-Value="_model.Password" class="form-input" placeholder="••••••••" />
+                    <ValidationMessage For="@(() => _model.Password)" />
+                </div>
 
-            <div class="form-group">
-                <label for="confirmPassword">Confirm Password</label>
-                <InputText id="confirmPassword" type="password" @bind-Value="_model.ConfirmPassword" class="form-input" placeholder="••••••••" />
-                <ValidationMessage For="@(() => _model.ConfirmPassword)" />
-            </div>
+                <div class="form-group">
+                    <label for="confirmPassword">Confirm Password</label>
+                    <InputText id="confirmPassword" type="password" @bind-Value="_model.ConfirmPassword" class="form-input" placeholder="••••••••" />
+                    <ValidationMessage For="@(() => _model.ConfirmPassword)" />
+                </div>
 
-            <button type="submit" class="btn-primary" disabled="@_isLoading">
-                @if (_isLoading)
-                {
-                    <span>Creating account...</span>
-                }
-                else
-                {
-                    <span>Sign Up</span>
-                }
-            </button>
-        </EditForm>
+                <button type="submit" class="btn-primary" disabled="@_isLoading">
+                    @if (_isLoading)
+                    {
+                        <span>Creating account...</span>
+                    }
+                    else
+                    {
+                        <span>Sign Up</span>
+                    }
+                </button>
+            </EditForm>
 
-        <p class="auth-footer">
-            Already have an account? <a href="/login">Login</a>
-        </p>
+            <p class="auth-footer">
+                Already have an account? <a href="/login">Login</a>
+            </p>
+        }
     </div>
 </div>
 
