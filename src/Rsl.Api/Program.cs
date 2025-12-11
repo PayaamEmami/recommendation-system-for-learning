@@ -1,3 +1,4 @@
+using Microsoft.EntityFrameworkCore;
 using Rsl.Api.Extensions;
 using Rsl.Api.Middleware;
 using Rsl.Infrastructure;
@@ -42,6 +43,27 @@ builder.Services.AddHealthChecks()
 builder.Services.AddProblemDetails();
 
 var app = builder.Build();
+
+// Run database migrations on startup (development only)
+if (app.Environment.IsDevelopment() || app.Environment.EnvironmentName == "Production")
+{
+    using (var scope = app.Services.CreateScope())
+    {
+        var logger = scope.ServiceProvider.GetRequiredService<ILogger<Program>>();
+        try
+        {
+            var db = scope.ServiceProvider.GetRequiredService<Rsl.Infrastructure.Data.RslDbContext>();
+            logger.LogInformation("Running database migrations...");
+            db.Database.Migrate();
+            logger.LogInformation("Database migrations completed successfully");
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "An error occurred while migrating the database");
+            throw;
+        }
+    }
+}
 
 // Configure the HTTP request pipeline
 app.UseMiddleware<ExceptionHandlingMiddleware>();
