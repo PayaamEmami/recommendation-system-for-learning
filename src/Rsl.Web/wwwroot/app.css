@@ -320,6 +320,11 @@ label {
     border-color: var(--accent-color);
 }
 
+/* Add extra padding for select dropdowns to accommodate the arrow */
+select.form-input {
+    padding-right: 2.5rem;
+}
+
 textarea.form-input {
     resize: vertical;
     font-family: inherit;
@@ -385,6 +390,10 @@ textarea.form-input {
     text-align: center;
     margin-top: 1.5rem;
     color: var(--text-secondary);
+}
+
+.auth-card .btn-primary {
+    width: 100%;
 }
 
 /* ============================================
