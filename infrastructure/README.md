@@ -14,9 +14,16 @@ This directory contains all deployment automation for running RSL in Microsoft A
 ```
 infrastructure/
 ├── bicep/
-│   ├── main.bicep              # Main infrastructure template
-│   ├── parameters.*.json       # Environment-specific parameters
-│   └── modules/                # Modular Bicep templates
+│   ├── main-container-apps.bicep   # Main infrastructure template (Container Apps)
+│   ├── parameters.*.json           # Environment-specific parameters
+│   └── modules/                    # Modular Bicep templates
+│       ├── container-app.bicep
+│       ├── container-apps-environment.bicep
+│       ├── container-registry.bicep
+│       ├── sql-server.bicep
+│       ├── key-vault.bicep
+│       ├── log-analytics.bicep
+│       └── application-insights.bicep
 └── scripts/
     ├── deploy.sh               # Deploy infrastructure
     ├── build-and-push.sh       # Build and push Docker images
@@ -26,61 +33,44 @@ infrastructure/
 
 ## Azure Resources Deployed
 
-- **Azure App Service** (3 instances: API, Web, Jobs)
-- **Azure Container Registry:** Docker image storage
-- **Azure SQL Database:** Application database
-- **Azure Key Vault:** Secret management
-- **Application Insights:** Monitoring and logging
-- **Azure OpenAI & Azure AI Search:** Must be created manually
+- **Azure Container Apps** (3 instances: API, Web, Jobs)
+- **Container Apps Environment** - Hosting environment for containers
+- **Azure Container Registry** - Docker image storage
+- **Azure SQL Database** - Application database
+- **Azure Key Vault** - Secret management
+- **Log Analytics Workspace** - Container logs and monitoring
+- **Application Insights** - Application telemetry and monitoring
+- **Azure OpenAI** (Free tier) - AI/ML services for embeddings
+- **Azure AI Search** (Free tier) - Vector database for semantic search
 
 ## Prerequisites
 
 1. Azure account with active subscription
-2. Azure CLI installed: `brew install azure-cli`
-3. Docker Desktop
-4. .NET 10 SDK
-5. Azure OpenAI and Azure AI Search resources created
+2. Azure CLI installed and authenticated: `az login`
+3. .NET 10 SDK
+4. GitHub account with repository configured
 
-## Quick Start
+## Deployment
 
+### Automated (CI/CD)
+Push to `main` branch triggers GitHub Actions workflow (`.github/workflows/azure-deploy.yml`):
+1. Build .NET solution
+2. Run tests
+3. Build Docker images
+4. Push to Container Registry
+5. Update Container Apps
+6. Database migrations run automatically on API startup
+
+### Manual
 ```bash
-# Login to Azure
-az login
-
-# Deploy infrastructure
 cd infrastructure/scripts
-./deploy.sh dev rsl-dev-rg eastus
-
-# Configure secrets
-./setup-secrets.sh dev
-
-# Build and push images
-./build-and-push.sh <registry-name> latest
-
-# Run database migrations
-./run-migrations.sh dev
-
-# Restart services
-az webapp restart --name rsl-dev-api --resource-group rsl-dev-rg
-az webapp restart --name rsl-dev-web --resource-group rsl-dev-rg
-az webapp restart --name rsl-dev-jobs --resource-group rsl-dev-rg
+./deploy.sh dev rsl-dev-rg westus
 ```
-
-## CI/CD
-
-GitHub Actions workflow (`.github/workflows/azure-deploy.yml`) provides automated deployment on push to main branch.
-
-## Cost Estimation
-
-- **Development:** ~$100-120/month
-- **Production:** ~$450-500/month
-
-Costs include App Service, SQL Database, Container Registry, Azure AI Search, Application Insights, and Azure OpenAI usage.
 
 ## Security
 
 - All secrets stored in Azure Key Vault
-- Managed identities for service authentication
+- Container App managed identities for service authentication
 - HTTPS-only enforcement
-- SQL firewall rules
-- Non-root Docker containers
+- SQL firewall configured for Azure services
+- Automatic database migrations with logging
