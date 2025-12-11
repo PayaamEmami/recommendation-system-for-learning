@@ -45,7 +45,7 @@ builder.Services.AddProblemDetails();
 
 var app = builder.Build();
 
-// Run database migrations on startup (development only)
+// Run database migrations on startup
 if (app.Environment.IsDevelopment() || app.Environment.EnvironmentName == "Production")
 {
     using (var scope = app.Services.CreateScope())
@@ -54,8 +54,16 @@ if (app.Environment.IsDevelopment() || app.Environment.EnvironmentName == "Produ
         try
         {
             var db = scope.ServiceProvider.GetRequiredService<Rsl.Infrastructure.Data.RslDbContext>();
+
+            // Check if database exists and create if needed
+            var canConnect = await db.Database.CanConnectAsync();
+            if (!canConnect)
+            {
+                logger.LogInformation("Database does not exist, creating...");
+            }
+
             logger.LogInformation("Running database migrations...");
-            db.Database.Migrate();
+            await db.Database.MigrateAsync();
             logger.LogInformation("Database migrations completed successfully");
         }
         catch (Exception ex)
