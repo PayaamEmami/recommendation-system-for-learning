@@ -37,10 +37,15 @@
         }
         else if (!_resources.Any())
         {
-            <div class="empty-state">
-                <p>No resources found.</p>
-                <p>Add some sources to start seeing content!</p>
-                <a href="/sources" class="btn-primary">Add Sources</a>
+            <div class="empty-state" style="text-align: center; padding: 3rem 1rem;">
+                <h2 style="margin-bottom: 1rem; color: var(--text-primary);">No Resources Yet</h2>
+                <p style="margin-bottom: 0.5rem; color: var(--text-secondary);">
+                    Start by adding some learning sources like RSS feeds, YouTube channels, or blogs.
+                </p>
+                <p style="margin-bottom: 2rem; color: var(--text-secondary);">
+                    Our system will automatically fetch content daily and show personalized recommendations here.
+                </p>
+                <a href="/sources" class="btn-primary">Add Your First Source</a>
             </div>
         }
         else
