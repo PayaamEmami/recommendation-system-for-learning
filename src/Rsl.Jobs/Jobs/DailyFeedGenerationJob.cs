@@ -75,7 +75,7 @@ public class DailyFeedGenerationJob
                                 user.Id,
                                 feedType,
                                 today,
-                                count: 10, // Generate 10 recommendations per feed
+                                count: 5, // Generate 5 recommendations per feed
                                 cancellationToken);
 
                             userFeedCount += recommendations.Count;
