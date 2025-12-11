@@ -58,38 +58,39 @@ az group create \
 print_info "Validating Bicep template..."
 az deployment group validate \
     --resource-group "$RESOURCE_GROUP" \
-    --template-file ../bicep/main.bicep \
+    --template-file ../bicep/main-container-apps.bicep \
     --parameters ../bicep/parameters.$ENVIRONMENT.json
 
 # Deploy infrastructure
 print_info "Deploying infrastructure..."
+DEPLOYMENT_NAME="rsl-deployment-$(date +%Y%m%d-%H%M%S)"
 az deployment group create \
     --resource-group "$RESOURCE_GROUP" \
-    --template-file ../bicep/main.bicep \
+    --template-file ../bicep/main-container-apps.bicep \
     --parameters ../bicep/parameters.$ENVIRONMENT.json \
-    --name "rsl-deployment-$(date +%Y%m%d-%H%M%S)" \
+    --name "$DEPLOYMENT_NAME" \
     --verbose
 
 # Get deployment outputs
 print_info "Retrieving deployment outputs..."
 CONTAINER_REGISTRY=$(az deployment group show \
     --resource-group "$RESOURCE_GROUP" \
-    --name "rsl-deployment-$(date +%Y%m%d-%H%M%S)" \
+    --name "$DEPLOYMENT_NAME" \
     --query properties.outputs.containerRegistryName.value -o tsv)
 
 CONTAINER_REGISTRY_LOGIN_SERVER=$(az deployment group show \
     --resource-group "$RESOURCE_GROUP" \
-    --name "rsl-deployment-$(date +%Y%m%d-%H%M%S)" \
+    --name "$DEPLOYMENT_NAME" \
     --query properties.outputs.containerRegistryLoginServer.value -o tsv)
 
 API_URL=$(az deployment group show \
     --resource-group "$RESOURCE_GROUP" \
-    --name "rsl-deployment-$(date +%Y%m%d-%H%M%S)" \
+    --name "$DEPLOYMENT_NAME" \
     --query properties.outputs.apiAppUrl.value -o tsv)
 
 WEB_URL=$(az deployment group show \
     --resource-group "$RESOURCE_GROUP" \
-    --name "rsl-deployment-$(date +%Y%m%d-%H%M%S)" \
+    --name "$DEPLOYMENT_NAME" \
     --query properties.outputs.webAppUrl.value -o tsv)
 
 print_info "Deployment completed successfully!"

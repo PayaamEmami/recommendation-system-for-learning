@@ -98,44 +98,31 @@ jobs:
       with:
         creds: ${{ secrets.AZURE_CREDENTIALS }}
 
-    - name: Deploy Infrastructure
-      uses: azure/arm-deploy@v2
-      with:
-        subscriptionId: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
-        resourceGroupName: ${{ secrets.AZURE_RESOURCE_GROUP }}
-        template: ./infrastructure/bicep/main.bicep
-        parameters: ./infrastructure/bicep/parameters.${{ github.event.inputs.environment || 'dev' }}.json
-        failOnStdErr: false
-
-    - name: Restart API App Service
+    - name: Update API Container App
       run: |
-        az webapp restart \
+        az containerapp update \
           --name rsl-${{ github.event.inputs.environment || 'dev' }}-api \
-          --resource-group ${{ secrets.AZURE_RESOURCE_GROUP }}
+          --resource-group ${{ secrets.AZURE_RESOURCE_GROUP }} \
+          --image ${{ secrets.AZURE_CONTAINER_REGISTRY }}.azurecr.io/rsl-api:${{ github.sha }}
 
-    - name: Restart Web App Service
+    - name: Update Web Container App
       run: |
-        az webapp restart \
+        az containerapp update \
           --name rsl-${{ github.event.inputs.environment || 'dev' }}-web \
-          --resource-group ${{ secrets.AZURE_RESOURCE_GROUP }}
+          --resource-group ${{ secrets.AZURE_RESOURCE_GROUP }} \
+          --image ${{ secrets.AZURE_CONTAINER_REGISTRY }}.azurecr.io/rsl-web:${{ github.sha }}
 
-    - name: Restart Jobs App Service
+    - name: Update Jobs Container App
       run: |
-        az webapp restart \
+        az containerapp update \
           --name rsl-${{ github.event.inputs.environment || 'dev' }}-jobs \
-          --resource-group ${{ secrets.AZURE_RESOURCE_GROUP }}
+          --resource-group ${{ secrets.AZURE_RESOURCE_GROUP }} \
+          --image ${{ secrets.AZURE_CONTAINER_REGISTRY }}.azurecr.io/rsl-jobs:${{ github.sha }}
 
     - name: Run Database Migrations
       run: |
-        # Get connection string from Key Vault
-        CONNECTION_STRING=$(az keyvault secret show \
-          --vault-name rsl-${{ github.event.inputs.environment || 'dev' }}-kv \
-          --name SqlConnectionString \
-          --query value -o tsv)
-
-        # Run migrations using the API container
-        # Note: This requires EF Core CLI tools in the container or a migration script
-        echo "Database migrations should be run manually or via a migration job"
+        echo "Database migrations will be run manually or via a migration job"
+        echo "To run manually: az containerapp exec --name rsl-dev-api --resource-group ${{ secrets.AZURE_RESOURCE_GROUP }} --command '/bin/sh'"
 
     - name: Azure Logout
       run: az logout

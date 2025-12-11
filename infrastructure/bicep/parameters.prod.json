@@ -11,7 +11,7 @@
     "sqlAdminUsername": {
       "reference": {
         "keyVault": {
-          "id": "/subscriptions/{subscription-id}/resourceGroups/{rg-name}/providers/Microsoft.KeyVault/vaults/{kv-name}"
+          "id": "/subscriptions/{subscription-id}/resourceGroups/rsl-shared-resources/providers/Microsoft.KeyVault/vaults/{kv-name}"
         },
         "secretName": "SqlAdminUsername"
       }
@@ -19,7 +19,7 @@
     "sqlAdminPassword": {
       "reference": {
         "keyVault": {
-          "id": "/subscriptions/{subscription-id}/resourceGroups/{rg-name}/providers/Microsoft.KeyVault/vaults/{kv-name}"
+          "id": "/subscriptions/{subscription-id}/resourceGroups/rsl-shared-resources/providers/Microsoft.KeyVault/vaults/{kv-name}"
         },
         "secretName": "SqlAdminPassword"
       }
@@ -30,7 +30,7 @@
     "azureOpenAIApiKey": {
       "reference": {
         "keyVault": {
-          "id": "/subscriptions/{subscription-id}/resourceGroups/{rg-name}/providers/Microsoft.KeyVault/vaults/{kv-name}"
+          "id": "/subscriptions/{subscription-id}/resourceGroups/rsl-shared-resources/providers/Microsoft.KeyVault/vaults/{kv-name}"
         },
         "secretName": "AzureOpenAIApiKey"
       }
@@ -47,7 +47,7 @@
     "azureSearchApiKey": {
       "reference": {
         "keyVault": {
-          "id": "/subscriptions/{subscription-id}/resourceGroups/{rg-name}/providers/Microsoft.KeyVault/vaults/{kv-name}"
+          "id": "/subscriptions/{subscription-id}/resourceGroups/rsl-shared-resources/providers/Microsoft.KeyVault/vaults/{kv-name}"
         },
         "secretName": "AzureSearchApiKey"
       }
@@ -55,7 +55,7 @@
     "jwtSecretKey": {
       "reference": {
         "keyVault": {
-          "id": "/subscriptions/{subscription-id}/resourceGroups/{rg-name}/providers/Microsoft.KeyVault/vaults/{kv-name}"
+          "id": "/subscriptions/{subscription-id}/resourceGroups/rsl-shared-resources/providers/Microsoft.KeyVault/vaults/{kv-name}"
         },
         "secretName": "JwtSecretKey"
       }

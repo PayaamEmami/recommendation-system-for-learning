@@ -9,31 +9,16 @@
       "value": "dev"
     },
     "sqlAdminUsername": {
-      "reference": {
-        "keyVault": {
-          "id": "/subscriptions/{subscription-id}/resourceGroups/{rg-name}/providers/Microsoft.KeyVault/vaults/{kv-name}"
-        },
-        "secretName": "SqlAdminUsername"
-      }
+      "value": "rsladmin"
     },
     "sqlAdminPassword": {
-      "reference": {
-        "keyVault": {
-          "id": "/subscriptions/{subscription-id}/resourceGroups/{rg-name}/providers/Microsoft.KeyVault/vaults/{kv-name}"
-        },
-        "secretName": "SqlAdminPassword"
-      }
+      "value": "REPLACE_WITH_STRONG_PASSWORD"
     },
     "azureOpenAIEndpoint": {
       "value": "https://your-openai-resource.openai.azure.com/"
     },
     "azureOpenAIApiKey": {
-      "reference": {
-        "keyVault": {
-          "id": "/subscriptions/{subscription-id}/resourceGroups/{rg-name}/providers/Microsoft.KeyVault/vaults/{kv-name}"
-        },
-        "secretName": "AzureOpenAIApiKey"
-      }
+      "value": "REPLACE_WITH_AZURE_OPENAI_API_KEY"
     },
     "azureOpenAIEmbeddingDeployment": {
       "value": "text-embedding-3-small"
@@ -45,20 +30,10 @@
       "value": "https://your-search-service.search.windows.net"
     },
     "azureSearchApiKey": {
-      "reference": {
-        "keyVault": {
-          "id": "/subscriptions/{subscription-id}/resourceGroups/{rg-name}/providers/Microsoft.KeyVault/vaults/{kv-name}"
-        },
-        "secretName": "AzureSearchApiKey"
-      }
+      "value": "REPLACE_WITH_AZURE_SEARCH_API_KEY"
     },
     "jwtSecretKey": {
-      "reference": {
-        "keyVault": {
-          "id": "/subscriptions/{subscription-id}/resourceGroups/{rg-name}/providers/Microsoft.KeyVault/vaults/{kv-name}"
-        },
-        "secretName": "JwtSecretKey"
-      }
+      "value": "REPLACE_WITH_JWT_SECRET_KEY"
     }
   }
 }

@@ -1,4 +1,4 @@
-// Main Bicep template for RSL infrastructure
+// Main Bicep template for RSL infrastructure using Container Apps
 targetScope = 'resourceGroup'
 
 @description('Application name prefix')
@@ -58,7 +58,7 @@ param tags object = {
 var uniqueSuffix = uniqueString(resourceGroup().id)
 var resourcePrefix = '${appName}-${environment}'
 
-// Modules
+// Container Registry
 module containerRegistry 'modules/container-registry.bicep' = {
   name: 'containerRegistryDeployment'
   params: {
@@ -68,6 +68,7 @@ module containerRegistry 'modules/container-registry.bicep' = {
   }
 }
 
+// SQL Server
 module sqlServer 'modules/sql-server.bicep' = {
   name: 'sqlServerDeployment'
   params: {
@@ -80,16 +81,7 @@ module sqlServer 'modules/sql-server.bicep' = {
   }
 }
 
-module appServicePlan 'modules/app-service-plan.bicep' = {
-  name: 'appServicePlanDeployment'
-  params: {
-    name: '${resourcePrefix}-plan'
-    location: location
-    skuName: environment == 'prod' ? 'P1v3' : 'B1'
-    tags: tags
-  }
-}
-
+// Key Vault
 module keyVault 'modules/key-vault.bicep' = {
   name: 'keyVaultDeployment'
   params: {
@@ -117,6 +109,7 @@ module keyVault 'modules/key-vault.bicep' = {
   }
 }
 
+// Application Insights
 module applicationInsights 'modules/application-insights.bicep' = {
   name: 'applicationInsightsDeployment'
   params: {
@@ -126,18 +119,42 @@ module applicationInsights 'modules/application-insights.bicep' = {
   }
 }
 
-module apiApp 'modules/app-service.bicep' = {
+// Log Analytics Workspace (for Container Apps)
+module logAnalytics 'modules/log-analytics.bicep' = {
+  name: 'logAnalyticsDeployment'
+  params: {
+    name: '${resourcePrefix}-logs'
+    location: location
+    tags: tags
+  }
+}
+
+// Container Apps Environment
+module containerAppsEnvironment 'modules/container-apps-environment.bicep' = {
+  name: 'containerAppsEnvironmentDeployment'
+  params: {
+    name: '${resourcePrefix}-env'
+    location: location
+    logAnalyticsWorkspaceId: logAnalytics.outputs.id
+    tags: tags
+  }
+}
+
+// API Container App
+module apiApp 'modules/container-app.bicep' = {
   name: 'apiAppDeployment'
   params: {
     name: '${resourcePrefix}-api'
     location: location
-    appServicePlanId: appServicePlan.outputs.id
+    environmentId: containerAppsEnvironment.outputs.id
     containerRegistryName: containerRegistry.outputs.name
     imageName: 'rsl-api'
     imageTag: 'latest'
     keyVaultName: keyVault.outputs.name
     applicationInsightsConnectionString: applicationInsights.outputs.connectionString
-    appSettings: [
+    minReplicas: 0
+    maxReplicas: 3
+    environmentVariables: [
       {
         name: 'ASPNETCORE_ENVIRONMENT'
         value: 'Production'
@@ -172,58 +189,72 @@ module apiApp 'modules/app-service.bicep' = {
       }
       {
         name: 'JWT_ISSUER'
-        value: 'https://${resourcePrefix}-api.azurewebsites.net'
+        value: 'https://${resourcePrefix}-api.${containerAppsEnvironment.outputs.defaultDomain}'
       }
       {
         name: 'JWT_AUDIENCE'
-        value: 'https://${resourcePrefix}-web.azurewebsites.net'
+        value: 'https://${resourcePrefix}-web.${containerAppsEnvironment.outputs.defaultDomain}'
       }
       {
         name: 'CORS_ALLOWED_ORIGINS'
-        value: 'https://${resourcePrefix}-web.azurewebsites.net'
+        value: 'https://${resourcePrefix}-web.${containerAppsEnvironment.outputs.defaultDomain}'
+      }
+      {
+        name: 'APPLICATIONINSIGHTS_CONNECTION_STRING'
+        value: applicationInsights.outputs.connectionString
       }
     ]
     tags: tags
   }
 }
 
-module webApp 'modules/app-service.bicep' = {
+// Web Container App
+module webApp 'modules/container-app.bicep' = {
   name: 'webAppDeployment'
   params: {
     name: '${resourcePrefix}-web'
     location: location
-    appServicePlanId: appServicePlan.outputs.id
+    environmentId: containerAppsEnvironment.outputs.id
     containerRegistryName: containerRegistry.outputs.name
     imageName: 'rsl-web'
     imageTag: 'latest'
     keyVaultName: keyVault.outputs.name
     applicationInsightsConnectionString: applicationInsights.outputs.connectionString
-    appSettings: [
+    minReplicas: 0
+    maxReplicas: 3
+    environmentVariables: [
       {
         name: 'ASPNETCORE_ENVIRONMENT'
         value: 'Production'
       }
       {
         name: 'API_BASE_URL'
-        value: 'https://${resourcePrefix}-api.azurewebsites.net'
+        value: apiApp.outputs.url
+      }
+      {
+        name: 'APPLICATIONINSIGHTS_CONNECTION_STRING'
+        value: applicationInsights.outputs.connectionString
       }
     ]
     tags: tags
   }
 }
 
-module jobsApp 'modules/app-service.bicep' = {
+// Jobs Container App
+module jobsApp 'modules/container-app.bicep' = {
   name: 'jobsAppDeployment'
   params: {
     name: '${resourcePrefix}-jobs'
     location: location
-    appServicePlanId: appServicePlan.outputs.id
+    environmentId: containerAppsEnvironment.outputs.id
     containerRegistryName: containerRegistry.outputs.name
     imageName: 'rsl-jobs'
     imageTag: 'latest'
     keyVaultName: keyVault.outputs.name
     applicationInsightsConnectionString: applicationInsights.outputs.connectionString
-    appSettings: [
+    minReplicas: 0
+    maxReplicas: 1
+    environmentVariables: [
       {
         name: 'ASPNETCORE_ENVIRONMENT'
         value: 'Production'
@@ -256,6 +287,10 @@ module jobsApp 'modules/app-service.bicep' = {
         name: 'AZURE_SEARCH_API_KEY'
         value: '@Microsoft.KeyVault(SecretUri=${keyVault.outputs.vaultUri}secrets/AzureSearchApiKey/)'
       }
+      {
+        name: 'APPLICATIONINSIGHTS_CONNECTION_STRING'
+        value: applicationInsights.outputs.connectionString
+      }
     ]
     tags: tags
   }
@@ -266,6 +301,8 @@ output containerRegistryName string = containerRegistry.outputs.name
 output containerRegistryLoginServer string = containerRegistry.outputs.loginServer
 output sqlServerFqdn string = sqlServer.outputs.serverFqdn
 output keyVaultName string = keyVault.outputs.name
-output apiAppUrl string = 'https://${resourcePrefix}-api.azurewebsites.net'
-output webAppUrl string = 'https://${resourcePrefix}-web.azurewebsites.net'
+output containerAppsEnvironmentName string = containerAppsEnvironment.outputs.name
+output apiAppUrl string = apiApp.outputs.url
+output webAppUrl string = webApp.outputs.url
+output jobsAppUrl string = jobsApp.outputs.url
 output applicationInsightsConnectionString string = applicationInsights.outputs.connectionString
