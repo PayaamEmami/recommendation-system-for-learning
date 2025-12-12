@@ -245,9 +245,9 @@ public class IngestionAgent : IIngestionAgent
         return @"You are an intelligent agent that extracts learning resources from web pages.
 
 Your task is to:
-1. Browse the provided URL and identify all learning resources (papers, videos, blog posts, news articles, social media posts)
+1. Browse the provided URL and identify all learning resources (papers, videos, blog posts, social media posts)
 2. Extract key information for each resource: title, URL, description
-3. Categorize each resource into one of these types: Paper, Video, BlogPost, CurrentEvent, SocialMediaPost
+3. Categorize each resource into one of these types: Paper, Video, BlogPost, SocialMediaPost
 4. Use the provided tools to check if resources already exist in the database to avoid duplicates
 5. Extract additional metadata when available (author, published date, etc.)
 
@@ -255,7 +255,6 @@ Resource Type Guidelines:
 - Paper: Academic papers, research publications, technical papers, arXiv papers
 - Video: YouTube videos, educational videos, conference talks, tutorials
 - BlogPost: Blog articles, technical write-ups, tutorials, how-to guides
-- CurrentEvent: News articles, current events, industry news, announcements
 - SocialMediaPost: Twitter/X threads, LinkedIn posts, Reddit discussions
 
 IMPORTANT: You have access to web browsing capabilities. When given a URL, you should visit it and extract the resources from the actual page content.

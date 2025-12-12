@@ -9,7 +9,7 @@ This project provides an intelligent, LLM-based agent that can automatically ext
 ## Features
 
 - **Flexible URL Ingestion**: Provide any URL (YouTube channel, blog, arXiv listing, etc.) and the agent extracts resources
-- **Automatic Categorization**: LLM categorizes resources into Papers, Videos, BlogPosts, CurrentEvents, or SocialMediaPosts
+- **Automatic Categorization**: LLM categorizes resources into Papers, Videos, BlogPosts, or SocialMediaPosts
 - **Duplicate Detection**: Agent uses tools to query the database and avoid inserting duplicate resources
 - **Rich Metadata Extraction**: Extracts titles, descriptions, URLs, and type-specific metadata (authors, duration, DOI, etc.)
 - **Provider Agnostic**: Abstracted `ILlmClient` allows switching between OpenAI, Azure OpenAI, or other providers
@@ -122,7 +122,6 @@ The agent categorizes resources into these types:
 - **Paper**: Academic papers, research publications (extracts DOI, authors, journal)
 - **Video**: Educational videos (extracts channel, duration, thumbnail)
 - **BlogPost**: Blog articles, tutorials (extracts author, blog name)
-- **CurrentEvent**: News articles, announcements
 - **SocialMediaPost**: Twitter/X threads, LinkedIn posts, Reddit discussions
 
 ## Error Handling

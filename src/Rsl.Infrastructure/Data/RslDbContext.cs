@@ -20,7 +20,6 @@ public class RslDbContext : DbContext
     public DbSet<Paper> Papers { get; set; }
     public DbSet<Video> Videos { get; set; }
     public DbSet<BlogPost> BlogPosts { get; set; }
-    public DbSet<CurrentEvent> CurrentEvents { get; set; }
     public DbSet<SocialMediaPost> SocialMediaPosts { get; set; }
     public DbSet<ResourceVote> ResourceVotes { get; set; }
     public DbSet<Recommendation> Recommendations { get; set; }

@@ -46,7 +46,6 @@ Resource (abstract)
 ├─ Paper
 ├─ Video
 ├─ BlogPost
-├─ CurrentEvent
 └─ SocialMediaPost
 ```
 

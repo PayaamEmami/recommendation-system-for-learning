@@ -102,7 +102,6 @@ public class ResourceService : IResourceService
             ResourceType.Paper => new Paper(),
             ResourceType.Video => new Video(),
             ResourceType.BlogPost => new BlogPost(),
-            ResourceType.CurrentEvent => new CurrentEvent(),
             ResourceType.SocialMediaPost => new SocialMediaPost(),
             _ => throw new ArgumentException($"Invalid resource type: {request.ResourceType}")
         };

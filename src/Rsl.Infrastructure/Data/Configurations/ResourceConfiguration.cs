@@ -22,7 +22,6 @@ public class ResourceConfiguration : IEntityTypeConfiguration<Resource>
             .HasValue<Paper>(ResourceType.Paper)
             .HasValue<Video>(ResourceType.Video)
             .HasValue<BlogPost>(ResourceType.BlogPost)
-            .HasValue<CurrentEvent>(ResourceType.CurrentEvent)
             .HasValue<SocialMediaPost>(ResourceType.SocialMediaPost);
 
         // Title: required, max length 500

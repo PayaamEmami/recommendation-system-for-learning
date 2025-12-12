@@ -9,7 +9,6 @@ public enum ResourceType
     Paper,
     Video,
     BlogPost,
-    CurrentEvent,
     SocialMediaPost
 }
 

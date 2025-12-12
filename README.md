@@ -13,8 +13,7 @@ RSL provides:
 - **Provide personalized feeds** for different content types:
   - Papers
   - Videos
-  - Blog posts
-  - Current Events
+  - Blogs
   - Social Media Posts
 - **Hybrid recommendation engine** combining vector embeddings with heuristic signals for personalized content discovery.
 - **Vote on resources** (upvote/downvote) to refine recommendations based on your preferences.
@@ -58,7 +57,7 @@ RSL provides:
 At a high level, RSL is composed of:
 
 ### 🎨 Blazor Server Frontend
-- Interactive web UI with multiple feed types (Papers, Videos, Blog Posts, Current Events, Social Media Posts)
+- Interactive web UI with multiple feed types (Papers, Videos, Blogs, Social Media Posts)
 - User flows for browsing personalized feeds and managing sources
 - Real-time updates and responsive design
 - Dark/Light theme support
@@ -97,7 +96,7 @@ At a high level, RSL is composed of:
 
 ### 🧠 LLM Orchestration Layer
 - **Ingestion Agent**: LLM-powered content extraction from any URL
-  - Automatically categorizes resources (Papers, Videos, Blog Posts, etc.)
+  - Automatically categorizes resources (Papers, Videos, Blogs, etc.)
   - Extracts metadata and handles duplicate detection
   - Flexible, no custom parsers needed per source
 

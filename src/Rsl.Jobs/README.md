@@ -22,7 +22,7 @@ Jobs runs as a continuous background process that orchestrates periodic tasks fo
 - **Schedule:** Runs daily at 2:00 AM
 - **Purpose:** Pre-generates personalized recommendation feeds for all users
 - **Steps:**
-  1. For each user and content type (Papers, Videos, Blog Posts, etc.):
+  1. For each user and content type (Papers, Videos, Blogs, etc.):
   2. Build user interest profile from voting history
   3. Run hybrid recommendation engine (vector similarity + heuristics)
   4. Apply diversity and deduplication filters

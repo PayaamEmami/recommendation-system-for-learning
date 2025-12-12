@@ -246,17 +246,6 @@ public class SourceIngestionJob
                 UpdatedAt = DateTime.UtcNow,
                 Author = extracted.Author
             },
-            Core.Enums.ResourceType.CurrentEvent => new CurrentEvent
-            {
-                Id = Guid.NewGuid(),
-                Title = extracted.Title,
-                Description = extracted.Description,
-                Url = extracted.Url,
-                PublishedDate = extracted.PublishedDate,
-                SourceId = sourceId,
-                CreatedAt = DateTime.UtcNow,
-                UpdatedAt = DateTime.UtcNow
-            },
             Core.Enums.ResourceType.SocialMediaPost => new SocialMediaPost
             {
                 Id = Guid.NewGuid(),
