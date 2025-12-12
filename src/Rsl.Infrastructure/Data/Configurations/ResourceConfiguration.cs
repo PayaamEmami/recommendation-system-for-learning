@@ -17,8 +17,13 @@ public class ResourceConfiguration : IEntityTypeConfiguration<Resource>
 
         builder.HasKey(r => r.Id);
 
+        // Configure the Type property to be stored as a string in the database
+        builder.Property(r => r.Type)
+            .HasConversion<string>();
+
         // Set up inheritance discriminator based on ResourceType enum
-        builder.HasDiscriminator<ResourceType>("Type")
+        // Using string-based discriminator for better maintainability and readability
+        builder.HasDiscriminator(r => r.Type)
             .HasValue<Paper>(ResourceType.Paper)
             .HasValue<Video>(ResourceType.Video)
             .HasValue<BlogPost>(ResourceType.BlogPost)

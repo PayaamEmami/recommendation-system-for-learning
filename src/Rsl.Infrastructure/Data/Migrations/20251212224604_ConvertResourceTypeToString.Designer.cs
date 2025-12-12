@@ -3,6 +3,7 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Rsl.Infrastructure.Data;
 
@@ -11,9 +12,11 @@ using Rsl.Infrastructure.Data;
 namespace Rsl.Infrastructure.Data.Migrations
 {
     [DbContext(typeof(RslDbContext))]
-    partial class RslDbContextModelSnapshot : ModelSnapshot
+    [Migration("20251212224604_ConvertResourceTypeToString")]
+    partial class ConvertResourceTypeToString
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder

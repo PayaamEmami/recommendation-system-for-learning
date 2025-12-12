@@ -560,6 +560,8 @@ textarea.form-input {
     border: 1px solid var(--border-color);
     border-radius: 8px;
     overflow-x: auto;
+    justify-content: center;
+    flex-wrap: wrap;
 }
 
 .filter-button {
@@ -706,9 +708,5 @@ textarea.form-input {
 
     .form-row {
         grid-template-columns: 1fr;
-    }
-
-    .feed-filters {
-        flex-wrap: wrap;
     }
 }
