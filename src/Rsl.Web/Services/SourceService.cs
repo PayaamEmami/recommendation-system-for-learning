@@ -82,6 +82,30 @@ public class SourceService
         source.IsActive = !source.IsActive;
         return true;
     }
+
+    public async Task<bool> UpdateSourceAsync(Guid sourceId, string? name, string? url, ResourceType? category, string? description)
+    {
+        await Task.Delay(50); // Simulate async operation
+
+        var userId = _authService.CurrentState.UserId;
+        if (!userId.HasValue)
+            return false;
+
+        var source = _sources.FirstOrDefault(s => s.Id == sourceId && s.UserId == userId.Value);
+        if (source == null)
+            return false;
+
+        if (!string.IsNullOrEmpty(name))
+            source.Name = name;
+        if (!string.IsNullOrEmpty(url))
+            source.Url = url;
+        if (category.HasValue)
+            source.Category = category.Value;
+        if (description != null)
+            source.Description = description;
+
+        return true;
+    }
 }
 
 public class SourceItem

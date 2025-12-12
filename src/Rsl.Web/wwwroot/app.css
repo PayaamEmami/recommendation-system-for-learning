@@ -451,6 +451,13 @@ textarea.form-input {
     border-radius: 6px;
     padding: 1.25rem;
     background-color: var(--bg-secondary);
+    transition: all 0.2s ease;
+}
+
+.source-item:has(form) {
+    background-color: var(--bg-primary);
+    border-color: var(--accent-color);
+    box-shadow: 0 2px 8px var(--shadow);
 }
 
 .source-header {
@@ -487,6 +494,7 @@ textarea.form-input {
     gap: 1rem;
     align-items: center;
     margin-bottom: 0.5rem;
+    flex-wrap: wrap;
 }
 
 .source-category {
@@ -503,6 +511,7 @@ textarea.form-input {
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
+    max-width: 100%;
 }
 
 .source-description {
@@ -513,6 +522,23 @@ textarea.form-input {
 .source-actions {
     display: flex;
     gap: 0.75rem;
+    flex-wrap: wrap;
+}
+
+.source-actions button {
+    flex-shrink: 0;
+}
+
+.source-item form {
+    margin: 0;
+}
+
+.source-item form .form-group {
+    margin-bottom: 1rem;
+}
+
+.source-item form .form-group:last-of-type {
+    margin-bottom: 1.5rem;
 }
 
 .empty-state {

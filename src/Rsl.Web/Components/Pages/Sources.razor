@@ -1,4 +1,5 @@
 @page "/sources"
+@page "/sources/{CategoryFilter}"
 @rendermode InteractiveServer
 @using Rsl.Web.Services
 @using Rsl.Core.Enums
@@ -8,12 +9,25 @@
 @inject NavigationManager Navigation
 @implements IDisposable
 
-<PageTitle>Sources - RSL</PageTitle>
+<PageTitle>@GetPageTitle() - RSL</PageTitle>
 
 <div class="page-container">
     <div class="page-header">
-        <h1>My Sources</h1>
+        <h1>@GetPageTitle()</h1>
         <p class="subtitle">Manage your learning resource sources</p>
+    </div>
+
+    <div class="feed-filters">
+        <a href="/sources" class="filter-button @(string.IsNullOrEmpty(CategoryFilter) ? "active" : "")">
+            All Sources
+        </a>
+        @foreach (var type in Enum.GetValues<ResourceType>())
+        {
+            var typeName = type.ToString().ToLower();
+            <a href="/sources/@typeName" class="filter-button @(CategoryFilter?.Equals(typeName, StringComparison.OrdinalIgnoreCase) == true ? "active" : "")">
+                @GetResourceTypeDisplay(type)
+            </a>
+        }
     </div>
 
     <div class="content-card">
@@ -83,43 +97,116 @@
         {
             <p>Loading sources...</p>
         }
-        else if (!_sources.Any())
+        else if (!_filteredSources.Any())
         {
             <div class="empty-state" style="text-align: center; padding: 2rem 1rem; background-color: var(--surface-secondary); border-radius: 0.5rem;">
                 <p style="font-size: 1.1rem; margin-bottom: 0.5rem; color: var(--text-primary);">
-                    🎯 No sources yet
+                    @if (!_sources.Any())
+                    {
+                        <span>🎯 No sources yet</span>
+                    }
+                    else
+                    {
+                        <span>No sources in this category</span>
+                    }
                 </p>
                 <p style="color: var(--text-secondary); margin: 0;">
-                    Add your first source above to get started!
+                    @if (!_sources.Any())
+                    {
+                        <span>Add your first source above to get started!</span>
+                    }
+                    else
+                    {
+                        <span>Try selecting a different category filter</span>
+                    }
                 </p>
             </div>
         }
         else
         {
             <div class="sources-list">
-                @foreach (var source in _sources)
+                @foreach (var source in _filteredSources)
                 {
                     <div class="source-item">
-                        <div class="source-header">
-                            <h3>@source.Name</h3>
-                            <span class="source-badge @(source.IsActive ? "active" : "inactive")">
-                                @(source.IsActive ? "Active" : "Inactive")
-                            </span>
-                        </div>
-                        <div class="source-details">
-                            <span class="source-category">@GetResourceTypeDisplay(source.Category)</span>
-                            <a href="@source.Url" target="_blank" class="source-url">@source.Url</a>
-                        </div>
-                        @if (!string.IsNullOrEmpty(source.Description))
+                        @if (_editingSourceId == source.Id)
                         {
-                            <p class="source-description">@source.Description</p>
+                            <!-- Edit Form -->
+                            <EditForm Model="@_editModel" OnValidSubmit="HandleUpdateSource" FormName="@($"editSourceForm_{source.Id}")">
+                                <DataAnnotationsValidator />
+
+                                @if (!string.IsNullOrEmpty(_editErrorMessage))
+                                {
+                                    <div class="error-message">@_editErrorMessage</div>
+                                }
+
+                                <div class="form-group">
+                                    <label for="edit-name">Name</label>
+                                    <InputText id="edit-name" @bind-Value="_editModel.Name" class="form-input" placeholder="Source name" />
+                                    <ValidationMessage For="@(() => _editModel.Name)" />
+                                </div>
+
+                                <div class="form-group">
+                                    <label for="edit-category">Category</label>
+                                    <InputSelect id="edit-category" @bind-Value="_editModel.Category" class="form-input">
+                                        @foreach (var type in Enum.GetValues<ResourceType>())
+                                        {
+                                            <option value="@type">@GetResourceTypeDisplay(type)</option>
+                                        }
+                                    </InputSelect>
+                                    <ValidationMessage For="@(() => _editModel.Category)" />
+                                </div>
+
+                                <div class="form-group">
+                                    <label for="edit-url">URL</label>
+                                    <InputText id="edit-url" @bind-Value="_editModel.Url" class="form-input" placeholder="https://example.com/feed" />
+                                    <ValidationMessage For="@(() => _editModel.Url)" />
+                                </div>
+
+                                <div class="form-group">
+                                    <label for="edit-description">Description (optional)</label>
+                                    <InputTextArea id="edit-description" @bind-Value="_editModel.Description" class="form-input" placeholder="A brief description" rows="2" />
+                                </div>
+
+                                <div class="source-actions">
+                                    <button type="submit" class="btn-primary" disabled="@_isLoading">
+                                        @if (_isLoading)
+                                        {
+                                            <span>Saving...</span>
+                                        }
+                                        else
+                                        {
+                                            <span>Save Changes</span>
+                                        }
+                                    </button>
+                                    <button type="button" @onclick="CancelEdit" class="btn-secondary">Cancel</button>
+                                </div>
+                            </EditForm>
                         }
-                        <div class="source-actions">
-                            <button @onclick="() => ToggleSource(source.Id)" class="btn-secondary">
-                                @(source.IsActive ? "Deactivate" : "Activate")
-                            </button>
-                            <button @onclick="() => DeleteSource(source.Id)" class="btn-danger">Delete</button>
-                        </div>
+                        else
+                        {
+                            <!-- View Mode -->
+                            <div class="source-header">
+                                <h3>@source.Name</h3>
+                                <span class="source-badge @(source.IsActive ? "active" : "inactive")">
+                                    @(source.IsActive ? "Active" : "Inactive")
+                                </span>
+                            </div>
+                            <div class="source-details">
+                                <span class="source-category">@GetResourceTypeDisplay(source.Category)</span>
+                                <a href="@source.Url" target="_blank" class="source-url">@source.Url</a>
+                            </div>
+                            @if (!string.IsNullOrEmpty(source.Description))
+                            {
+                                <p class="source-description">@source.Description</p>
+                            }
+                            <div class="source-actions">
+                                <button @onclick="() => StartEdit(source)" class="btn-secondary">Edit</button>
+                                <button @onclick="() => ToggleSource(source.Id)" class="btn-secondary">
+                                    @(source.IsActive ? "Deactivate" : "Activate")
+                                </button>
+                                <button @onclick="() => DeleteSource(source.Id)" class="btn-danger">Delete</button>
+                            </div>
+                        }
                     </div>
                 }
             </div>
@@ -128,11 +215,18 @@
 </div>
 
 @code {
+    [Parameter]
+    public string? CategoryFilter { get; set; }
+
     private List<SourceItem>? _sources;
+    private List<SourceItem> _filteredSources = new();
     private AddSourceModel _newSource = new();
+    private EditSourceModel _editModel = new();
     private string? _errorMessage;
     private string? _successMessage;
+    private string? _editErrorMessage;
     private bool _isLoading;
+    private Guid? _editingSourceId;
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
@@ -154,9 +248,40 @@
         await LoadSources();
     }
 
+    protected override async Task OnParametersSetAsync()
+    {
+        ApplyFilter();
+    }
+
     private async Task LoadSources()
     {
         _sources = await SourceService.GetUserSourcesAsync();
+        ApplyFilter();
+    }
+
+    private void ApplyFilter()
+    {
+        if (_sources == null)
+        {
+            _filteredSources = new();
+            return;
+        }
+
+        if (string.IsNullOrEmpty(CategoryFilter))
+        {
+            _filteredSources = _sources;
+        }
+        else
+        {
+            if (Enum.TryParse<ResourceType>(CategoryFilter, ignoreCase: true, out var parsedType))
+            {
+                _filteredSources = _sources.Where(s => s.Category == parsedType).ToList();
+            }
+            else
+            {
+                _filteredSources = _sources;
+            }
+        }
     }
 
     private async Task HandleAddSource()
@@ -186,6 +311,56 @@
         _isLoading = false;
     }
 
+    private void StartEdit(SourceItem source)
+    {
+        _editingSourceId = source.Id;
+        _editModel = new EditSourceModel
+        {
+            Name = source.Name,
+            Url = source.Url,
+            Category = source.Category,
+            Description = source.Description
+        };
+        _editErrorMessage = null;
+    }
+
+    private void CancelEdit()
+    {
+        _editingSourceId = null;
+        _editModel = new EditSourceModel();
+        _editErrorMessage = null;
+    }
+
+    private async Task HandleUpdateSource()
+    {
+        if (!_editingSourceId.HasValue)
+            return;
+
+        _isLoading = true;
+        _editErrorMessage = null;
+
+        var success = await SourceService.UpdateSourceAsync(
+            _editingSourceId.Value,
+            _editModel.Name,
+            _editModel.Url,
+            _editModel.Category,
+            _editModel.Description
+        );
+
+        if (success)
+        {
+            _editingSourceId = null;
+            _editModel = new EditSourceModel();
+            await LoadSources();
+        }
+        else
+        {
+            _editErrorMessage = "Failed to update source. Please try again.";
+        }
+
+        _isLoading = false;
+    }
+
     private async Task ToggleSource(Guid sourceId)
     {
         await SourceService.ToggleSourceActiveAsync(sourceId);
@@ -204,6 +379,19 @@
         {
             Navigation.NavigateTo("/login");
         }
+    }
+
+    private string GetPageTitle()
+    {
+        if (string.IsNullOrEmpty(CategoryFilter))
+            return "My Sources";
+
+        if (Enum.TryParse<ResourceType>(CategoryFilter, ignoreCase: true, out var type))
+        {
+            return $"{GetResourceTypeDisplay(type)} Sources";
+        }
+
+        return "My Sources";
     }
 
     private static string GetResourceTypeDisplay(ResourceType type)
@@ -225,6 +413,21 @@
     }
 
     private class AddSourceModel
+    {
+        [Required(ErrorMessage = "Name is required")]
+        public string Name { get; set; } = string.Empty;
+
+        [Required(ErrorMessage = "URL is required")]
+        [Url(ErrorMessage = "Please enter a valid URL")]
+        public string Url { get; set; } = string.Empty;
+
+        [Required(ErrorMessage = "Category is required")]
+        public ResourceType Category { get; set; }
+
+        public string? Description { get; set; }
+    }
+
+    private class EditSourceModel
     {
         [Required(ErrorMessage = "Name is required")]
         public string Name { get; set; } = string.Empty;
