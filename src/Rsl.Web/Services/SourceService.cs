@@ -84,7 +84,7 @@ public class SourceService
                 CreatedAt = s.CreatedAt,
                 LastFetchedAt = s.LastFetchedAt,
                 ResourceCount = s.ResourceCount
-            }).ToList();
+            }).OrderBy(s => s.Name).ToList();
         }
         catch (Exception ex)
         {

@@ -29,7 +29,7 @@ public class SourceRepository : ISourceRepository
     {
         return await _context.Sources
             .Where(s => s.UserId == userId)
-            .OrderByDescending(s => s.CreatedAt)
+            .OrderBy(s => s.Name)
             .ToListAsync(cancellationToken);
     }
 
@@ -37,7 +37,7 @@ public class SourceRepository : ISourceRepository
     {
         return await _context.Sources
             .Where(s => s.UserId == userId && s.IsActive)
-            .OrderByDescending(s => s.CreatedAt)
+            .OrderBy(s => s.Name)
             .ToListAsync(cancellationToken);
     }
 
