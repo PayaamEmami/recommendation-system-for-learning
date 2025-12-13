@@ -213,6 +213,60 @@ public class SourceService
             return false;
         }
     }
+
+    public async Task<bool> UpdateSourceAsync(Guid sourceId, string name, string url, ResourceType category, string? description)
+    {
+        try
+        {
+            if (!_authService.CurrentState.IsAuthenticated)
+            {
+                _logger.LogWarning("User not authenticated, cannot update source");
+                return false;
+            }
+
+            // First get the current source to preserve its IsActive state
+            using var httpClient = CreateHttpClient();
+            var getResponse = await httpClient.GetAsync($"/api/v1/sources/{sourceId}");
+
+            if (!getResponse.IsSuccessStatusCode)
+            {
+                _logger.LogWarning("Failed to fetch source for update: {StatusCode}", getResponse.StatusCode);
+                return false;
+            }
+
+            var source = await getResponse.Content.ReadFromJsonAsync<SourceResponse>();
+            if (source == null)
+            {
+                return false;
+            }
+
+            var updateRequest = new UpdateSourceRequest
+            {
+                Name = name,
+                Url = url,
+                Category = category,
+                Description = description,
+                IsActive = source.IsActive // Preserve existing active state
+            };
+
+            var response = await httpClient.PutAsJsonAsync($"/api/v1/sources/{sourceId}", updateRequest);
+
+            if (!response.IsSuccessStatusCode)
+            {
+                var errorContent = await response.Content.ReadAsStringAsync();
+                _logger.LogWarning("Failed to update source: {StatusCode} - {Content}", response.StatusCode, errorContent);
+                return false;
+            }
+
+            _logger.LogInformation("Successfully updated source: {SourceId}", sourceId);
+            return true;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error updating source");
+            return false;
+        }
+    }
 }
 
 public class SourceItem
