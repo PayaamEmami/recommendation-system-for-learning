@@ -252,7 +252,7 @@ module jobsApp 'modules/container-app.bicep' = {
     imageTag: 'latest'
     keyVaultName: keyVault.outputs.name
     applicationInsightsConnectionString: applicationInsights.outputs.connectionString
-    minReplicas: 0
+    minReplicas: 1
     maxReplicas: 1
     environmentVariables: [
       {
@@ -286,6 +286,10 @@ module jobsApp 'modules/container-app.bicep' = {
       {
         name: 'AZURE_SEARCH_API_KEY'
         value: '@Microsoft.KeyVault(SecretUri=${keyVault.outputs.vaultUri}secrets/AzureSearchApiKey/)'
+      }
+      {
+        name: 'Jobs__RunOnStartup'
+        value: 'true'
       }
       {
         name: 'APPLICATIONINSIGHTS_CONNECTION_STRING'

@@ -6,7 +6,7 @@ using Rsl.Core.Enums;
 namespace Rsl.Web.Services;
 
 /// <summary>
-/// Service for managing user sources through the API.
+/// Service for managing user sources that integrates with the RSL API.
 /// </summary>
 public class SourceService
 {
@@ -36,7 +36,7 @@ public class SourceService
             client.BaseAddress = new Uri(apiBaseUrl);
         }
 
-        // Add auth token if available
+        // Add authentication token if available
         if (!string.IsNullOrEmpty(_authService.CurrentState.AccessToken))
         {
             client.DefaultRequestHeaders.Authorization =
@@ -50,30 +50,41 @@ public class SourceService
     {
         try
         {
-            using var httpClient = CreateHttpClient();
-            var response = await httpClient.GetAsync("/api/sources");
-
-            if (response.IsSuccessStatusCode)
+            if (!_authService.CurrentState.IsAuthenticated)
             {
-                var sources = await response.Content.ReadFromJsonAsync<List<SourceResponse>>();
-                return sources?.Select(s => new SourceItem
-                {
-                    Id = s.Id,
-                    UserId = s.UserId,
-                    Name = s.Name,
-                    Url = s.Url,
-                    Category = s.Category,
-                    Description = s.Description,
-                    IsActive = s.IsActive,
-                    CreatedAt = s.CreatedAt,
-                    UpdatedAt = s.UpdatedAt,
-                    LastFetchedAt = s.LastFetchedAt,
-                    ResourceCount = s.ResourceCount
-                }).ToList() ?? new List<SourceItem>();
+                _logger.LogWarning("User not authenticated, cannot fetch sources");
+                return new List<SourceItem>();
             }
 
-            _logger.LogWarning("Failed to fetch sources: {StatusCode}", response.StatusCode);
-            return new List<SourceItem>();
+            using var httpClient = CreateHttpClient();
+            var response = await httpClient.GetAsync("/api/v1/sources");
+
+            if (!response.IsSuccessStatusCode)
+            {
+                _logger.LogWarning("Failed to fetch sources: {StatusCode}", response.StatusCode);
+                return new List<SourceItem>();
+            }
+
+            var sources = await response.Content.ReadFromJsonAsync<List<SourceResponse>>();
+
+            if (sources == null)
+            {
+                return new List<SourceItem>();
+            }
+
+            return sources.Select(s => new SourceItem
+            {
+                Id = s.Id,
+                UserId = s.UserId,
+                Name = s.Name,
+                Url = s.Url,
+                Category = s.Category,
+                Description = s.Description,
+                IsActive = s.IsActive,
+                CreatedAt = s.CreatedAt,
+                LastFetchedAt = s.LastFetchedAt,
+                ResourceCount = s.ResourceCount
+            }).ToList();
         }
         catch (Exception ex)
         {
@@ -86,26 +97,32 @@ public class SourceService
     {
         try
         {
-            var request = new
+            if (!_authService.CurrentState.IsAuthenticated)
             {
-                name = name,
-                url = url,
-                category = category,
-                description = description,
-                isActive = true
+                _logger.LogWarning("User not authenticated, cannot add source");
+                return false;
+            }
+
+            var request = new CreateSourceRequest
+            {
+                Name = name,
+                Url = url,
+                Category = category,
+                Description = description
             };
 
             using var httpClient = CreateHttpClient();
-            var response = await httpClient.PostAsJsonAsync("/api/sources", request);
+            var response = await httpClient.PostAsJsonAsync("/api/v1/sources", request);
 
-            if (response.IsSuccessStatusCode)
+            if (!response.IsSuccessStatusCode)
             {
-                return true;
+                var errorContent = await response.Content.ReadAsStringAsync();
+                _logger.LogWarning("Failed to add source: {StatusCode} - {Content}", response.StatusCode, errorContent);
+                return false;
             }
 
-            var errorContent = await response.Content.ReadAsStringAsync();
-            _logger.LogWarning("Failed to add source: {StatusCode} - {Content}", response.StatusCode, errorContent);
-            return false;
+            _logger.LogInformation("Successfully added source: {Name}", name);
+            return true;
         }
         catch (Exception ex)
         {
@@ -118,16 +135,23 @@ public class SourceService
     {
         try
         {
-            using var httpClient = CreateHttpClient();
-            var response = await httpClient.DeleteAsync($"/api/sources/{sourceId}");
-
-            if (response.IsSuccessStatusCode)
+            if (!_authService.CurrentState.IsAuthenticated)
             {
-                return true;
+                _logger.LogWarning("User not authenticated, cannot delete source");
+                return false;
             }
 
-            _logger.LogWarning("Failed to delete source: {StatusCode}", response.StatusCode);
-            return false;
+            using var httpClient = CreateHttpClient();
+            var response = await httpClient.DeleteAsync($"/api/v1/sources/{sourceId}");
+
+            if (!response.IsSuccessStatusCode)
+            {
+                _logger.LogWarning("Failed to delete source: {StatusCode}", response.StatusCode);
+                return false;
+            }
+
+            _logger.LogInformation("Successfully deleted source: {SourceId}", sourceId);
+            return true;
         }
         catch (Exception ex)
         {
@@ -140,35 +164,48 @@ public class SourceService
     {
         try
         {
-            // First get the current source
+            if (!_authService.CurrentState.IsAuthenticated)
+            {
+                _logger.LogWarning("User not authenticated, cannot toggle source");
+                return false;
+            }
+
+            // First, get the current source to determine its state
             using var httpClient = CreateHttpClient();
-            var getResponse = await httpClient.GetAsync($"/api/sources/{sourceId}");
+            var getResponse = await httpClient.GetAsync($"/api/v1/sources/{sourceId}");
 
             if (!getResponse.IsSuccessStatusCode)
             {
-                _logger.LogWarning("Failed to fetch source for toggle: {StatusCode}", getResponse.StatusCode);
+                _logger.LogWarning("Failed to fetch source: {StatusCode}", getResponse.StatusCode);
                 return false;
             }
 
             var source = await getResponse.Content.ReadFromJsonAsync<SourceResponse>();
             if (source == null)
+            {
                 return false;
-
-            // Update with toggled active state
-            var request = new
-            {
-                isActive = !source.IsActive
-            };
-
-            var updateResponse = await httpClient.PutAsJsonAsync($"/api/sources/{sourceId}", request);
-
-            if (updateResponse.IsSuccessStatusCode)
-            {
-                return true;
             }
 
-            _logger.LogWarning("Failed to toggle source: {StatusCode}", updateResponse.StatusCode);
-            return false;
+            // Update the source with toggled IsActive state
+            var updateRequest = new UpdateSourceRequest
+            {
+                Name = source.Name,
+                Url = source.Url,
+                Category = source.Category,
+                Description = source.Description,
+                IsActive = !source.IsActive
+            };
+
+            var updateResponse = await httpClient.PutAsJsonAsync($"/api/v1/sources/{sourceId}", updateRequest);
+
+            if (!updateResponse.IsSuccessStatusCode)
+            {
+                _logger.LogWarning("Failed to update source: {StatusCode}", updateResponse.StatusCode);
+                return false;
+            }
+
+            _logger.LogInformation("Successfully toggled source: {SourceId}", sourceId);
+            return true;
         }
         catch (Exception ex)
         {
@@ -176,61 +213,8 @@ public class SourceService
             return false;
         }
     }
-
-    public async Task<bool> UpdateSourceAsync(Guid sourceId, string? name, string? url, ResourceType? category, string? description)
-    {
-        try
-        {
-            var request = new
-            {
-                name = name,
-                url = url,
-                category = category,
-                description = description
-            };
-
-            using var httpClient = CreateHttpClient();
-            var response = await httpClient.PutAsJsonAsync($"/api/sources/{sourceId}", request);
-
-            if (response.IsSuccessStatusCode)
-            {
-                return true;
-            }
-
-            var errorContent = await response.Content.ReadAsStringAsync();
-            _logger.LogWarning("Failed to update source: {StatusCode} - {Content}", response.StatusCode, errorContent);
-            return false;
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Error updating source");
-            return false;
-        }
-    }
 }
 
-/// <summary>
-/// Source response from API.
-/// </summary>
-public class SourceResponse
-{
-    public Guid Id { get; set; }
-    public Guid UserId { get; set; }
-    public string Name { get; set; } = string.Empty;
-    public string Url { get; set; } = string.Empty;
-    public ResourceType Category { get; set; }
-    public string? Description { get; set; }
-    public bool IsActive { get; set; }
-    public DateTime CreatedAt { get; set; }
-    public DateTime UpdatedAt { get; set; }
-    public DateTime? LastFetchedAt { get; set; }
-    public string? LastFetchError { get; set; }
-    public int ResourceCount { get; set; }
-}
-
-/// <summary>
-/// Source item for display in UI.
-/// </summary>
 public class SourceItem
 {
     public Guid Id { get; set; }
@@ -241,7 +225,40 @@ public class SourceItem
     public string? Description { get; set; }
     public bool IsActive { get; set; }
     public DateTime CreatedAt { get; set; }
+    public DateTime? LastFetchedAt { get; set; }
+    public int ResourceCount { get; set; }
+}
+
+// API Request/Response DTOs
+public class CreateSourceRequest
+{
+    public string Name { get; set; } = string.Empty;
+    public string Url { get; set; } = string.Empty;
+    public ResourceType Category { get; set; }
+    public string? Description { get; set; }
+}
+
+public class UpdateSourceRequest
+{
+    public string Name { get; set; } = string.Empty;
+    public string Url { get; set; } = string.Empty;
+    public ResourceType Category { get; set; }
+    public string? Description { get; set; }
+    public bool IsActive { get; set; }
+}
+
+public class SourceResponse
+{
+    public Guid Id { get; set; }
+    public Guid UserId { get; set; }
+    public string Name { get; set; } = string.Empty;
+    public string Url { get; set; } = string.Empty;
+    public string? Description { get; set; }
+    public ResourceType Category { get; set; }
+    public bool IsActive { get; set; }
+    public DateTime CreatedAt { get; set; }
     public DateTime UpdatedAt { get; set; }
     public DateTime? LastFetchedAt { get; set; }
+    public string? LastFetchError { get; set; }
     public int ResourceCount { get; set; }
 }

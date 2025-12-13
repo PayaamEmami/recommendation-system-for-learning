@@ -6,7 +6,7 @@ using Rsl.Core.Enums;
 namespace Rsl.Web.Services;
 
 /// <summary>
-/// Service for managing feeds and resources through the API.
+/// Service for managing feeds and resources that integrates with the RSL API.
 /// </summary>
 public class FeedService
 {
@@ -36,7 +36,7 @@ public class FeedService
             client.BaseAddress = new Uri(apiBaseUrl);
         }
 
-        // Add auth token if available
+        // Add authentication token if available
         if (!string.IsNullOrEmpty(_authService.CurrentState.AccessToken))
         {
             client.DefaultRequestHeaders.Authorization =
@@ -50,77 +50,63 @@ public class FeedService
     {
         try
         {
-            var queryParams = new List<string>
+            if (!_authService.CurrentState.IsAuthenticated)
             {
-                "pageNumber=1",
-                "pageSize=50" // Get first 50 resources
-            };
-
-            if (type.HasValue)
-            {
-                queryParams.Add($"type={type.Value}");
+                _logger.LogWarning("User not authenticated, cannot fetch feed");
+                return new List<ResourceItem>();
             }
-
-            var queryString = string.Join("&", queryParams);
 
             using var httpClient = CreateHttpClient();
-            var response = await httpClient.GetAsync($"/api/v1/resources?{queryString}");
 
-            if (response.IsSuccessStatusCode)
+            // Get today's recommendations from the API
+            var response = await httpClient.GetAsync("/api/v1/recommendations");
+
+            if (!response.IsSuccessStatusCode)
             {
-                var pagedResponse = await response.Content.ReadFromJsonAsync<PagedResourceResponse>();
-                return pagedResponse?.Items.Select(r => new ResourceItem
-                {
-                    Id = r.Id,
-                    Title = r.Title,
-                    Url = r.Url,
-                    Type = r.Type,
-                    Description = r.Description,
-                    PublishedAt = r.PublishedDate ?? r.CreatedAt
-                }).ToList() ?? new List<ResourceItem>();
+                _logger.LogWarning("Failed to fetch recommendations: {StatusCode}", response.StatusCode);
+                return new List<ResourceItem>();
             }
 
-            _logger.LogWarning("Failed to fetch resources: {StatusCode}", response.StatusCode);
-            return new List<ResourceItem>();
+            var feedRecommendations = await response.Content.ReadFromJsonAsync<List<FeedRecommendationsResponse>>();
+
+            if (feedRecommendations == null || !feedRecommendations.Any())
+            {
+                _logger.LogInformation("No recommendations available");
+                return new List<ResourceItem>();
+            }
+
+            // Flatten all recommendations into a single list
+            var resources = new List<ResourceItem>();
+
+            foreach (var feed in feedRecommendations)
+            {
+                if (type.HasValue && feed.FeedType != type.Value)
+                    continue;
+
+                foreach (var rec in feed.Recommendations)
+                {
+                    resources.Add(new ResourceItem
+                    {
+                        Id = rec.Resource.Id,
+                        Title = rec.Resource.Title,
+                        Url = rec.Resource.Url,
+                        Type = rec.Resource.Type,
+                        Description = rec.Resource.Description,
+                        PublishedAt = rec.Resource.PublishedDate ?? rec.Resource.CreatedAt
+                    });
+                }
+            }
+
+            return resources.OrderByDescending(r => r.PublishedAt).ToList();
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error fetching resources");
+            _logger.LogError(ex, "Error fetching feed");
             return new List<ResourceItem>();
         }
     }
 }
 
-/// <summary>
-/// Paged response from API.
-/// </summary>
-public class PagedResourceResponse
-{
-    public List<ResourceResponse> Items { get; set; } = new();
-    public int PageNumber { get; set; }
-    public int PageSize { get; set; }
-    public int TotalCount { get; set; }
-    public int TotalPages { get; set; }
-}
-
-/// <summary>
-/// Resource response from API.
-/// </summary>
-public class ResourceResponse
-{
-    public Guid Id { get; set; }
-    public string Title { get; set; } = string.Empty;
-    public string? Description { get; set; }
-    public string Url { get; set; } = string.Empty;
-    public DateTime? PublishedDate { get; set; }
-    public ResourceType Type { get; set; }
-    public DateTime CreatedAt { get; set; }
-    public DateTime UpdatedAt { get; set; }
-}
-
-/// <summary>
-/// Resource item for display in UI.
-/// </summary>
 public class ResourceItem
 {
     public Guid Id { get; set; }
@@ -129,4 +115,33 @@ public class ResourceItem
     public ResourceType Type { get; set; }
     public string? Description { get; set; }
     public DateTime PublishedAt { get; set; }
+}
+
+// API Response DTOs
+public class FeedRecommendationsResponse
+{
+    public ResourceType FeedType { get; set; }
+    public DateOnly Date { get; set; }
+    public List<RecommendationItemResponse> Recommendations { get; set; } = new();
+}
+
+public class RecommendationItemResponse
+{
+    public Guid Id { get; set; }
+    public ResourceItemResponse Resource { get; set; } = null!;
+    public int Position { get; set; }
+    public double Score { get; set; }
+    public DateTime GeneratedAt { get; set; }
+}
+
+public class ResourceItemResponse
+{
+    public Guid Id { get; set; }
+    public string Title { get; set; } = string.Empty;
+    public string Description { get; set; } = string.Empty;
+    public string Url { get; set; } = string.Empty;
+    public DateTime? PublishedDate { get; set; }
+    public ResourceType Type { get; set; }
+    public DateTime CreatedAt { get; set; }
+    public DateTime UpdatedAt { get; set; }
 }
