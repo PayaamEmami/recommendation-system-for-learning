@@ -12,7 +12,7 @@ namespace Rsl.Api.Controllers;
 /// </summary>
 [Authorize]
 [ApiController]
-[Route("api/[controller]")]
+[Route("api/v{version:apiVersion}/[controller]")]
 public class SourcesController : ControllerBase
 {
     private readonly ISourceService _sourceService;

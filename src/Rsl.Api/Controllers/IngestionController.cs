@@ -13,7 +13,7 @@ namespace Rsl.Api.Controllers;
 /// </summary>
 [Authorize]
 [ApiController]
-[Route("api/[controller]")]
+[Route("api/v{version:apiVersion}/[controller]")]
 public class IngestionController : ControllerBase
 {
     private readonly IIngestionAgent _ingestionAgent;
