@@ -200,23 +200,23 @@ module apiApp 'modules/container-app.bicep' = {
         value: '1536'
       }
       {
-        name: 'Jwt__SecretKey'
+        name: 'JwtSettings__SecretKey'
         value: '@Microsoft.KeyVault(SecretUri=${keyVault.outputs.vaultUri}secrets/JwtSecretKey/)'
       }
       {
-        name: 'Jwt__Issuer'
+        name: 'JwtSettings__Issuer'
         value: 'https://${resourcePrefix}-api.${containerAppsEnvironment.outputs.defaultDomain}'
       }
       {
-        name: 'Jwt__Audience'
+        name: 'JwtSettings__Audience'
         value: 'https://${resourcePrefix}-web.${containerAppsEnvironment.outputs.defaultDomain}'
       }
       {
-        name: 'Jwt__ExpirationMinutes'
+        name: 'JwtSettings__ExpirationMinutes'
         value: '60'
       }
       {
-        name: 'Cors__AllowedOrigins'
+        name: 'Cors__AllowedOrigins__0'
         value: 'https://${resourcePrefix}-web.${containerAppsEnvironment.outputs.defaultDomain}'
       }
       {
