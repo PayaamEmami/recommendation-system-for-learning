@@ -154,6 +154,24 @@ module apiApp 'modules/container-app.bicep' = {
     applicationInsightsConnectionString: applicationInsights.outputs.connectionString
     minReplicas: 0
     maxReplicas: 3
+    secrets: [
+      {
+        name: 'sql-connection-string'
+        value: 'Server=tcp:${sqlServer.outputs.serverFqdn},1433;Initial Catalog=${appName}-db;Persist Security Info=False;User ID=${sqlAdminUsername};Password=${sqlAdminPassword};MultipleActiveResultSets=False;Encrypt=True;TrustServerCertificate=False;Connection Timeout=30;'
+      }
+      {
+        name: 'azure-openai-api-key'
+        value: azureOpenAIApiKey
+      }
+      {
+        name: 'azure-search-api-key'
+        value: azureSearchApiKey
+      }
+      {
+        name: 'jwt-secret-key'
+        value: jwtSecretKey
+      }
+    ]
     environmentVariables: [
       {
         name: 'ASPNETCORE_ENVIRONMENT'
@@ -161,7 +179,7 @@ module apiApp 'modules/container-app.bicep' = {
       }
       {
         name: 'ConnectionStrings__DefaultConnection'
-        value: '@Microsoft.KeyVault(SecretUri=${keyVault.outputs.vaultUri}secrets/SqlConnectionString/)'
+        secretRef: 'sql-connection-string'
       }
       {
         name: 'Embedding__Endpoint'
@@ -169,7 +187,7 @@ module apiApp 'modules/container-app.bicep' = {
       }
       {
         name: 'Embedding__ApiKey'
-        value: '@Microsoft.KeyVault(SecretUri=${keyVault.outputs.vaultUri}secrets/AzureOpenAIApiKey/)'
+        secretRef: 'azure-openai-api-key'
       }
       {
         name: 'Embedding__DeploymentName'
@@ -189,7 +207,7 @@ module apiApp 'modules/container-app.bicep' = {
       }
       {
         name: 'AzureAISearch__ApiKey'
-        value: '@Microsoft.KeyVault(SecretUri=${keyVault.outputs.vaultUri}secrets/AzureSearchApiKey/)'
+        secretRef: 'azure-search-api-key'
       }
       {
         name: 'AzureAISearch__IndexName'
@@ -201,7 +219,7 @@ module apiApp 'modules/container-app.bicep' = {
       }
       {
         name: 'JwtSettings__SecretKey'
-        value: '@Microsoft.KeyVault(SecretUri=${keyVault.outputs.vaultUri}secrets/JwtSecretKey/)'
+        secretRef: 'jwt-secret-key'
       }
       {
         name: 'JwtSettings__Issuer'
@@ -278,6 +296,20 @@ module jobsApp 'modules/container-app.bicep' = {
     applicationInsightsConnectionString: applicationInsights.outputs.connectionString
     minReplicas: 1
     maxReplicas: 1
+    secrets: [
+      {
+        name: 'sql-connection-string'
+        value: 'Server=tcp:${sqlServer.outputs.serverFqdn},1433;Initial Catalog=${appName}-db;Persist Security Info=False;User ID=${sqlAdminUsername};Password=${sqlAdminPassword};MultipleActiveResultSets=False;Encrypt=True;TrustServerCertificate=False;Connection Timeout=30;'
+      }
+      {
+        name: 'azure-openai-api-key'
+        value: azureOpenAIApiKey
+      }
+      {
+        name: 'azure-search-api-key'
+        value: azureSearchApiKey
+      }
+    ]
     environmentVariables: [
       {
         name: 'ASPNETCORE_ENVIRONMENT'
@@ -285,7 +317,7 @@ module jobsApp 'modules/container-app.bicep' = {
       }
       {
         name: 'ConnectionStrings__DefaultConnection'
-        value: '@Microsoft.KeyVault(SecretUri=${keyVault.outputs.vaultUri}secrets/SqlConnectionString/)'
+        secretRef: 'sql-connection-string'
       }
       {
         name: 'Embedding__Endpoint'
@@ -293,7 +325,7 @@ module jobsApp 'modules/container-app.bicep' = {
       }
       {
         name: 'Embedding__ApiKey'
-        value: '@Microsoft.KeyVault(SecretUri=${keyVault.outputs.vaultUri}secrets/AzureOpenAIApiKey/)'
+        secretRef: 'azure-openai-api-key'
       }
       {
         name: 'Embedding__DeploymentName'
@@ -313,7 +345,7 @@ module jobsApp 'modules/container-app.bicep' = {
       }
       {
         name: 'AzureAISearch__ApiKey'
-        value: '@Microsoft.KeyVault(SecretUri=${keyVault.outputs.vaultUri}secrets/AzureSearchApiKey/)'
+        secretRef: 'azure-search-api-key'
       }
       {
         name: 'AzureAISearch__IndexName'
@@ -329,7 +361,7 @@ module jobsApp 'modules/container-app.bicep' = {
       }
       {
         name: 'LlmServices__ApiKey'
-        value: '@Microsoft.KeyVault(SecretUri=${keyVault.outputs.vaultUri}secrets/AzureOpenAIApiKey/)'
+        secretRef: 'azure-openai-api-key'
       }
       {
         name: 'LlmServices__DeploymentName'

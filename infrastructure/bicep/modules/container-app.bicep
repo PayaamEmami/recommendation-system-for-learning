@@ -25,6 +25,9 @@ param applicationInsightsConnectionString string
 @description('Environment variables')
 param environmentVariables array
 
+@description('Secrets configuration - array of objects with {name, value}')
+param secrets array = []
+
 @description('Resource tags')
 param tags object
 
@@ -66,12 +69,12 @@ resource containerApp 'Microsoft.App/containerApps@2023-05-01' = {
           passwordSecretRef: 'registry-password'
         }
       ]
-      secrets: [
+      secrets: concat([
         {
           name: 'registry-password'
           value: containerRegistry.listCredentials().passwords[0].value
         }
-      ]
+      ], secrets)
     }
     template: {
       containers: [
