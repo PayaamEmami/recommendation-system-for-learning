@@ -160,44 +160,68 @@ module apiApp 'modules/container-app.bicep' = {
         value: 'Production'
       }
       {
-        name: 'SQL_CONNECTION_STRING'
+        name: 'ConnectionStrings__DefaultConnection'
         value: '@Microsoft.KeyVault(SecretUri=${keyVault.outputs.vaultUri}secrets/SqlConnectionString/)'
       }
       {
-        name: 'AZURE_OPENAI_ENDPOINT'
+        name: 'Embedding__Endpoint'
         value: azureOpenAIEndpoint
       }
       {
-        name: 'AZURE_OPENAI_API_KEY'
+        name: 'Embedding__ApiKey'
         value: '@Microsoft.KeyVault(SecretUri=${keyVault.outputs.vaultUri}secrets/AzureOpenAIApiKey/)'
       }
       {
-        name: 'AZURE_OPENAI_EMBEDDING_DEPLOYMENT'
+        name: 'Embedding__DeploymentName'
         value: azureOpenAIEmbeddingDeployment
       }
       {
-        name: 'AZURE_SEARCH_ENDPOINT'
+        name: 'Embedding__Dimensions'
+        value: '1536'
+      }
+      {
+        name: 'Embedding__MaxBatchSize'
+        value: '100'
+      }
+      {
+        name: 'AzureAISearch__Endpoint'
         value: azureSearchEndpoint
       }
       {
-        name: 'AZURE_SEARCH_API_KEY'
+        name: 'AzureAISearch__ApiKey'
         value: '@Microsoft.KeyVault(SecretUri=${keyVault.outputs.vaultUri}secrets/AzureSearchApiKey/)'
       }
       {
-        name: 'JWT_SECRET_KEY'
+        name: 'AzureAISearch__IndexName'
+        value: 'rsl-resources'
+      }
+      {
+        name: 'AzureAISearch__EmbeddingDimensions'
+        value: '1536'
+      }
+      {
+        name: 'Jwt__SecretKey'
         value: '@Microsoft.KeyVault(SecretUri=${keyVault.outputs.vaultUri}secrets/JwtSecretKey/)'
       }
       {
-        name: 'JWT_ISSUER'
+        name: 'Jwt__Issuer'
         value: 'https://${resourcePrefix}-api.${containerAppsEnvironment.outputs.defaultDomain}'
       }
       {
-        name: 'JWT_AUDIENCE'
+        name: 'Jwt__Audience'
         value: 'https://${resourcePrefix}-web.${containerAppsEnvironment.outputs.defaultDomain}'
       }
       {
-        name: 'CORS_ALLOWED_ORIGINS'
+        name: 'Jwt__ExpirationMinutes'
+        value: '60'
+      }
+      {
+        name: 'Cors__AllowedOrigins'
         value: 'https://${resourcePrefix}-web.${containerAppsEnvironment.outputs.defaultDomain}'
+      }
+      {
+        name: 'Registration__Enabled'
+        value: 'false'
       }
       {
         name: 'APPLICATIONINSIGHTS_CONNECTION_STRING'
@@ -260,36 +284,72 @@ module jobsApp 'modules/container-app.bicep' = {
         value: 'Production'
       }
       {
-        name: 'SQL_CONNECTION_STRING'
+        name: 'ConnectionStrings__DefaultConnection'
         value: '@Microsoft.KeyVault(SecretUri=${keyVault.outputs.vaultUri}secrets/SqlConnectionString/)'
       }
       {
-        name: 'AZURE_OPENAI_ENDPOINT'
+        name: 'Embedding__Endpoint'
         value: azureOpenAIEndpoint
       }
       {
-        name: 'AZURE_OPENAI_API_KEY'
+        name: 'Embedding__ApiKey'
         value: '@Microsoft.KeyVault(SecretUri=${keyVault.outputs.vaultUri}secrets/AzureOpenAIApiKey/)'
       }
       {
-        name: 'AZURE_OPENAI_EMBEDDING_DEPLOYMENT'
+        name: 'Embedding__DeploymentName'
         value: azureOpenAIEmbeddingDeployment
       }
       {
-        name: 'AZURE_OPENAI_CHAT_DEPLOYMENT'
-        value: azureOpenAIChatDeployment
+        name: 'Embedding__Dimensions'
+        value: '1536'
       }
       {
-        name: 'AZURE_SEARCH_ENDPOINT'
+        name: 'Embedding__MaxBatchSize'
+        value: '100'
+      }
+      {
+        name: 'AzureAISearch__Endpoint'
         value: azureSearchEndpoint
       }
       {
-        name: 'AZURE_SEARCH_API_KEY'
+        name: 'AzureAISearch__ApiKey'
         value: '@Microsoft.KeyVault(SecretUri=${keyVault.outputs.vaultUri}secrets/AzureSearchApiKey/)'
+      }
+      {
+        name: 'AzureAISearch__IndexName'
+        value: 'rsl-resources'
+      }
+      {
+        name: 'AzureAISearch__EmbeddingDimensions'
+        value: '1536'
+      }
+      {
+        name: 'LlmServices__Endpoint'
+        value: azureOpenAIEndpoint
+      }
+      {
+        name: 'LlmServices__ApiKey'
+        value: '@Microsoft.KeyVault(SecretUri=${keyVault.outputs.vaultUri}secrets/AzureOpenAIApiKey/)'
+      }
+      {
+        name: 'LlmServices__DeploymentName'
+        value: azureOpenAIChatDeployment
+      }
+      {
+        name: 'LlmServices__MaxTokens'
+        value: '4096'
       }
       {
         name: 'Jobs__RunOnStartup'
         value: 'true'
+      }
+      {
+        name: 'JobSchedules__SourceIngestionCron'
+        value: '0 0 * * *'
+      }
+      {
+        name: 'JobSchedules__DailyFeedGenerationCron'
+        value: '0 2 * * *'
       }
       {
         name: 'APPLICATIONINSIGHTS_CONNECTION_STRING'
