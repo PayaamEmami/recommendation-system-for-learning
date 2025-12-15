@@ -5,6 +5,7 @@
 @using Rsl.Core.Enums
 @inject AuthService AuthService
 @inject FeedService FeedService
+@inject SourceService SourceService
 @inject ThemeService ThemeService
 @inject NavigationManager Navigation
 @implements IDisposable
@@ -37,16 +38,36 @@
         }
         else if (!_resources.Any())
         {
-            <div class="empty-state" style="text-align: center; padding: 3rem 1rem;">
-                <h2 style="margin-bottom: 1rem; color: var(--text-primary);">No Resources Yet</h2>
-                <p style="margin-bottom: 0.5rem; color: var(--text-secondary);">
-                    Start by adding some learning sources like RSS feeds, YouTube channels, or blogs.
-                </p>
-                <p style="margin-bottom: 2rem; color: var(--text-secondary);">
-                    Our system will automatically fetch content daily and show personalized recommendations here.
-                </p>
-                <a href="/sources" class="btn-primary">Add Your First Source</a>
-            </div>
+            @if (_sources == null)
+            {
+                <p>Checking your sources...</p>
+            }
+            else if (!_sources.Any())
+            {
+                <div class="empty-state" style="text-align: center; padding: 3rem 1rem;">
+                    <h2 style="margin-bottom: 1rem; color: var(--text-primary);">No Sources Yet</h2>
+                    <p style="margin-bottom: 0.5rem; color: var(--text-secondary);">
+                        Start by adding some learning sources like RSS feeds, YouTube channels, or blogs.
+                    </p>
+                    <p style="margin-bottom: 2rem; color: var(--text-secondary);">
+                        Our system will automatically fetch content daily and show personalized recommendations here.
+                    </p>
+                    <a href="/sources" class="btn-primary">Add Your First Source</a>
+                </div>
+            }
+            else
+            {
+                <div class="empty-state" style="text-align: center; padding: 3rem 1rem;">
+                    <h2 style="margin-bottom: 1rem; color: var(--text-primary);">Processing Your Sources</h2>
+                    <p style="margin-bottom: 0.5rem; color: var(--text-secondary);">
+                        You have @_sources.Count source@(_sources.Count == 1 ? "" : "s") configured. Our system is working on fetching and analyzing content.
+                    </p>
+                    <p style="margin-bottom: 2rem; color: var(--text-secondary);">
+                        This process runs automatically every 24 hours. Check back soon for personalized recommendations!
+                    </p>
+                    <a href="/sources" class="btn-primary">Manage Sources</a>
+                </div>
+            }
         }
         else
         {
@@ -80,6 +101,7 @@
     public string? FeedType { get; set; }
 
     private List<ResourceItem>? _resources;
+    private List<SourceItem>? _sources;
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
@@ -119,6 +141,12 @@
         }
 
         _resources = await FeedService.GetFeedAsync(type);
+
+        // Only check for sources if we have no resources to show appropriate message
+        if (!_resources.Any())
+        {
+            _sources = await SourceService.GetUserSourcesAsync();
+        }
     }
 
     private void HandleAuthStateChanged()
