@@ -25,11 +25,27 @@ public class OpenAIClient : ILlmClient
         _settings = settings.Value;
         _logger = logger;
 
-        // Configure HttpClient
-        var baseUrl = _settings.BaseUrl ?? "https://api.openai.com/v1";
-        _httpClient.BaseAddress = new Uri(baseUrl);
-        _httpClient.DefaultRequestHeaders.Authorization =
-            new AuthenticationHeaderValue("Bearer", _settings.ApiKey);
+        // Configure HttpClient based on provider
+        if (_settings.UseAzure)
+        {
+            // Azure OpenAI configuration
+            if (string.IsNullOrEmpty(_settings.AzureEndpoint))
+                throw new InvalidOperationException("AzureEndpoint is required when UseAzure is true");
+            if (string.IsNullOrEmpty(_settings.AzureDeployment))
+                throw new InvalidOperationException("AzureDeployment is required when UseAzure is true");
+
+            var endpoint = _settings.AzureEndpoint.TrimEnd('/');
+            _httpClient.BaseAddress = new Uri(endpoint);
+            _httpClient.DefaultRequestHeaders.Add("api-key", _settings.ApiKey);
+        }
+        else
+        {
+            // Standard OpenAI configuration
+            var baseUrl = _settings.BaseUrl ?? "https://api.openai.com/v1";
+            _httpClient.BaseAddress = new Uri(baseUrl);
+            _httpClient.DefaultRequestHeaders.Authorization =
+                new AuthenticationHeaderValue("Bearer", _settings.ApiKey);
+        }
     }
 
     public async Task<LlmResponse> SendMessageAsync(
@@ -94,7 +110,18 @@ public class OpenAIClient : ILlmClient
 
             _logger.LogInformation("Sending request to OpenAI API with model {Model}", _settings.Model);
 
-            var response = await _httpClient.PostAsync("/chat/completions", content, cancellationToken);
+            // Build the correct endpoint URL
+            string endpoint;
+            if (_settings.UseAzure)
+            {
+                endpoint = $"/openai/deployments/{_settings.AzureDeployment}/chat/completions?api-version={_settings.AzureApiVersion}";
+            }
+            else
+            {
+                endpoint = "/chat/completions";
+            }
+
+            var response = await _httpClient.PostAsync(endpoint, content, cancellationToken);
             var responseContent = await response.Content.ReadAsStringAsync(cancellationToken);
 
             if (!response.IsSuccessStatusCode)

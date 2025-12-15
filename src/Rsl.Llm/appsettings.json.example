@@ -4,7 +4,11 @@
     "Model": "gpt-4o",
     "MaxTokens": 4096,
     "Temperature": 0.7,
-    "BaseUrl": null
+    "BaseUrl": null,
+    "UseAzure": false,
+    "AzureEndpoint": "https://your-resource.openai.azure.com/",
+    "AzureDeployment": "gpt-4o",
+    "AzureApiVersion": "2024-02-15-preview"
   }
 }
 

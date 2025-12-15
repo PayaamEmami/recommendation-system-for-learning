@@ -356,20 +356,32 @@ module jobsApp 'modules/container-app.bicep' = {
         value: '1536'
       }
       {
-        name: 'LlmServices__Endpoint'
+        name: 'OpenAI__UseAzure'
+        value: 'true'
+      }
+      {
+        name: 'OpenAI__AzureEndpoint'
         value: azureOpenAIEndpoint
       }
       {
-        name: 'LlmServices__ApiKey'
+        name: 'OpenAI__ApiKey'
         secretRef: 'azure-openai-api-key'
       }
       {
-        name: 'LlmServices__DeploymentName'
+        name: 'OpenAI__AzureDeployment'
         value: azureOpenAIChatDeployment
       }
       {
-        name: 'LlmServices__MaxTokens'
+        name: 'OpenAI__Model'
+        value: azureOpenAIChatDeployment
+      }
+      {
+        name: 'OpenAI__MaxTokens'
         value: '4096'
+      }
+      {
+        name: 'OpenAI__AzureApiVersion'
+        value: '2024-02-15-preview'
       }
       {
         name: 'Jobs__RunOnStartup'
