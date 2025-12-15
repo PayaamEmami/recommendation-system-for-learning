@@ -270,7 +270,7 @@ module webApp 'modules/container-app.bicep' = {
         value: 'Production'
       }
       {
-        name: 'API_BASE_URL'
+        name: 'ApiBaseUrl'
         value: apiApp.outputs.url
       }
       {

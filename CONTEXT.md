@@ -51,19 +51,26 @@ This document provides essential context for AI coding assistants working on the
 
 Environment variables must follow this pattern:
 ```
+# Hierarchical (nested JSON sections)
 AzureAISearch__Endpoint           ✅ Correct
 AzureAISearch__ApiKey             ✅ Correct
 ConnectionStrings__DefaultConnection ✅ Correct
 Embedding__Endpoint               ✅ Correct
 
+# Simple (top-level keys) - use PascalCase
+ApiBaseUrl                        ✅ Correct
+
+# WRONG - Don't use SCREAMING_SNAKE_CASE
 AZURE_SEARCH_ENDPOINT             ❌ Wrong
 SQL_CONNECTION_STRING             ❌ Wrong
+API_BASE_URL                      ❌ Wrong (use ApiBaseUrl)
 ```
 
 **Configuration mapping**:
 - `appsettings.json` section `"AzureAISearch": { "Endpoint": "..." }`
 - Environment variable: `AzureAISearch__Endpoint`
 - .NET reads as: `settings.Value.Endpoint`
+- Simple keys: `"ApiBaseUrl": "..."` → env var `ApiBaseUrl` → code `_configuration.GetValue<string>("ApiBaseUrl")`
 
 ### Bicep Configuration Files
 
