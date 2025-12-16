@@ -143,7 +143,7 @@ module apiApp 'modules/container-app.bicep' = {
     imageTag: 'latest'
     keyVaultName: keyVault.outputs.name
     applicationInsightsConnectionString: applicationInsights.outputs.connectionString
-    minReplicas: 0
+    minReplicas: 1
     maxReplicas: 3
     secrets: [
       {

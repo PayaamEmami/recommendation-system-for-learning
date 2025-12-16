@@ -95,8 +95,8 @@ GitHub Actions workflow (`.github/workflows/azure-deploy.yml`):
 
 ### Scaling Configuration
 
-- **API**: `minReplicas: 0`, `maxReplicas: 3` (scales to zero when idle)
-- **Web**: `minReplicas: 0`, `maxReplicas: 3` (scales to zero when idle)
+- **API**: `minReplicas: 1`, `maxReplicas: 3` (always running - fast response)
+- **Web**: `minReplicas: 1`, `maxReplicas: 3` (always running - fast page loads)
 - **Jobs**: `minReplicas: 1`, `maxReplicas: 1` (always running - critical!)
 
 ## Development Workflow
