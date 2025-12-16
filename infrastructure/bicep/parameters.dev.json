@@ -14,17 +14,8 @@
     "sqlAdminPassword": {
       "value": "REPLACE_WITH_STRONG_PASSWORD"
     },
-    "azureOpenAIEndpoint": {
-      "value": "https://your-openai-resource.openai.azure.com/"
-    },
-    "azureOpenAIApiKey": {
-      "value": "REPLACE_WITH_AZURE_OPENAI_API_KEY"
-    },
-    "azureOpenAIEmbeddingDeployment": {
-      "value": "text-embedding-3-small"
-    },
-    "azureOpenAIChatDeployment": {
-      "value": "gpt-4o"
+    "openAIApiKey": {
+      "value": "REPLACE_WITH_OPENAI_API_KEY"
     },
     "azureSearchEndpoint": {
       "value": "https://your-search-service.search.windows.net"

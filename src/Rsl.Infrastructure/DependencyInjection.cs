@@ -42,8 +42,17 @@ public static class DependencyInjection
         services.Configure<EmbeddingSettings>(configuration.GetSection(EmbeddingSettings.SectionName));
         services.Configure<AzureAISearchSettings>(configuration.GetSection(AzureAISearchSettings.SectionName));
 
-        // Register embedding service
-        services.AddSingleton<IEmbeddingService, AzureOpenAIEmbeddingService>();
+        // Register embedding service based on configuration
+        var embeddingSettings = configuration.GetSection(EmbeddingSettings.SectionName).Get<EmbeddingSettings>();
+        if (embeddingSettings?.UseAzure == true)
+        {
+            services.AddSingleton<IEmbeddingService, AzureOpenAIEmbeddingService>();
+        }
+        else
+        {
+            services.AddHttpClient();
+            services.AddSingleton<IEmbeddingService, OpenAIEmbeddingService>();
+        }
 
         // Register vector store
         services.AddSingleton<IVectorStore, AzureAISearchVectorStore>();

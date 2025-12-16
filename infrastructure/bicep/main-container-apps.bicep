@@ -23,18 +23,9 @@ param sqlAdminUsername string
 @secure()
 param sqlAdminPassword string
 
-@description('Azure OpenAI endpoint')
-param azureOpenAIEndpoint string
-
-@description('Azure OpenAI API key')
+@description('OpenAI API key (for direct OpenAI API access)')
 @secure()
-param azureOpenAIApiKey string
-
-@description('Azure OpenAI embedding deployment name')
-param azureOpenAIEmbeddingDeployment string = 'text-embedding-3-small'
-
-@description('Azure OpenAI chat deployment name')
-param azureOpenAIChatDeployment string = 'gpt-4o'
+param openAIApiKey string
 
 @description('Azure AI Search endpoint')
 param azureSearchEndpoint string
@@ -94,8 +85,8 @@ module keyVault 'modules/key-vault.bicep' = {
         value: 'Server=tcp:${sqlServer.outputs.serverFqdn},1433;Initial Catalog=${appName}-db;Persist Security Info=False;User ID=${sqlAdminUsername};Password=${sqlAdminPassword};MultipleActiveResultSets=False;Encrypt=True;TrustServerCertificate=False;Connection Timeout=30;'
       }
       {
-        name: 'AzureOpenAIApiKey'
-        value: azureOpenAIApiKey
+        name: 'OpenAIApiKey'
+        value: openAIApiKey
       }
       {
         name: 'AzureSearchApiKey'
@@ -182,16 +173,16 @@ module apiApp 'modules/container-app.bicep' = {
         secretRef: 'sql-connection-string'
       }
       {
-        name: 'Embedding__Endpoint'
-        value: azureOpenAIEndpoint
+        name: 'Embedding__UseAzure'
+        value: 'false'
       }
       {
         name: 'Embedding__ApiKey'
-        secretRef: 'azure-openai-api-key'
+        secretRef: 'openai-api-key'
       }
       {
-        name: 'Embedding__DeploymentName'
-        value: azureOpenAIEmbeddingDeployment
+        name: 'Embedding__ModelName'
+        value: 'text-embedding-3-small'
       }
       {
         name: 'Embedding__Dimensions'
@@ -320,16 +311,16 @@ module jobsApp 'modules/container-app.bicep' = {
         secretRef: 'sql-connection-string'
       }
       {
-        name: 'Embedding__Endpoint'
-        value: azureOpenAIEndpoint
+        name: 'Embedding__UseAzure'
+        value: 'false'
       }
       {
         name: 'Embedding__ApiKey'
-        secretRef: 'azure-openai-api-key'
+        secretRef: 'openai-api-key'
       }
       {
-        name: 'Embedding__DeploymentName'
-        value: azureOpenAIEmbeddingDeployment
+        name: 'Embedding__ModelName'
+        value: 'text-embedding-3-small'
       }
       {
         name: 'Embedding__Dimensions'
@@ -357,31 +348,19 @@ module jobsApp 'modules/container-app.bicep' = {
       }
       {
         name: 'OpenAI__UseAzure'
-        value: 'true'
-      }
-      {
-        name: 'OpenAI__AzureEndpoint'
-        value: azureOpenAIEndpoint
+        value: 'false'
       }
       {
         name: 'OpenAI__ApiKey'
-        secretRef: 'azure-openai-api-key'
-      }
-      {
-        name: 'OpenAI__AzureDeployment'
-        value: azureOpenAIChatDeployment
+        secretRef: 'openai-api-key'
       }
       {
         name: 'OpenAI__Model'
-        value: azureOpenAIChatDeployment
+        value: 'gpt-4o'
       }
       {
         name: 'OpenAI__MaxTokens'
         value: '4096'
-      }
-      {
-        name: 'OpenAI__AzureApiVersion'
-        value: '2024-02-15-preview'
       }
       {
         name: 'Jobs__RunOnStartup'

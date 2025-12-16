@@ -9,8 +9,8 @@ This document provides essential context for AI coding assistants working on the
 **Tech Stack**:
 - **Backend**: .NET 10, ASP.NET Core, Entity Framework Core
 - **Frontend**: Blazor Server
-- **Cloud**: Azure (Container Apps, AI Search, OpenAI, SQL Database)
-- **AI/ML**: Azure OpenAI (GPT-4, text-embedding-3-small), Vector embeddings, Semantic search
+- **Cloud**: Azure (Container Apps, AI Search, SQL Database)
+- **AI/ML**: OpenAI API (GPT-4o, text-embedding-3-small), Vector embeddings, Semantic search
 - **DevOps**: Docker, GitHub Actions, Azure Bicep (IaC)
 
 ## Architecture Overview
@@ -39,11 +39,13 @@ This document provides essential context for AI coding assistants working on the
 **Hosted on Azure Container Apps** with the following resources:
 - **3 Container Apps**: API, Web, Jobs (all in same environment)
 - **Azure AI Search**: Vector database for semantic similarity
-- **Azure OpenAI**: GPT-4 and text-embedding-3-small
+- **OpenAI API**: GPT-4o for LLM agent, text-embedding-3-small for embeddings (direct OpenAI, not Azure OpenAI)
 - **Azure SQL Database**: Application data
 - **Azure Container Registry**: Docker images
-- **Azure Key Vault**: Secrets management
+- **Azure Key Vault**: Secrets management (stores OpenAI API key)
 - **Application Insights**: Monitoring
+
+**Default Region**: West US (`westus`) for Azure resources
 
 ### Environment Configuration
 
@@ -133,7 +135,7 @@ dotnet test
 
 ```bash
 cd infrastructure/scripts
-./deploy.sh dev rsl-dev-rg westus
+./deploy.sh dev rsl-dev-rg westus  # westus is the default region
 ```
 
 Or manually:
@@ -168,14 +170,6 @@ If recommendations aren't generating, check:
 2. Environment variables use `__` separator
 3. Check logs for startup errors
 4. Verify Azure AI Search and OpenAI endpoints are accessible
-
-## Security Best Practices
-
-- **Never commit secrets**: Use Key Vault references in Bicep
-- **Environment variables**: Sensitive values use `@Microsoft.KeyVault(SecretUri=...)`
-- **JWT tokens**: Short-lived with refresh token support
-- **API rate limiting**: Configured per endpoint
-- **CORS**: Restricted to specific origins
 
 ## Code Conventions
 
@@ -219,13 +213,13 @@ If recommendations aren't generating, check:
 1. Jobs service scaled to zero (`minReplicas: 0`)
 2. Invalid environment variable names (flat instead of hierarchical)
 3. Azure AI Search initialization failure
-4. Missing or expired Azure OpenAI keys
+4. Missing or expired OpenAI API keys
 
 **How to fix**:
 1. Check Jobs service scaling: `az containerapp show --name rsl-dev-jobs --resource-group rsl-dev-rg --query "properties.template.scale"`
 2. Verify environment variables use `__` separator
 3. Check logs for startup errors
-4. Verify Key Vault secrets are accessible
+4. Verify Key Vault has `OpenAIApiKey` secret and Container Apps can access it
 
 ### Vector Store Initialization Errors
 
@@ -248,26 +242,9 @@ If you see `System.UriFormatException: Invalid URI`:
 
 ## Important Architecture Decisions
 
-### Why Hybrid Recommendations?
-
-Combines strengths of both approaches:
-- **Vector similarity (70%)**: Semantic understanding of content
-- **Heuristics (30%)**: Recency, source preferences, user feedback
-
-### Why Azure Container Apps?
-
-- Serverless container hosting (no VM management)
-- Auto-scaling with scale-to-zero
-- Built-in load balancing and ingress
-- Native integration with Azure services
-- Cost-effective for variable workloads
-
-### Why Background Worker for Jobs?
-
-- Scheduled tasks need consistent execution
-- Recommendation generation is resource-intensive
-- Decouples heavy processing from API/Web
-- Can run independently with different scaling rules
+- **Hybrid Recommendations**: 70% vector similarity, 30% heuristics (recency, source preferences, user feedback)
+- **Background Worker**: Rsl.Jobs runs continuously with `minReplicas: 1` for scheduled tasks
+- **Direct OpenAI**: Using OpenAI API directly (not Azure OpenAI) for simpler setup
 
 ## Resource Naming Convention
 
@@ -278,12 +255,4 @@ Examples:
 - `rsl-dev-jobs` - Jobs Container App
 - `rsl-dev-sql-abc123` - SQL Server
 - `rsl-dev-kv-abc123` - Key Vault
-
-## Performance Considerations
-
-- **Vector Search**: Cached embeddings in Azure AI Search
-- **Database**: Entity Framework with proper indexing
-- **API**: Rate limiting to prevent abuse
-- **Background Jobs**: Runs during off-peak hours (2 AM UTC)
-- **Scaling**: Auto-scales based on HTTP requests (API/Web only)
 

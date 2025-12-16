@@ -24,22 +24,13 @@
         "secretName": "SqlAdminPassword"
       }
     },
-    "azureOpenAIEndpoint": {
-      "value": "https://your-openai-resource.openai.azure.com/"
-    },
-    "azureOpenAIApiKey": {
+    "openAIApiKey": {
       "reference": {
         "keyVault": {
           "id": "/subscriptions/{subscription-id}/resourceGroups/rsl-shared-resources/providers/Microsoft.KeyVault/vaults/{kv-name}"
         },
-        "secretName": "AzureOpenAIApiKey"
+        "secretName": "OpenAIApiKey"
       }
-    },
-    "azureOpenAIEmbeddingDeployment": {
-      "value": "text-embedding-3-small"
-    },
-    "azureOpenAIChatDeployment": {
-      "value": "gpt-4o"
     },
     "azureSearchEndpoint": {
       "value": "https://your-search-service.search.windows.net"

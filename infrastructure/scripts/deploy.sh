@@ -40,7 +40,7 @@ fi
 # Parse command line arguments
 ENVIRONMENT=${1:-dev}
 RESOURCE_GROUP=${2:-rsl-$ENVIRONMENT-rg}
-LOCATION=${3:-eastus}
+LOCATION=${3:-westus}
 
 print_info "Starting deployment to Azure"
 print_info "Environment: $ENVIRONMENT"
