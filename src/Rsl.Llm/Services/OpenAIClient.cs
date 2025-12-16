@@ -118,7 +118,7 @@ public class OpenAIClient : ILlmClient
             }
             else
             {
-                endpoint = "/chat/completions";
+                endpoint = "chat/completions";
             }
 
             var response = await _httpClient.PostAsync(endpoint, content, cancellationToken);
