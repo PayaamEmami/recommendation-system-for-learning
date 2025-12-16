@@ -41,7 +41,7 @@ public class OpenAIClient : ILlmClient
         else
         {
             // Standard OpenAI configuration
-            var baseUrl = _settings.BaseUrl ?? "https://api.openai.com/v1";
+            var baseUrl = _settings.BaseUrl ?? "https://api.openai.com/v1/";
             _httpClient.BaseAddress = new Uri(baseUrl);
             _httpClient.DefaultRequestHeaders.Authorization =
                 new AuthenticationHeaderValue("Bearer", _settings.ApiKey);
