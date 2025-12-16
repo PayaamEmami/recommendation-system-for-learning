@@ -11,9 +11,9 @@ public class OpenAISettings
     public string ApiKey { get; set; } = string.Empty;
 
     /// <summary>
-    /// The model to use (e.g., "gpt-4o", "gpt-4o-mini").
+    /// The model to use (e.g., "gpt-5-nano", "gpt-4o", "gpt-4o-mini").
     /// </summary>
-    public string Model { get; set; } = "gpt-4o";
+    public string Model { get; set; } = "gpt-5-nano";
 
     /// <summary>
     /// Maximum tokens per request to control costs.

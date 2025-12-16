@@ -356,7 +356,7 @@ module jobsApp 'modules/container-app.bicep' = {
       }
       {
         name: 'OpenAI__Model'
-        value: 'gpt-4o'
+        value: 'gpt-5-nano'
       }
       {
         name: 'OpenAI__MaxTokens'

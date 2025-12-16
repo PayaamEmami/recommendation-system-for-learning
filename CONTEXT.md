@@ -10,7 +10,7 @@ This document provides essential context for AI coding assistants working on the
 - **Backend**: .NET 10, ASP.NET Core, Entity Framework Core
 - **Frontend**: Blazor Server
 - **Cloud**: Azure (Container Apps, AI Search, SQL Database)
-- **AI/ML**: OpenAI API (GPT-4o, text-embedding-3-small), Vector embeddings, Semantic search
+- **AI/ML**: OpenAI API (GPT-5-nano, text-embedding-3-small), Vector embeddings, Semantic search
 - **DevOps**: Docker, GitHub Actions, Azure Bicep (IaC)
 
 ## Architecture Overview
@@ -39,7 +39,7 @@ This document provides essential context for AI coding assistants working on the
 **Hosted on Azure Container Apps** with the following resources:
 - **3 Container Apps**: API, Web, Jobs (all in same environment)
 - **Azure AI Search**: Vector database for semantic similarity
-- **OpenAI API**: GPT-4o for LLM agent, text-embedding-3-small for embeddings (direct OpenAI, not Azure OpenAI)
+- **OpenAI API**: GPT-5-nano for LLM agent (with web search tool), text-embedding-3-small for embeddings (direct OpenAI, not Azure OpenAI)
 - **Azure SQL Database**: Application data
 - **Azure Container Registry**: Docker images
 - **Azure Key Vault**: Secrets management (stores OpenAI API key)

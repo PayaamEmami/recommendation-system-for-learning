@@ -44,7 +44,7 @@ Add OpenAI settings to your `appsettings.json`:
 {
   "OpenAI": {
     "ApiKey": "your-api-key-here",
-    "Model": "gpt-4o",
+    "Model": "gpt-5-nano",
     "MaxTokens": 4096,
     "Temperature": 0.7
   }
@@ -136,7 +136,7 @@ The agent categorizes resources into these types:
 - `MaxTokens` setting limits per-request costs
 - Agent uses focused prompts to minimize token usage
 - Tool calls are efficient and targeted
-- Consider using `gpt-4o-mini` for cost savings during development
+- GPT-5-nano provides excellent performance at 50x lower cost than GPT-4o
 
 ## Future Enhancements
 

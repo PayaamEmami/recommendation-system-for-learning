@@ -24,7 +24,7 @@
   },
   "OpenAI": {
     "ApiKey": "your-openai-api-key",
-    "Model": "gpt-4o",
+    "Model": "gpt-5-nano",
     "MaxTokens": 4096,
     "Temperature": 0.7
   }

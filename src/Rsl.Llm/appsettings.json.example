@@ -1,13 +1,13 @@
 {
   "OpenAI": {
     "ApiKey": "your-openai-api-key-here",
-    "Model": "gpt-4o",
+    "Model": "gpt-5-nano",
     "MaxTokens": 4096,
     "Temperature": 0.7,
     "BaseUrl": null,
     "UseAzure": false,
     "AzureEndpoint": "https://your-resource.openai.azure.com/",
-    "AzureDeployment": "gpt-4o",
+    "AzureDeployment": "gpt-5-nano",
     "AzureApiVersion": "2024-02-15-preview"
   }
 }

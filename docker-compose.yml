@@ -83,7 +83,7 @@ services:
       - Embedding__Dimensions=1536
       - OpenAI__UseAzure=false
       - OpenAI__ApiKey=${OPENAI_API_KEY}
-      - OpenAI__Model=gpt-4o
+      - OpenAI__Model=gpt-5-nano
       - OpenAI__MaxTokens=4096
       - AzureAISearch__Endpoint=${AZURE_SEARCH_ENDPOINT}
       - AzureAISearch__ApiKey=${AZURE_SEARCH_API_KEY}
