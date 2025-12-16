@@ -23,6 +23,11 @@ public class AzureOpenAIEmbeddingService : IEmbeddingService
         _settings = settings.Value;
         _logger = logger;
 
+        if (string.IsNullOrEmpty(_settings.Endpoint))
+        {
+            throw new InvalidOperationException("Azure OpenAI Endpoint is required when UseAzure is true");
+        }
+
         _client = new AzureOpenAIClient(
             new Uri(_settings.Endpoint),
             new AzureKeyCredential(_settings.ApiKey));
