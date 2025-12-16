@@ -101,7 +101,16 @@ public class OpenAIClient : ILlmClient
 
             if (tools != null && tools.Any())
             {
-                requestBody["tools"] = tools;
+                // Combine custom tools with web search tool
+                var allTools = new List<object>(tools);
+
+                // Add OpenAI's web search preview tool
+                allTools.Add(new
+                {
+                    type = "web_search_preview"
+                });
+
+                requestBody["tools"] = allTools;
                 requestBody["tool_choice"] = "auto";
             }
 

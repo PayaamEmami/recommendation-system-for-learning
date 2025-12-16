@@ -34,10 +34,13 @@ public class ResourceConfiguration : IEntityTypeConfiguration<Resource>
             .IsRequired()
             .HasMaxLength(500);
 
-        // URL: required, max length 2000
+        // URL: required, max length 2000, unique
         builder.Property(r => r.Url)
             .IsRequired()
             .HasMaxLength(2000);
+
+        builder.HasIndex(r => r.Url)
+            .IsUnique();
 
         // Description: optional, max length 5000
         builder.Property(r => r.Description)

@@ -1,3 +1,4 @@
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Rsl.Core.Entities;
@@ -87,24 +88,20 @@ public class SourceIngestionJob
                     {
                         try
                         {
-                            // Check if resource already exists
-                            var exists = await resourceRepository.ExistsByUrlAsync(
-                                extractedResource.Url,
-                                cancellationToken);
-
-                            if (exists)
-                            {
-                                _logger.LogDebug("Resource already exists: {Url}", extractedResource.Url);
-                                continue;
-                            }
-
-                            // Create resource entity (simplified - in real app, would map to specific types)
+                            // Create resource entity
                             var resource = CreateResourceEntity(extractedResource, source.Id);
                             await resourceRepository.AddAsync(resource, cancellationToken);
                             newResources.Add(resource);
 
                             totalIngested++;
                             _logger.LogInformation("Saved new resource: {Title}", resource.Title);
+                        }
+                        catch (DbUpdateException ex) when (ex.InnerException?.Message.Contains("duplicate", StringComparison.OrdinalIgnoreCase) == true ||
+                                                           ex.InnerException?.Message.Contains("unique constraint", StringComparison.OrdinalIgnoreCase) == true ||
+                                                           ex.InnerException?.Message.Contains("UNIQUE", StringComparison.Ordinal) == true)
+                        {
+                            // Resource URL already exists - this is expected, just skip it
+                            _logger.LogDebug("Resource already exists (duplicate URL): {Url}", extractedResource.Url);
                         }
                         catch (Exception ex)
                         {
