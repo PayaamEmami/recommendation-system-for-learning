@@ -256,35 +256,73 @@ public class OpenAIClient : ILlmClient
 
             var result = JsonSerializer.Deserialize<JsonElement>(responseContent);
 
-            // Responses API has different structure
-            var output = result.GetProperty("output");
-            var outputContent = output.GetProperty("content");
+            // Log the raw response for debugging
+            _logger.LogDebug("OpenAI Responses API raw response: {Response}", responseContent);
 
+            // Responses API has different structure - output is an array
             var llmResponse = new LlmResponse
             {
                 ConversationHistory = new List<object>(),
                 IsComplete = true
             };
 
-            // Extract text content from the response
-            if (outputContent.ValueKind == JsonValueKind.Array)
+            var textParts = new List<string>();
+
+            // Check if output is an array or object
+            if (result.TryGetProperty("output", out var output))
             {
-                var textParts = new List<string>();
-                foreach (var item in outputContent.EnumerateArray())
+                if (output.ValueKind == JsonValueKind.Array)
                 {
-                    if (item.TryGetProperty("type", out var type) &&
-                        type.GetString() == "output_text" &&
-                        item.TryGetProperty("text", out var text))
+                    // Output is an array of content items
+                    foreach (var item in output.EnumerateArray())
                     {
-                        textParts.Add(text.GetString()!);
+                        if (item.TryGetProperty("content", out var itemContent))
+                        {
+                            if (itemContent.ValueKind == JsonValueKind.Array)
+                            {
+                                foreach (var contentItem in itemContent.EnumerateArray())
+                                {
+                                    if (contentItem.TryGetProperty("type", out var type) &&
+                                        type.GetString() == "output_text" &&
+                                        contentItem.TryGetProperty("text", out var text))
+                                    {
+                                        textParts.Add(text.GetString()!);
+                                    }
+                                }
+                            }
+                            else if (itemContent.TryGetProperty("text", out var textProp))
+                            {
+                                textParts.Add(textProp.GetString()!);
+                            }
+                        }
                     }
                 }
-                llmResponse.Content = string.Join("\n", textParts);
+                else if (output.ValueKind == JsonValueKind.Object)
+                {
+                    // Output is an object with content property
+                    if (output.TryGetProperty("content", out var outputContent))
+                    {
+                        if (outputContent.ValueKind == JsonValueKind.Array)
+                        {
+                            foreach (var item in outputContent.EnumerateArray())
+                            {
+                                if (item.TryGetProperty("type", out var type) &&
+                                    type.GetString() == "output_text" &&
+                                    item.TryGetProperty("text", out var text))
+                                {
+                                    textParts.Add(text.GetString()!);
+                                }
+                            }
+                        }
+                        else if (outputContent.TryGetProperty("text", out var textProp))
+                        {
+                            textParts.Add(textProp.GetString()!);
+                        }
+                    }
+                }
             }
-            else if (outputContent.TryGetProperty("text", out var textProp))
-            {
-                llmResponse.Content = textProp.GetString() ?? string.Empty;
-            }
+
+            llmResponse.Content = string.Join("\n", textParts);
 
             _logger.LogInformation("Received response from OpenAI Responses API with {Length} characters",
                 llmResponse.Content.Length);
