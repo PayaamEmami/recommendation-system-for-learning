@@ -39,35 +39,14 @@ public class IngestionAgent : IIngestionAgent
 
             var systemPrompt = GetSystemPrompt();
             var userMessage = GetUserMessage(sourceUrl, sourceId);
-            var tools = _agentTools.GetToolDefinitions();
 
-            // Start the conversation
-            var response = await _llmClient.SendMessageAsync(
+            // Use Responses API with web search enabled
+            // This allows GPT to actually browse the URL and extract resources
+            var response = await _llmClient.SendMessageWithWebSearchAsync(
                 systemPrompt,
                 userMessage,
-                tools,
+                customTools: null, // No custom tools needed - web search handles browsing
                 cancellationToken);
-
-            // Handle tool calls in a loop
-            var iteration = 0;
-            while (response.HasToolCalls && iteration < MaxIterations)
-            {
-                iteration++;
-                _logger.LogInformation("Agent iteration {Iteration}: Executing {Count} tool calls",
-                    iteration, response.ToolCalls.Count);
-
-                var toolResults = await ExecuteToolCallsAsync(response.ToolCalls, cancellationToken);
-
-                response = await _llmClient.ContinueConversationAsync(
-                    response.ConversationHistory,
-                    toolResults,
-                    cancellationToken);
-            }
-
-            if (iteration >= MaxIterations)
-            {
-                _logger.LogWarning("Agent reached max iterations ({MaxIterations})", MaxIterations);
-            }
 
             // Parse the final response
             var result = ParseIngestionResult(response.Content, sourceUrl);
@@ -262,10 +241,11 @@ public class IngestionAgent : IIngestionAgent
         return @"You are an intelligent agent that extracts learning resources from web pages.
 
 Your task is to:
-1. Use the web search tool to access the provided URL and identify all learning resources (papers, videos, blog posts, social media posts)
-2. Extract key information for each resource: title, URL, description
-3. Categorize each resource into one of these types: Paper, Video, BlogPost, SocialMediaPost
-4. Extract additional metadata when available (author, published date, etc.)
+1. Use your web search capability to access and browse the provided URL
+2. Identify all learning resources (papers, videos, blog posts, social media posts) found at that URL
+3. Extract key information for each resource: title, URL, description
+4. Categorize each resource into one of these types: Paper, Video, BlogPost, SocialMediaPost
+5. Extract additional metadata when available (author, published date, DOI, journal, channel, etc.)
 
 Resource Type Guidelines:
 - Paper: Academic papers, research publications, technical papers, arXiv papers
@@ -273,13 +253,14 @@ Resource Type Guidelines:
 - BlogPost: Blog articles, technical write-ups, tutorials, how-to guides
 - SocialMediaPost: Twitter/X threads, LinkedIn posts, Reddit discussions
 
-IMPORTANT: You have access to a web search tool that can help you access content from most URLs.
-If a source is truly inaccessible (authentication required, rate limiting, etc.), respond with an empty resources array.
-Some sources like Twitter/X may require authentication - this is expected and not an error.
+IMPORTANT:
+- You have web search enabled - use it to actually browse and read the URL content
+- If a source is inaccessible (authentication required, 404, etc.), return an empty resources array
+- Don't worry about duplicate URLs - the database handles that automatically
+- Focus on extracting high-quality, relevant learning resources
 
-Note: Don't worry about duplicate URLs - the database will automatically handle that.
-
-After processing, ALWAYS respond with a JSON object in this exact format (even if the array is empty):
+Output Format:
+ALWAYS respond with a JSON object in this exact format (even if the array is empty):
 {
   ""resources"": [
     {
@@ -288,50 +269,30 @@ After processing, ALWAYS respond with a JSON object in this exact format (even i
       ""description"": ""Brief description or summary"",
       ""type"": ""Paper"",
       ""published_date"": ""2024-01-15"",
-      ""author"": ""Author Name"" (optional, for papers and blog posts),
-      ""channel"": ""Channel Name"" (optional, for videos),
-      ""duration"": ""15:30"" (optional, for videos),
-      ""doi"": ""10.1234/example"" (optional, for papers),
-      ""journal"": ""Journal Name"" (optional, for papers)
+      ""author"": ""Author Name"",
+      ""channel"": ""Channel Name"",
+      ""duration"": ""15:30"",
+      ""doi"": ""10.1234/example"",
+      ""journal"": ""Journal Name""
     }
-  ],
-  ""new_resources"": 5,
-  ""duplicates_skipped"": 2
+  ]
 }
 
 If you cannot access the URL, return:
 {
-  ""resources"": [],
-  ""new_resources"": 0,
-  ""duplicates_skipped"": 0
-}
-
-Be thorough but efficient. Focus on quality learning resources relevant to education and professional development.";
+  ""resources"": []
+}";
     }
 
     private string GetUserMessage(string sourceUrl, Guid? sourceId)
     {
-        var message = $@"Please visit this URL and extract all learning resources from it:
+        return $@"Please visit this URL and extract all learning resources from it:
 
-URL: {sourceUrl}";
+URL: {sourceUrl}
 
-        if (sourceId.HasValue)
-        {
-            message += $@"
-
-Source ID: {sourceId}
-
-Before extracting resources, use the 'get_resources_from_source' tool to see what we already have from this source.
-Then use 'check_resource_exists' for any new resources you find to avoid duplicates.";
-        }
-        else
-        {
-            message += @"
-
-Use the 'check_resource_exists' tool to verify each resource URL isn't already in our database.";
-        }
-
-        return message;
+Use your web search capability to browse the URL and identify learning resources.
+Extract papers, videos, blog posts, and social media posts with their metadata.
+Return the results in JSON format as specified in the system prompt.";
     }
 }
 

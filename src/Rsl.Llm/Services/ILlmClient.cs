@@ -21,6 +21,21 @@ public interface ILlmClient
         CancellationToken cancellationToken = default);
 
     /// <summary>
+    /// Sends a message using the Responses API with web search enabled.
+    /// This is specifically for URL ingestion where GPT needs to browse the web.
+    /// </summary>
+    /// <param name="systemPrompt">System instructions for the LLM</param>
+    /// <param name="userMessage">The user's message/request</param>
+    /// <param name="customTools">Optional list of custom tools (web_search is always included)</param>
+    /// <param name="cancellationToken">Cancellation token</param>
+    /// <returns>The LLM's response</returns>
+    Task<LlmResponse> SendMessageWithWebSearchAsync(
+        string systemPrompt,
+        string userMessage,
+        List<object>? customTools = null,
+        CancellationToken cancellationToken = default);
+
+    /// <summary>
     /// Continues a conversation by sending tool results back to the LLM.
     /// </summary>
     /// <param name="conversationHistory">Previous messages in the conversation</param>
