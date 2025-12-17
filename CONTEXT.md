@@ -205,6 +205,21 @@ If recommendations aren't generating, check:
 
 **Exception:** README.md is the primary project documentation and should be maintained.
 
+### ⚠️ IMPORTANT: Commits and Source Control
+
+**NEVER commit changes automatically** - only commit when the user explicitly requests it.
+
+**Why?**
+- User wants full control over what goes into source control
+- User may want to review, test, or modify changes first
+- Automated commits can be disruptive to workflow
+
+**When deploying fixes:**
+- Make the code changes
+- Let the user review them
+- User will commit and push when ready
+- GitHub Actions will automatically deploy on push to `main`
+
 ## Troubleshooting Common Issues
 
 ### Recommendations Not Generating

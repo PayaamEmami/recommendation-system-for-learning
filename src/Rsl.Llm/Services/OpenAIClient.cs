@@ -220,8 +220,8 @@ public class OpenAIClient : ILlmClient
                         }
                     }
                 },
-                ["temperature"] = _settings.Temperature,
-                ["max_tokens"] = _settings.MaxTokens
+                ["temperature"] = _settings.Temperature
+                // Note: Responses API does not support max_tokens parameter
             };
 
             // Add tools: web_search + any custom tools
