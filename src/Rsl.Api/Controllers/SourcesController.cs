@@ -156,5 +156,24 @@ public class SourcesController : ControllerBase
             return NotFound(new { message = $"Source with ID {id} not found." });
         }
     }
+
+    /// <summary>
+    /// Bulk imports multiple sources from JSON.
+    /// </summary>
+    [HttpPost("bulk-import")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    public async Task<IActionResult> BulkImportSources([FromBody] BulkImportSourcesRequest request, CancellationToken cancellationToken)
+    {
+        var userId = User.GetUserId();
+        if (!userId.HasValue)
+        {
+            return Unauthorized();
+        }
+
+        var result = await _sourceService.BulkImportSourcesAsync(userId.Value, request, cancellationToken);
+        return Ok(result);
+    }
 }
 

@@ -9,8 +9,7 @@ This project provides an intelligent, LLM-based agent that can automatically ext
 ## Features
 
 - **Flexible URL Ingestion**: Provide any URL (YouTube channel, blog, arXiv listing, etc.) and the agent extracts resources
-- **Automatic Categorization**: LLM categorizes resources into Papers, Videos, BlogPosts, or SocialMediaPosts
-- **Duplicate Detection**: Agent uses tools to query the database and avoid inserting duplicate resources
+- **Automatic Categorization**: LLM categorizes resources into Papers, Videos, or BlogPosts
 - **Rich Metadata Extraction**: Extracts titles, descriptions, URLs, and type-specific metadata (authors, duration, DOI, etc.)
 - **Provider Agnostic**: Abstracted `ILlmClient` allows switching between OpenAI, Azure OpenAI, or other providers
 
@@ -26,13 +25,8 @@ This project provides an intelligent, LLM-based agent that can automatically ext
    - `IngestionResult`: Result object containing extracted resources and metadata
 
 3. **Services**
-   - `ILlmClient` / `OpenAIClient`: Handles communication with OpenAI API with function calling
+   - `ILlmClient` / `OpenAIClient`: Handles communication with OpenAI Chat Completion API
    - `IIngestionAgent` / `IngestionAgent`: Main orchestrator that coordinates the ingestion process
-
-4. **Tools**
-   - `AgentTools`: Provides database query tools that the LLM can call during ingestion
-     - `check_resource_exists`: Check if a URL is already in the database
-     - `get_resources_from_source`: Get all resources from a specific source
 
 ## Usage
 
@@ -97,21 +91,18 @@ public class MyService
 
 ## How It Works
 
-1. **User provides a URL**: Can be any learning resource listing page (YouTube channel, blog homepage, arXiv category, etc.)
+1. **HTML Fetching**: The system fetches HTML content from the URL using `HtmlFetcherService`
 
-2. **Agent receives instructions**: The system prompt instructs the LLM to:
-   - Browse the URL
-   - Extract learning resources
-   - Categorize them appropriately
-   - Use tools to check for duplicates
+2. **Minimal Cleaning**: Removes `<script>` and `<style>` tags to reduce token usage
 
-3. **LLM browses and extracts**: Using its web browsing capability, the LLM visits the URL and identifies resources
+3. **LLM Extraction**: The cleaned HTML is sent to ChatGPT with instructions to:
+   - Identify all learning resources in the HTML
+   - Extract title, URL, description, and metadata
+   - Categorize resources as Paper, Video, or BlogPost
 
-4. **Tool calling loop**: The LLM can call provided tools to:
-   - Check if specific URLs already exist
-   - Get existing resources from a source
+4. **JSON Response**: ChatGPT returns structured JSON with extracted resources
 
-5. **Result parsing**: The agent parses the LLM's JSON response and returns structured `ExtractedResource` objects
+5. **Result parsing**: The agent parses the JSON response and returns structured `ExtractedResource` objects
 
 6. **Caller persists resources**: The calling code (typically in Rsl.Jobs) creates appropriate entity objects and saves to database
 
@@ -122,7 +113,6 @@ The agent categorizes resources into these types:
 - **Paper**: Academic papers, research publications (extracts DOI, authors, journal)
 - **Video**: Educational videos (extracts channel, duration, thumbnail)
 - **BlogPost**: Blog articles, tutorials (extracts author, blog name)
-- **SocialMediaPost**: Twitter/X threads, LinkedIn posts, Reddit discussions
 
 ## Error Handling
 
@@ -133,9 +123,9 @@ The agent categorizes resources into these types:
 
 ## Cost Control
 
+- HTML pre-fetching reduces token usage compared to web browsing
 - `MaxTokens` setting limits per-request costs
 - Agent uses focused prompts to minimize token usage
-- Tool calls are efficient and targeted
 - GPT-5-nano provides excellent performance at 50x lower cost than GPT-4o
 
 ## Future Enhancements

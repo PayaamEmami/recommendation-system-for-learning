@@ -9,11 +9,11 @@ using Rsl.Infrastructure.Data;
 
 #nullable disable
 
-namespace Rsl.Infrastructure.Data.Migrations
+namespace Rsl.Infrastructure.Migrations
 {
     [DbContext(typeof(RslDbContext))]
-    [Migration("20251212224604_ConvertResourceTypeToString")]
-    partial class ConvertResourceTypeToString
+    [Migration("20251218222201_InitialCreate")]
+    partial class InitialCreate
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -102,6 +102,9 @@ namespace Rsl.Infrastructure.Data.Migrations
                     b.HasKey("Id");
 
                     b.HasIndex("SourceId");
+
+                    b.HasIndex("Url")
+                        .IsUnique();
 
                     b.ToTable("Resources", (string)null);
 
@@ -261,19 +264,6 @@ namespace Rsl.Infrastructure.Data.Migrations
                         .HasColumnType("int");
 
                     b.HasDiscriminator().HasValue("Paper");
-                });
-
-            modelBuilder.Entity("Rsl.Core.Entities.SocialMediaPost", b =>
-                {
-                    b.HasBaseType("Rsl.Core.Entities.Resource");
-
-                    b.Property<string>("Platform")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("Username")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.HasDiscriminator().HasValue("SocialMediaPost");
                 });
 
             modelBuilder.Entity("Rsl.Core.Entities.Video", b =>

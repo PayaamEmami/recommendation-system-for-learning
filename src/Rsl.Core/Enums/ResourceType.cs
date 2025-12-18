@@ -8,7 +8,6 @@ public enum ResourceType
 {
     Paper,
     Video,
-    BlogPost,
-    SocialMediaPost
+    BlogPost
 }
 

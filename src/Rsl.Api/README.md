@@ -37,7 +37,7 @@ Standardized error responses. All exceptions are converted to Problem Details fo
 Resources API supports pagination with query parameters:
 - `pageNumber` - Page number (default: 1)
 - `pageSize` - Items per page (default: 20, max: 100)
-- `type` - Filter by resource type (Paper, Video, BlogPost, SocialMediaPost)
+- `type` - Filter by resource type (Paper, Video, BlogPost)
 - `topicIds` - Comma-separated topic IDs for filtering
 
 ### Service Layer

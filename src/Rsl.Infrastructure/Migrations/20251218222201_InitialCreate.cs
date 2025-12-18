@@ -3,7 +3,7 @@ using Microsoft.EntityFrameworkCore.Migrations;
 
 #nullable disable
 
-namespace Rsl.Infrastructure.Data.Migrations
+namespace Rsl.Infrastructure.Migrations
 {
     /// <inheritdoc />
     public partial class InitialCreate : Migration
@@ -65,19 +65,14 @@ namespace Rsl.Infrastructure.Data.Migrations
                     PublishedDate = table.Column<DateTime>(type: "datetime2", nullable: true),
                     CreatedAt = table.Column<DateTime>(type: "datetime2", nullable: false),
                     UpdatedAt = table.Column<DateTime>(type: "datetime2", nullable: false),
-                    Type = table.Column<int>(type: "int", nullable: false),
+                    Type = table.Column<string>(type: "nvarchar(max)", nullable: false),
                     SourceId = table.Column<Guid>(type: "uniqueidentifier", nullable: true),
-                    BlogPost_Author = table.Column<string>(type: "nvarchar(max)", nullable: true),
-                    Blog = table.Column<string>(type: "nvarchar(max)", nullable: true),
-                    NewsOutlet = table.Column<string>(type: "nvarchar(max)", nullable: true),
                     Author = table.Column<string>(type: "nvarchar(max)", nullable: true),
-                    Region = table.Column<string>(type: "nvarchar(max)", nullable: true),
+                    Blog = table.Column<string>(type: "nvarchar(max)", nullable: true),
                     DOI = table.Column<string>(type: "nvarchar(max)", nullable: true),
                     Journal = table.Column<string>(type: "nvarchar(max)", nullable: true),
                     Authors = table.Column<string>(type: "nvarchar(max)", nullable: true),
                     PublicationYear = table.Column<int>(type: "int", nullable: true),
-                    Platform = table.Column<string>(type: "nvarchar(max)", nullable: true),
-                    Username = table.Column<string>(type: "nvarchar(max)", nullable: true),
                     Duration = table.Column<TimeSpan>(type: "time", nullable: true),
                     Channel = table.Column<string>(type: "nvarchar(max)", nullable: true),
                     ThumbnailUrl = table.Column<string>(type: "nvarchar(max)", nullable: true)
@@ -170,6 +165,12 @@ namespace Rsl.Infrastructure.Data.Migrations
                 name: "IX_Resources_SourceId",
                 table: "Resources",
                 column: "SourceId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_Resources_Url",
+                table: "Resources",
+                column: "Url",
+                unique: true);
 
             migrationBuilder.CreateIndex(
                 name: "IX_ResourceVotes_ResourceId",

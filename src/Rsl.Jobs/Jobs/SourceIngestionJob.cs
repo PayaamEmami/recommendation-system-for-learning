@@ -243,18 +243,6 @@ public class SourceIngestionJob
                 UpdatedAt = DateTime.UtcNow,
                 Author = extracted.Author
             },
-            Core.Enums.ResourceType.SocialMediaPost => new SocialMediaPost
-            {
-                Id = Guid.NewGuid(),
-                Title = extracted.Title,
-                Description = extracted.Description,
-                Url = extracted.Url,
-                PublishedDate = extracted.PublishedDate,
-                SourceId = sourceId,
-                CreatedAt = DateTime.UtcNow,
-                UpdatedAt = DateTime.UtcNow,
-                Username = extracted.Author
-            },
             _ => throw new ArgumentException($"Unknown resource type: {extracted.Type}")
         };
     }

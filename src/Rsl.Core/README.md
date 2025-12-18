@@ -45,8 +45,7 @@ All learning resources inherit from an abstract `Resource` base class:
 Resource (abstract)
 ├─ Paper
 ├─ Video
-├─ BlogPost
-└─ SocialMediaPost
+└─ BlogPost
 ```
 
 **Why inheritance?** Resources share most properties (Title, Url, Description, PublishedDate) and have a natural "is-a" relationship. This enables polymorphic queries and unified navigation properties.

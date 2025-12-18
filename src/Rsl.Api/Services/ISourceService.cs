@@ -43,5 +43,10 @@ public interface ISourceService
     /// Deletes a source.
     /// </summary>
     Task DeleteSourceAsync(Guid id, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Bulk imports multiple sources.
+    /// </summary>
+    Task<BulkImportResult> BulkImportSourcesAsync(Guid userId, BulkImportSourcesRequest request, CancellationToken cancellationToken = default);
 }
 

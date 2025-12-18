@@ -129,6 +129,65 @@ public class SourceService : ISourceService
         await _sourceRepository.DeleteAsync(id, cancellationToken);
     }
 
+    public async Task<BulkImportResult> BulkImportSourcesAsync(Guid userId, BulkImportSourcesRequest request, CancellationToken cancellationToken = default)
+    {
+        // Verify user exists
+        var user = await _userRepository.GetByIdAsync(userId, cancellationToken);
+        if (user == null)
+        {
+            throw new ArgumentException($"User with ID {userId} not found.", nameof(userId));
+        }
+
+        var result = new BulkImportResult();
+
+        foreach (var item in request.Sources)
+        {
+            try
+            {
+                // Check if source already exists for this user
+                var existingSources = await _sourceRepository.GetByUserIdAsync(userId, cancellationToken);
+                if (existingSources.Any(s => s.Url.Equals(item.Url, StringComparison.OrdinalIgnoreCase)))
+                {
+                    result.Failed++;
+                    result.Errors.Add(new BulkImportError
+                    {
+                        Url = item.Url,
+                        Error = "Source with this URL already exists"
+                    });
+                    continue;
+                }
+
+                // Create the source
+                var source = new Source
+                {
+                    Id = Guid.NewGuid(),
+                    UserId = userId,
+                    Name = item.Name,
+                    Url = item.Url,
+                    Description = item.Description,
+                    Category = item.Category,
+                    IsActive = true,
+                    CreatedAt = DateTime.UtcNow,
+                    UpdatedAt = DateTime.UtcNow
+                };
+
+                await _sourceRepository.AddAsync(source, cancellationToken);
+                result.Imported++;
+            }
+            catch (Exception ex)
+            {
+                result.Failed++;
+                result.Errors.Add(new BulkImportError
+                {
+                    Url = item.Url,
+                    Error = ex.Message
+                });
+            }
+        }
+
+        return result;
+    }
+
     private static SourceResponse MapToResponse(Source source)
     {
         return new SourceResponse

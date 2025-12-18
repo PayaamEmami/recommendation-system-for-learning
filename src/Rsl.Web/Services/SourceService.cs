@@ -267,6 +267,50 @@ public class SourceService
             return false;
         }
     }
+
+    public async Task<BulkImportResultModel> BulkImportSourcesAsync(string json)
+    {
+        try
+        {
+            if (!_authService.CurrentState.IsAuthenticated)
+            {
+                throw new InvalidOperationException("User not authenticated");
+            }
+
+            using var httpClient = CreateHttpClient();
+            var content = new StringContent(json, System.Text.Encoding.UTF8, "application/json");
+            var response = await httpClient.PostAsync("/api/v1/sources/bulk-import", content);
+
+            if (!response.IsSuccessStatusCode)
+            {
+                var errorContent = await response.Content.ReadAsStringAsync();
+                _logger.LogWarning("Failed to bulk import sources: {StatusCode} - {Content}", response.StatusCode, errorContent);
+                throw new HttpRequestException($"Failed to import sources: {response.StatusCode}");
+            }
+
+            var result = await response.Content.ReadFromJsonAsync<BulkImportResultResponse>();
+            if (result == null)
+            {
+                throw new InvalidOperationException("Failed to parse bulk import response");
+            }
+
+            return new BulkImportResultModel
+            {
+                Imported = result.Imported,
+                Failed = result.Failed,
+                Errors = result.Errors.Select(e => new BulkImportErrorModel
+                {
+                    Url = e.Url,
+                    Error = e.Error
+                }).ToList()
+            };
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error during bulk import");
+            throw;
+        }
+    }
 }
 
 public class SourceItem
@@ -315,4 +359,30 @@ public class SourceResponse
     public DateTime? LastFetchedAt { get; set; }
     public string? LastFetchError { get; set; }
     public int ResourceCount { get; set; }
+}
+
+public class BulkImportResultResponse
+{
+    public int Imported { get; set; }
+    public int Failed { get; set; }
+    public List<BulkImportErrorResponse> Errors { get; set; } = new();
+}
+
+public class BulkImportErrorResponse
+{
+    public string Url { get; set; } = string.Empty;
+    public string Error { get; set; } = string.Empty;
+}
+
+public class BulkImportResultModel
+{
+    public int Imported { get; set; }
+    public int Failed { get; set; }
+    public List<BulkImportErrorModel> Errors { get; set; } = new();
+}
+
+public class BulkImportErrorModel
+{
+    public string Url { get; set; } = string.Empty;
+    public string Error { get; set; } = string.Empty;
 }

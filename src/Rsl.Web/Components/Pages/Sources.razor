@@ -91,6 +91,58 @@
     </div>
 
     <div class="content-card">
+        <h2>Bulk Import Sources</h2>
+        <p class="subtitle">Paste JSON to import multiple sources at once</p>
+
+        @if (!string.IsNullOrEmpty(_bulkImportError))
+        {
+            <div class="error-message">@_bulkImportError</div>
+        }
+
+        @if (!string.IsNullOrEmpty(_bulkImportSuccess))
+        {
+            <div class="success-message">@_bulkImportSuccess</div>
+        }
+
+        <div class="form-group">
+            <label for="bulkJson">JSON (format: {"sources": [{name, url, category, description?},...]})</label>
+            <textarea id="bulkJson" @bind="_bulkImportJson" class="form-input" rows="8" placeholder='{"sources":[{"name":"ArXiv AI","url":"https://arxiv.org/list/cs.AI/recent","category":"Paper","description":"Recent AI papers"}]}'></textarea>
+        </div>
+
+        <button @onclick="HandleBulkImport" class="btn-primary" disabled="@_isBulkImporting">
+            @if (_isBulkImporting)
+            {
+                <span>Importing...</span>
+            }
+            else
+            {
+                <span>Import Sources</span>
+            }
+        </button>
+
+        @if (_bulkImportResult != null)
+        {
+            <div style="margin-top: 1rem;">
+                <strong>Import Results:</strong>
+                <p>✓ Imported: @_bulkImportResult.Imported</p>
+                <p>✗ Failed: @_bulkImportResult.Failed</p>
+                @if (_bulkImportResult.Errors.Any())
+                {
+                    <details>
+                        <summary>Show Errors</summary>
+                        <ul>
+                            @foreach (var error in _bulkImportResult.Errors)
+                            {
+                                <li><strong>@error.Url:</strong> @error.Error</li>
+                            }
+                        </ul>
+                    </details>
+                }
+            </div>
+        }
+    </div>
+
+    <div class="content-card">
         <h2>Your Sources</h2>
 
         @if (_sources == null)
@@ -227,6 +279,13 @@
     private string? _editErrorMessage;
     private bool _isLoading;
     private Guid? _editingSourceId;
+
+    // Bulk import fields
+    private string _bulkImportJson = "";
+    private string? _bulkImportError;
+    private string? _bulkImportSuccess;
+    private bool _isBulkImporting;
+    private Rsl.Web.Services.BulkImportResultModel? _bulkImportResult;
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
@@ -401,9 +460,47 @@
             ResourceType.Paper => "Papers",
             ResourceType.Video => "Videos",
             ResourceType.BlogPost => "Blogs",
-            ResourceType.SocialMediaPost => "Social Media",
             _ => type.ToString()
         };
+    }
+
+    private async Task HandleBulkImport()
+    {
+        _isBulkImporting = true;
+        _bulkImportError = null;
+        _bulkImportSuccess = null;
+        _bulkImportResult = null;
+
+        try
+        {
+            var result = await SourceService.BulkImportSourcesAsync(_bulkImportJson);
+            _bulkImportResult = result;
+
+            if (result.Imported > 0)
+            {
+                _bulkImportSuccess = $"Successfully imported {result.Imported} source(s)";
+                await LoadSources();
+
+                // Clear the textarea on successful import
+                if (result.Failed == 0)
+                {
+                    _bulkImportJson = "";
+                }
+            }
+
+            if (result.Failed > 0)
+            {
+                _bulkImportError = $"{result.Failed} source(s) failed to import. See details below.";
+            }
+        }
+        catch (Exception ex)
+        {
+            _bulkImportError = $"Import failed: {ex.Message}";
+        }
+        finally
+        {
+            _isBulkImporting = false;
+        }
     }
 
     public void Dispose()

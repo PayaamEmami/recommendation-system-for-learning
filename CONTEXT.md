@@ -1,273 +1,116 @@
 # RSL - AI Assistant Context
 
-This document provides essential context for AI coding assistants working on the Recommendation System for Learning (RSL) project.
-
 ## Project Overview
 
-**Purpose**: Personalized recommendation system that aggregates and suggests relevant learning resources from user-defined sources using AI-powered recommendations.
+**Purpose**: Personalized recommendation system that aggregates learning resources from user-defined sources using AI-powered recommendations.
 
 **Tech Stack**:
 - **Backend**: .NET 10, ASP.NET Core, Entity Framework Core
 - **Frontend**: Blazor Server
-- **Cloud**: Azure (Container Apps, AI Search, SQL Database)
-- **AI/ML**: OpenAI API (GPT-5-nano, text-embedding-3-small), Vector embeddings, Semantic search
-- **DevOps**: Docker, GitHub Actions, Azure Bicep (IaC)
+- **Cloud**: Azure Container Apps, AI Search, SQL Database
+- **AI**: OpenAI API (GPT-5-nano, text-embedding-3-small)
 
-## Architecture Overview
+## Architecture
 
 ### Core Services
 
 1. **Rsl.Api** - REST API with JWT authentication
-2. **Rsl.Web** - Blazor Server interactive web UI
-3. **Rsl.Jobs** - Background worker service for scheduled tasks
-4. **Rsl.Core** - Domain models, entities, interfaces
-5. **Rsl.Infrastructure** - Data access, Azure integrations
-6. **Rsl.Recommendation** - Hybrid recommendation engine (70% vector similarity, 30% heuristics)
-7. **Rsl.Llm** - LLM-based content ingestion agent
+2. **Rsl.Web** - Blazor Server web UI
+3. **Rsl.Jobs** - Background worker (runs every 24h, must have `minReplicas: 1`)
+4. **Rsl.Core** - Domain entities, interfaces
+5. **Rsl.Infrastructure** - Data access, Azure integrations, HTML fetching
+6. **Rsl.Recommendation** - Hybrid engine (70% vector, 30% heuristics)
+7. **Rsl.Llm** - Content ingestion (ChatGPT extracts from HTML)
 
-### Background Jobs
+### Azure Resources
 
-**Rsl.Jobs** runs as a continuous worker service (NOT a web API):
-- **Source Ingestion Job**: Runs every 24 hours (`0 0 * * *`)
-- **Daily Feed Generation Job**: Runs daily at 2:00 AM UTC (`0 2 * * *`)
-- **Critical**: Must have `minReplicas: 1` in Container Apps to stay running
+- 3 Container Apps (API, Web, Jobs)
+- Azure AI Search (vector database)
+- Azure SQL Database
+- Azure Container Registry
+- Azure Key Vault (secrets)
+- OpenAI API (direct, not Azure OpenAI)
 
-## Azure Deployment
+**Default Region**: `westus`
+**Resource Types**: Paper, Video, BlogPost
 
-### Infrastructure
+## Critical Configuration
 
-**Hosted on Azure Container Apps** with the following resources:
-- **3 Container Apps**: API, Web, Jobs (all in same environment)
-- **Azure AI Search**: Vector database for semantic similarity
-- **OpenAI API**: GPT-5-nano for LLM agent (with web search tool), text-embedding-3-small for embeddings (direct OpenAI, not Azure OpenAI)
-- **Azure SQL Database**: Application data
-- **Azure Container Registry**: Docker images
-- **Azure Key Vault**: Secrets management (stores OpenAI API key)
-- **Application Insights**: Monitoring
+### Environment Variables
 
-**Default Region**: West US (`westus`) for Azure resources
+**CRITICAL**: .NET uses `__` (double underscore) for hierarchical config.
 
-### Environment Configuration
-
-**CRITICAL**: .NET uses hierarchical configuration with double underscore (`__`) as separator.
-
-Environment variables must follow this pattern:
 ```
-# Hierarchical (nested JSON sections)
-AzureAISearch__Endpoint           ✅ Correct
-AzureAISearch__ApiKey             ✅ Correct
-ConnectionStrings__DefaultConnection ✅ Correct
-Embedding__Endpoint               ✅ Correct
+# Correct
+AzureAISearch__Endpoint
+ConnectionStrings__DefaultConnection
+Embedding__Endpoint
+ApiBaseUrl
 
-# Simple (top-level keys) - use PascalCase
-ApiBaseUrl                        ✅ Correct
-
-# WRONG - Don't use SCREAMING_SNAKE_CASE
-AZURE_SEARCH_ENDPOINT             ❌ Wrong
-SQL_CONNECTION_STRING             ❌ Wrong
-API_BASE_URL                      ❌ Wrong (use ApiBaseUrl)
+# Wrong
+AZURE_SEARCH_ENDPOINT
+SQL_CONNECTION_STRING
 ```
 
-**Configuration mapping**:
-- `appsettings.json` section `"AzureAISearch": { "Endpoint": "..." }`
-- Environment variable: `AzureAISearch__Endpoint`
-- .NET reads as: `settings.Value.Endpoint`
-- Simple keys: `"ApiBaseUrl": "..."` → env var `ApiBaseUrl` → code `_configuration.GetValue<string>("ApiBaseUrl")`
+**Mapping**: `appsettings.json` section `"AzureAISearch": { "Endpoint": "..." }` → env var `AzureAISearch__Endpoint`
 
-### Bicep Configuration Files
+### Files
 
-- `infrastructure/bicep/main-container-apps.bicep` - Main infrastructure template
-- `infrastructure/bicep/parameters.dev.json` - Dev environment parameters (public)
-- `infrastructure/bicep/parameters.dev.local.json` - Local dev parameters (gitignored, contains secrets)
-- `infrastructure/bicep/parameters.prod.json` - Production parameters
+- `infrastructure/bicep/parameters.*.local.json` - NEVER commit (contains secrets)
+- Push to `main` → GitHub Actions deploys automatically
 
-**Note**: Never commit `parameters.*.local.json` files - they contain secrets!
+## Ingestion Architecture
 
-### CI/CD Pipeline
+1. **HtmlFetcherService**: Fetches HTML, removes `<script>`/`<style>` tags
+2. **IngestionAgent**: Sends HTML to ChatGPT Chat Completion API → extracts JSON
+3. **SourceIngestionJob**: Maps to entities (Paper/Video/BlogPost) → saves to DB → generates embeddings → indexes in Azure AI Search
 
-GitHub Actions workflow (`.github/workflows/azure-deploy.yml`):
-- Triggers on push to `main` branch
-- Builds solution, runs tests
-- Builds Docker images for API, Web, Jobs
-- Pushes images to Azure Container Registry
-- Updates Container Apps with new images
-- **Does NOT** deploy infrastructure (use Bicep deployment for that)
+**Important**: Job exits early if no active sources (no OpenAI calls made).
 
-### Scaling Configuration
+## Bulk Import
 
-- **API**: `minReplicas: 1`, `maxReplicas: 3` (always running - fast response)
-- **Web**: `minReplicas: 1`, `maxReplicas: 3` (always running - fast page loads)
-- **Jobs**: `minReplicas: 1`, `maxReplicas: 1` (always running - critical!)
+**API**: `POST /api/v1/sources/bulk-import`
+**Format**:
+```json
+{
+  "sources": [
+    {"name": "...", "url": "...", "category": "Paper|Video|BlogPost", "description": "..."}
+  ]
+}
+```
 
-## Development Workflow
-
-### Local Development
+## Development
 
 ```bash
-# Run with Docker Compose
-docker-compose up
-
-# Run individual projects
-dotnet run --project src/Rsl.Api
-dotnet run --project src/Rsl.Web
-dotnet run --project src/Rsl.Jobs
-```
-
-### Database Migrations
-
-```bash
-# Add migration
-dotnet ef migrations add MigrationName --project src/Rsl.Infrastructure --startup-project src/Rsl.Api
-
-# Update database
+# Migrations
+dotnet ef migrations add Name --project src/Rsl.Infrastructure --startup-project src/Rsl.Api
 dotnet ef database update --project src/Rsl.Infrastructure --startup-project src/Rsl.Api
-```
 
-### Testing
+# Deploy infrastructure
+cd infrastructure/scripts && ./deploy.sh dev rsl-dev-rg westus
 
-```bash
-dotnet test
-```
-
-## Common Development Tasks
-
-### Deploying Infrastructure Changes
-
-```bash
-cd infrastructure/scripts
-./deploy.sh dev rsl-dev-rg westus  # westus is the default region
-```
-
-Or manually:
-```bash
-az deployment group create \
-  --resource-group rsl-dev-rg \
-  --template-file infrastructure/bicep/main-container-apps.bicep \
-  --parameters infrastructure/bicep/parameters.dev.local.json
-```
-
-### Deploying Code Changes
-
-Push to `main` branch - GitHub Actions handles the rest.
-
-### Checking Logs
-
-```bash
-# Jobs service (most important for debugging recommendations)
+# Logs
 az containerapp logs show --name rsl-dev-jobs --resource-group rsl-dev-rg --tail 100 --follow
-
-# API service
-az containerapp logs show --name rsl-dev-api --resource-group rsl-dev-rg --tail 50
-
-# Web service
-az containerapp logs show --name rsl-dev-web --resource-group rsl-dev-rg --tail 50
 ```
 
-### Manual Job Trigger
+## Key Decisions
 
-If recommendations aren't generating, check:
-1. Jobs service has `minReplicas: 1`
-2. Environment variables use `__` separator
-3. Check logs for startup errors
-4. Verify Azure AI Search and OpenAI endpoints are accessible
-
-## Code Conventions
-
-### Project Structure
-
+- **Hybrid Recommendations**: 70% vector similarity, 30% heuristics
+- **HTML-First Ingestion**: Fetch HTML ourselves, send to ChatGPT (not GPT web search)
+- **Chat Completion API**: Standard API (not Responses API)
 - **Clean Architecture**: Core → Infrastructure → API/Web/Jobs
-- **Repository Pattern**: All data access through repositories
-- **Dependency Injection**: Constructor injection throughout
-- **SOLID Principles**: Interface-based design
+- **Repository Pattern**: All data access through interfaces
 
-### Naming Conventions
+## Troubleshooting
 
-- **Entities**: PascalCase (e.g., `User`, `Source`, `Resource`)
-- **Interfaces**: `I` prefix (e.g., `IUserRepository`)
-- **Services**: `Service` suffix (e.g., `AuthService`)
-- **DTOs**: Request/Response suffix (e.g., `LoginRequest`, `UserResponse`)
+**Issue**: Recommendations not generating
+**Fix**: Check `minReplicas: 1` on Jobs service, verify env vars use `__`, check logs
 
-## Documentation Guidelines
+**Issue**: Vector store errors (`Invalid URI`)
+**Fix**: Use `AzureAISearch__Endpoint` not `AZURE_SEARCH_ENDPOINT`
 
-### ⚠️ IMPORTANT: No Extra Markdown Files
+## Important Rules
 
-**DO NOT create** standalone markdown files for documentation, summaries, or guides (e.g., `TROUBLESHOOTING.md`, `DEPLOYMENT_GUIDE.md`, `FIX_SUMMARY.md`).
-
-**Why?**
-- Creates repository clutter
-- Becomes outdated quickly
-- User doesn't want them
-
-**Instead:**
-- Update this CONTEXT.md for architectural changes
-- Add inline code comments for complex logic
-- Update README.md only if user explicitly requests it
-
-**Exception:** README.md is the primary project documentation and should be maintained.
-
-### ⚠️ IMPORTANT: Commits and Source Control
-
-**NEVER commit changes automatically** - only commit when the user explicitly requests it.
-
-**Why?**
-- User wants full control over what goes into source control
-- User may want to review, test, or modify changes first
-- Automated commits can be disruptive to workflow
-
-**When deploying fixes:**
-- Make the code changes
-- Let the user review them
-- User will commit and push when ready
-- GitHub Actions will automatically deploy on push to `main`
-
-## Troubleshooting Common Issues
-
-### Recommendations Not Generating
-
-**Root causes**:
-1. Jobs service scaled to zero (`minReplicas: 0`)
-2. Invalid environment variable names (flat instead of hierarchical)
-3. Azure AI Search initialization failure
-4. Missing or expired OpenAI API keys
-
-**How to fix**:
-1. Check Jobs service scaling: `az containerapp show --name rsl-dev-jobs --resource-group rsl-dev-rg --query "properties.template.scale"`
-2. Verify environment variables use `__` separator
-3. Check logs for startup errors
-4. Verify Key Vault has `OpenAIApiKey` secret and Container Apps can access it
-
-### Vector Store Initialization Errors
-
-If you see `System.UriFormatException: Invalid URI`:
-- Environment variables are using wrong naming convention
-- Should be `AzureAISearch__Endpoint` not `AZURE_SEARCH_ENDPOINT`
-- Redeploy infrastructure with corrected Bicep template
-
-### Database Connection Issues
-
-- Verify `ConnectionStrings__DefaultConnection` is set (with `__`)
-- Check Key Vault has `SqlConnectionString` secret
-- Ensure Container App has Key Vault reference permissions
-
-### Azure Authentication Errors
-
-- Container Apps need managed identity enabled
-- Key Vault access policies must include Container Apps identity
-- Check IAM roles on Key Vault
-
-## Important Architecture Decisions
-
-- **Hybrid Recommendations**: 70% vector similarity, 30% heuristics (recency, source preferences, user feedback)
-- **Background Worker**: Rsl.Jobs runs continuously with `minReplicas: 1` for scheduled tasks
-- **Direct OpenAI**: Using OpenAI API directly (not Azure OpenAI) for simpler setup
-
-## Resource Naming Convention
-
-All Azure resources follow: `{appName}-{environment}-{resourceType}[-{uniqueSuffix}]`
-
-Examples:
-- `rsl-dev-api` - API Container App
-- `rsl-dev-jobs` - Jobs Container App
-- `rsl-dev-sql-abc123` - SQL Server
-- `rsl-dev-kv-abc123` - Key Vault
-
+- **NO standalone markdown files** (no `TROUBLESHOOTING.md`, `DEPLOYMENT_GUIDE.md`, etc.)
+- **NEVER auto-commit** - only when user explicitly requests
+- Update this file for architectural changes only

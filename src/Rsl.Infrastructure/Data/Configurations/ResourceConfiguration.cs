@@ -26,8 +26,7 @@ public class ResourceConfiguration : IEntityTypeConfiguration<Resource>
         builder.HasDiscriminator(r => r.Type)
             .HasValue<Paper>(ResourceType.Paper)
             .HasValue<Video>(ResourceType.Video)
-            .HasValue<BlogPost>(ResourceType.BlogPost)
-            .HasValue<SocialMediaPost>(ResourceType.SocialMediaPost);
+            .HasValue<BlogPost>(ResourceType.BlogPost);
 
         // Title: required, max length 500
         builder.Property(r => r.Title)
