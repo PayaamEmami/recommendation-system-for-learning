@@ -230,7 +230,7 @@ module apiApp 'modules/container-app.bicep' = {
       }
       {
         name: 'Registration__Enabled'
-        value: 'false'
+        value: 'true'
       }
       {
         name: 'APPLICATIONINSIGHTS_CONNECTION_STRING'

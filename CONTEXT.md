@@ -54,6 +54,14 @@ SQL_CONNECTION_STRING
 
 **Mapping**: `appsettings.json` section `"AzureAISearch": { "Endpoint": "..." }` → env var `AzureAISearch__Endpoint`
 
+### Registration
+
+**Toggle user registration** in `infrastructure/bicep/main-container-apps.bicep`:
+```
+Registration__Enabled: 'true'  // Allow new user registrations
+Registration__Enabled: 'false' // Block new registrations
+```
+
 ### Files
 
 - `infrastructure/bicep/parameters.*.local.json` - NEVER commit (contains secrets)
