@@ -62,6 +62,12 @@ Registration__Enabled: 'true'  // Allow new user registrations
 Registration__Enabled: 'false' // Block new registrations
 ```
 
+**Update both API and Web apps** (two places in the file). Or via Azure CLI:
+```bash
+az containerapp update --name rsl-dev-api --resource-group rsl-dev-rg --set-env-vars "Registration__Enabled=true"
+az containerapp update --name rsl-dev-web --resource-group rsl-dev-rg --set-env-vars "Registration__Enabled=true"
+```
+
 ### Files
 
 - `infrastructure/bicep/parameters.*.local.json` - NEVER commit (contains secrets)

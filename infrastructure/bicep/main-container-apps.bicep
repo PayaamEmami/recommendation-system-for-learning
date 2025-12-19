@@ -265,6 +265,10 @@ module webApp 'modules/container-app.bicep' = {
         value: apiApp.outputs.url
       }
       {
+        name: 'Registration__Enabled'
+        value: 'true'
+      }
+      {
         name: 'APPLICATIONINSIGHTS_CONNECTION_STRING'
         value: applicationInsights.outputs.connectionString
       }
