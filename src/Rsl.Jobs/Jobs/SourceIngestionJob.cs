@@ -110,8 +110,8 @@ public class SourceIngestionJob
                         {
                             try
                             {
-                                // Create resource entity
-                                var resource = CreateResourceEntity(extractedResource, source.Id);
+                                // Create resource entity (fallback to source category if LLM omitted type)
+                                var resource = CreateResourceEntity(extractedResource, source.Id, source.Category);
                                 await resourceRepository.AddAsync(resource, perSourceCts.Token);
                                 newResources.Add(resource);
 
@@ -222,11 +222,14 @@ public class SourceIngestionJob
     /// Create a resource entity from extracted resource data.
     /// Simplified version - in real app, would map to specific resource types.
     /// </summary>
-    private Resource CreateResourceEntity(Llm.Models.ExtractedResource extracted, Guid sourceId)
+    private Resource CreateResourceEntity(Llm.Models.ExtractedResource extracted, Guid sourceId, Core.Enums.ResourceType sourceCategory)
     {
+        // Prefer extracted type; if missing/default, fall back to source category
+        var resourceType = extracted.Type != default ? extracted.Type : sourceCategory;
+
         // Map to appropriate resource type based on extracted.Type
         // For now, using a simple factory approach
-        return extracted.Type switch
+        return resourceType switch
         {
             Core.Enums.ResourceType.Paper => new Paper
             {

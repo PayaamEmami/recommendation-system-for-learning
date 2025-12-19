@@ -96,9 +96,18 @@ public class OpenAIClient : ILlmClient
             {
                 ["model"] = _settings.Model,
                 ["messages"] = messages,
-                ["temperature"] = _settings.Temperature,
-                ["max_tokens"] = _settings.MaxTokens
+                ["temperature"] = _settings.Temperature
             };
+
+            // OpenAI chat API (non-Azure) uses max_completion_tokens; Azure still expects max_tokens
+            if (_settings.UseAzure)
+            {
+                requestBody["max_tokens"] = _settings.MaxTokens;
+            }
+            else
+            {
+                requestBody["max_completion_tokens"] = _settings.MaxTokens;
+            }
 
             if (tools != null && tools.Any())
             {
