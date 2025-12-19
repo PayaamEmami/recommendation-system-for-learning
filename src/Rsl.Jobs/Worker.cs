@@ -45,10 +45,10 @@ public class Worker : BackgroundService
             try
             {
                 _logger.LogInformation("Starting initial source ingestion job");
+                lastIngestionTime = DateTime.UtcNow; // throttle even if job fails to avoid tight retry loop
                 using var scope = _serviceProvider.CreateScope();
                 var ingestionJob = scope.ServiceProvider.GetRequiredService<SourceIngestionJob>();
                 await ingestionJob.ExecuteAsync(stoppingToken);
-                lastIngestionTime = DateTime.UtcNow;
                 _logger.LogInformation("Initial source ingestion job completed successfully");
             }
             catch (Exception ex)
@@ -89,10 +89,10 @@ public class Worker : BackgroundService
 
                     try
                     {
+                        lastIngestionTime = now; // set before run to prevent repeated immediate retries on failure
                         using var scope = _serviceProvider.CreateScope();
                         var ingestionJob = scope.ServiceProvider.GetRequiredService<SourceIngestionJob>();
                         await ingestionJob.ExecuteAsync(stoppingToken);
-                        lastIngestionTime = now;
 
                         _logger.LogInformation("Source ingestion job completed successfully");
                     }

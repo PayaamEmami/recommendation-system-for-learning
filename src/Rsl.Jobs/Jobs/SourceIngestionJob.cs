@@ -169,7 +169,8 @@ public class SourceIngestionJob
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error in source ingestion job");
-            throw;
+            // Swallow to avoid tight retry loops; individual source errors are already handled.
+            // The worker will log and retry on its normal schedule.
         }
     }
 
