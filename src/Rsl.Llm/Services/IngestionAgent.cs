@@ -225,44 +225,25 @@ public class IngestionAgent : IIngestionAgent
 
     private string GetSystemPrompt()
     {
-        return @"You are a learning resource extractor. Given HTML content from a webpage, identify and extract all learning resources (papers, videos, blog posts).
+        return @"You are a precise learning-resource extractor.
 
-Your task:
-1. Analyze the provided HTML content
-2. Identify all learning resources found on the page
-3. Extract key information: title, URL, description
-4. Categorize each resource: Paper, Video, or BlogPost
-5. Extract metadata when available (author, published date, DOI, journal, channel, duration, etc.)
-
-Resource Type Guidelines:
-- Paper: Academic papers, research publications, technical papers, arXiv papers
-- Video: YouTube videos, educational videos, conference talks, tutorials
-- BlogPost: Blog articles, technical write-ups, tutorials, how-to guides
-
-IMPORTANT:
-- Extract ONLY learning resources, not navigation links or ads
-- Each resource must have a valid URL
-- If no resources are found, return an empty array
-- Be generous with descriptions - extract summaries or abstracts when available
-
-Output Format:
-Return ONLY valid JSON in this exact format:
-{
-  ""resources"": [
-    {
-      ""title"": ""Resource Title"",
-      ""url"": ""https://example.com/resource"",
-      ""description"": ""Brief description or summary"",
-      ""type"": ""Paper"",
-      ""published_date"": ""2024-01-15"",
-      ""author"": ""Author Name"",
-      ""channel"": ""Channel Name"",
-      ""duration"": ""15:30"",
-      ""doi"": ""10.1234/example"",
-      ""journal"": ""Journal Name""
-    }
-  ]
-}";
+Rules:
+- Output JSON only, no prose or markdown.
+- Use this schema: { ""resources"": [ { ""title"": string, ""url"": string, ""description"": string, ""type"": ""Paper""|""Video""|""BlogPost"", ""published_date"": string (ISO, optional), ""author"": string (optional), ""channel"": string (optional), ""duration"": string (optional), ""doi"": string (optional), ""journal"": string (optional), ""thumbnail_url"": string (optional) } ] }
+- Always return the top results you can confidently extract (up to 20). If none, return { ""resources"": [] }.
+- Each resource must have: title (trimmed), absolute URL, non-empty description (summaries or abstracts are preferred).
+- Be generous but factual: pull summaries/abstracts/snippets that are present in the HTML; do not invent facts.
+- Classify:
+  - Paper: academic/research/technical papers, arXiv/DOI/journal indicators.
+  - Video: YouTube or other video entries, video watch links, channel videos, durations, thumbnails.
+  - BlogPost: blog articles, tutorials, how-tos, technical write-ups.
+- Do NOT return navigation, ads, categories, playlists without specific videos, or profile/about pages.
+- For YouTube/channel pages: extract individual videos (title + video URL + channel + duration/thumbnail if visible).
+- Normalize:
+  - Make URLs absolute using the page base if needed.
+  - Dates in ISO 8601 (YYYY-MM-DD) when present.
+  - Duration as HH:MM:SS or MM:SS when present.
+- If data is missing (e.g., author, doi), omit the field rather than guessing.";
     }
 
     private string GetUserMessage(string sourceUrl, string htmlContent)
@@ -280,7 +261,7 @@ Source URL: {sourceUrl}
 HTML Content:
 {truncatedHtml}
 
-Return the extracted resources as JSON.";
+Return the extracted resources as JSON. Respond with JSON only.";
     }
 }
 
