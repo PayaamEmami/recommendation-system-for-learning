@@ -1,5 +1,7 @@
 using System.Net.Http.Headers;
 using System.Net.Http.Json;
+using System.Text.Json;
+using System.Text.Json.Serialization;
 using Microsoft.Extensions.Configuration;
 using Rsl.Core.Enums;
 
@@ -14,6 +16,13 @@ public class SourceService
     private readonly IConfiguration _configuration;
     private readonly AuthService _authService;
     private readonly ILogger<SourceService> _logger;
+
+    private static readonly JsonSerializerOptions JsonOptions = new()
+    {
+        PropertyNameCaseInsensitive = true,
+        PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
+        Converters = { new JsonStringEnumConverter() }
+    };
 
     public SourceService(
         IHttpClientFactory httpClientFactory,
@@ -66,7 +75,7 @@ public class SourceService
                 return new List<SourceItem>();
             }
 
-            var sources = await response.Content.ReadFromJsonAsync<List<SourceResponse>>();
+            var sources = await response.Content.ReadFromJsonAsync<List<SourceResponse>>(JsonOptions);
 
             if (sources == null)
             {
@@ -184,7 +193,7 @@ public class SourceService
                 return false;
             }
 
-            var source = await getResponse.Content.ReadFromJsonAsync<SourceResponse>();
+            var source = await getResponse.Content.ReadFromJsonAsync<SourceResponse>(JsonOptions);
             if (source == null)
             {
                 return false;
@@ -238,7 +247,7 @@ public class SourceService
                 return false;
             }
 
-            var source = await getResponse.Content.ReadFromJsonAsync<SourceResponse>();
+            var source = await getResponse.Content.ReadFromJsonAsync<SourceResponse>(JsonOptions);
             if (source == null)
             {
                 return false;
@@ -292,7 +301,7 @@ public class SourceService
                 throw new HttpRequestException($"Failed to import sources: {response.StatusCode}");
             }
 
-            var result = await response.Content.ReadFromJsonAsync<BulkImportResultResponse>();
+            var result = await response.Content.ReadFromJsonAsync<BulkImportResultResponse>(JsonOptions);
             if (result == null)
             {
                 throw new InvalidOperationException("Failed to parse bulk import response");

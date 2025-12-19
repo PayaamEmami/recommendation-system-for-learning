@@ -1,5 +1,7 @@
 using System.Net.Http.Headers;
 using System.Net.Http.Json;
+using System.Text.Json;
+using System.Text.Json.Serialization;
 using Microsoft.Extensions.Configuration;
 using Rsl.Core.Enums;
 
@@ -14,6 +16,13 @@ public class FeedService
     private readonly IConfiguration _configuration;
     private readonly AuthService _authService;
     private readonly ILogger<FeedService> _logger;
+
+    private static readonly JsonSerializerOptions JsonOptions = new()
+    {
+        PropertyNameCaseInsensitive = true,
+        PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
+        Converters = { new JsonStringEnumConverter() }
+    };
 
     public FeedService(
         IHttpClientFactory httpClientFactory,
@@ -67,7 +76,7 @@ public class FeedService
                 return new List<ResourceItem>();
             }
 
-            var feedRecommendations = await response.Content.ReadFromJsonAsync<List<FeedRecommendationsResponse>>();
+            var feedRecommendations = await response.Content.ReadFromJsonAsync<List<FeedRecommendationsResponse>>(JsonOptions);
 
             if (feedRecommendations == null || !feedRecommendations.Any())
             {
