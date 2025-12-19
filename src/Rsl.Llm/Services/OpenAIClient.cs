@@ -92,11 +92,19 @@ public class OpenAIClient : ILlmClient
     {
         try
         {
+            // Some OpenAI models (e.g., gpt-5-nano) only accept the default temperature (1).
+            var temperature = _settings.Temperature;
+            if (!_settings.UseAzure &&
+                string.Equals(_settings.Model, "gpt-5-nano", StringComparison.OrdinalIgnoreCase))
+            {
+                temperature = 1;
+            }
+
             var requestBody = new Dictionary<string, object>
             {
                 ["model"] = _settings.Model,
                 ["messages"] = messages,
-                ["temperature"] = _settings.Temperature
+                ["temperature"] = temperature
             };
 
             // OpenAI chat API (non-Azure) uses max_completion_tokens; Azure still expects max_tokens
