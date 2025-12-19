@@ -1,5 +1,6 @@
 using Rsl.Infrastructure;
 using Rsl.Jobs;
+using Rsl.Jobs.Jobs;
 using Rsl.Llm;
 using Rsl.Recommendation;
 
@@ -9,6 +10,10 @@ var builder = Host.CreateApplicationBuilder(args);
 builder.Services.AddInfrastructure(builder.Configuration);
 builder.Services.AddLlmServices(builder.Configuration);
 builder.Services.AddRecommendationEngine();
+
+// Jobs (scoped, resolved inside Worker)
+builder.Services.AddScoped<SourceIngestionJob>();
+builder.Services.AddScoped<DailyFeedGenerationJob>();
 
 // Register the background worker
 builder.Services.AddHostedService<Worker>();

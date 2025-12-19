@@ -28,7 +28,9 @@ public class Worker : BackgroundService
         _logger.LogInformation("Background worker service started");
 
         // Check if we should run jobs immediately on startup (useful for testing)
+        // Explicitly read both config key forms to avoid casing/colon issues with env vars
         var runOnStartup = _configuration.GetValue<bool>("Jobs:RunOnStartup", false);
+        _logger.LogInformation("Jobs:RunOnStartup resolved to {RunOnStartup}", runOnStartup);
 
         // Schedule initial runs
         var lastIngestionTime = runOnStartup ? DateTime.MinValue : DateTime.UtcNow;
@@ -44,8 +46,7 @@ public class Worker : BackgroundService
             {
                 _logger.LogInformation("Starting initial source ingestion job");
                 using var scope = _serviceProvider.CreateScope();
-                var ingestionLogger = scope.ServiceProvider.GetRequiredService<ILogger<SourceIngestionJob>>();
-                var ingestionJob = new SourceIngestionJob(_serviceProvider, ingestionLogger);
+                var ingestionJob = scope.ServiceProvider.GetRequiredService<SourceIngestionJob>();
                 await ingestionJob.ExecuteAsync(stoppingToken);
                 lastIngestionTime = DateTime.UtcNow;
                 _logger.LogInformation("Initial source ingestion job completed successfully");
@@ -63,8 +64,7 @@ public class Worker : BackgroundService
             {
                 _logger.LogInformation("Starting initial daily feed generation job");
                 using var scope = _serviceProvider.CreateScope();
-                var feedLogger = scope.ServiceProvider.GetRequiredService<ILogger<DailyFeedGenerationJob>>();
-                var feedGenerationJob = new DailyFeedGenerationJob(_serviceProvider, feedLogger);
+                var feedGenerationJob = scope.ServiceProvider.GetRequiredService<DailyFeedGenerationJob>();
                 await feedGenerationJob.ExecuteAsync(stoppingToken);
                 lastFeedGenerationDate = DateOnly.FromDateTime(DateTime.UtcNow);
                 _logger.LogInformation("Initial daily feed generation job completed successfully");
@@ -90,8 +90,7 @@ public class Worker : BackgroundService
                     try
                     {
                         using var scope = _serviceProvider.CreateScope();
-                        var ingestionLogger = scope.ServiceProvider.GetRequiredService<ILogger<SourceIngestionJob>>();
-                        var ingestionJob = new SourceIngestionJob(_serviceProvider, ingestionLogger);
+                        var ingestionJob = scope.ServiceProvider.GetRequiredService<SourceIngestionJob>();
                         await ingestionJob.ExecuteAsync(stoppingToken);
                         lastIngestionTime = now;
 
@@ -111,8 +110,7 @@ public class Worker : BackgroundService
                     try
                     {
                         using var scope = _serviceProvider.CreateScope();
-                        var feedLogger = scope.ServiceProvider.GetRequiredService<ILogger<DailyFeedGenerationJob>>();
-                        var feedGenerationJob = new DailyFeedGenerationJob(_serviceProvider, feedLogger);
+                        var feedGenerationJob = scope.ServiceProvider.GetRequiredService<DailyFeedGenerationJob>();
                         await feedGenerationJob.ExecuteAsync(stoppingToken);
                         lastFeedGenerationDate = today;
 

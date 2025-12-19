@@ -110,8 +110,8 @@ az containerapp logs show --name rsl-dev-jobs --resource-group rsl-dev-rg --tail
 ## Key Decisions
 
 - **Hybrid Recommendations**: 70% vector similarity, 30% heuristics
-- **HTML-First Ingestion**: Fetch HTML ourselves, send to ChatGPT (not GPT web search)
-- **Chat Completion API**: Standard API (not Responses API)
+- **HTML-First Ingestion**: Fetch HTML ourselves, send to ChatGPT
+- **Chat Completion API**: Standard API
 - **Clean Architecture**: Core → Infrastructure → API/Web/Jobs
 - **Repository Pattern**: All data access through interfaces
 

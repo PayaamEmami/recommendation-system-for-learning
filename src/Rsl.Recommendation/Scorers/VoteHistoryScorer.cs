@@ -2,6 +2,7 @@ using Rsl.Core.Entities;
 using Rsl.Core.Enums;
 using Rsl.Core.Interfaces;
 using Rsl.Recommendation.Models;
+using System.Linq;
 
 namespace Rsl.Recommendation.Scorers;
 
@@ -13,6 +14,8 @@ namespace Rsl.Recommendation.Scorers;
 public class VoteHistoryScorer : IResourceScorer
 {
     private readonly IResourceVoteRepository _voteRepository;
+    private Guid? _cachedUserId;
+    private IEnumerable<ResourceVote>? _cachedVotes;
 
     public VoteHistoryScorer(IResourceVoteRepository voteRepository)
     {
@@ -27,7 +30,7 @@ public class VoteHistoryScorer : IResourceScorer
         CancellationToken cancellationToken = default)
     {
         // Get user's vote history
-        var userVotes = await _voteRepository.GetByUserAsync(context.UserId, cancellationToken);
+        var userVotes = await GetUserVotesCachedAsync(context.UserId, cancellationToken);
 
         if (!userVotes.Any() || !resource.SourceId.HasValue)
         {
@@ -73,6 +76,20 @@ public class VoteHistoryScorer : IResourceScorer
         var finalScore = upvoteRatio;
 
         return Math.Clamp(finalScore, 0.0, 1.0);
+    }
+
+    private async Task<IEnumerable<ResourceVote>> GetUserVotesCachedAsync(Guid userId, CancellationToken cancellationToken)
+    {
+        if (_cachedUserId == userId && _cachedVotes != null)
+        {
+            return _cachedVotes;
+        }
+
+        var votes = await _voteRepository.GetByUserAsync(userId, cancellationToken);
+        var voteList = votes.ToList();
+        _cachedUserId = userId;
+        _cachedVotes = voteList;
+        return voteList;
     }
 }
 

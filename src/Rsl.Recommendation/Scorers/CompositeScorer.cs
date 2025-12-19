@@ -56,9 +56,15 @@ public class CompositeScorer
         RecommendationContext context,
         CancellationToken cancellationToken = default)
     {
-        var scoringTasks = resources.Select(r => ScoreResourceAsync(r, context, cancellationToken));
-        var scoredResources = await Task.WhenAll(scoringTasks);
-        return scoredResources.ToList();
+        // Process sequentially to avoid reusing scoped DbContexts across concurrent tasks
+        var results = new List<ScoredResource>();
+        foreach (var resource in resources)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            results.Add(await ScoreResourceAsync(resource, context, cancellationToken));
+        }
+
+        return results;
     }
 }
 

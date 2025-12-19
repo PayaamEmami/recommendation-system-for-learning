@@ -1,6 +1,8 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
+using System.Diagnostics;
+using System.Linq;
 using Rsl.Core.Entities;
 using Rsl.Core.Interfaces;
 using Rsl.Core.Models;
@@ -15,6 +17,8 @@ public class SourceIngestionJob
 {
     private readonly IServiceProvider _serviceProvider;
     private readonly ILogger<SourceIngestionJob> _logger;
+    private const int BatchSize = 5;
+    private static readonly TimeSpan PerSourceTimeout = TimeSpan.FromSeconds(120);
 
     public SourceIngestionJob(
         IServiceProvider serviceProvider,
@@ -41,7 +45,7 @@ public class SourceIngestionJob
         try
         {
             // Get all active sources
-            var sourcesList = await sourceRepository.GetActiveSourcesAsync(cancellationToken);
+            var sourcesList = (await sourceRepository.GetActiveSourcesAsync(cancellationToken)).ToList();
 
             if (!sourcesList.Any())
             {
@@ -49,86 +53,111 @@ public class SourceIngestionJob
                 return;
             }
 
-            _logger.LogInformation("Found {Count} active sources to process", sourcesList.Count);
+            _logger.LogInformation("Found {Count} active sources to process (batch size {BatchSize})", sourcesList.Count, BatchSize);
 
             int totalIngested = 0;
             int totalEmbedded = 0;
 
-            foreach (var source in sourcesList)
+            var batches = sourcesList.Chunk(BatchSize).ToList();
+            int batchNumber = 0;
+
+            foreach (var batch in batches)
             {
+                batchNumber++;
+                _logger.LogInformation("Processing batch {BatchNumber}/{TotalBatches} with {BatchCount} sources", batchNumber, batches.Count, batch.Length);
+
                 if (cancellationToken.IsCancellationRequested)
                 {
                     _logger.LogWarning("Ingestion job cancelled");
                     break;
                 }
 
-                try
+                foreach (var source in batch)
                 {
-                    _logger.LogInformation("Ingesting from source: {SourceName} ({SourceUrl})", source.Name, source.Url);
-
-                    // Ingest resources using LLM agent
-                    var ingestionResult = await ingestionAgent.IngestFromUrlAsync(
-                        source.Url,
-                        source.Id,
-                        cancellationToken);
-
-                    if (!ingestionResult.Success)
+                    if (cancellationToken.IsCancellationRequested)
                     {
-                        _logger.LogWarning(
-                            "Failed to ingest from source {SourceId}: {Error}",
+                        _logger.LogWarning("Ingestion job cancelled during batch");
+                        break;
+                    }
+
+                    using var perSourceCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+                    perSourceCts.CancelAfter(PerSourceTimeout);
+
+                    try
+                    {
+                        _logger.LogInformation("Ingesting from source: {SourceName} ({SourceUrl})", source.Name, source.Url);
+                        var stopwatch = Stopwatch.StartNew();
+
+                        // Ingest resources using LLM agent
+                        var ingestionResult = await ingestionAgent.IngestFromUrlAsync(
+                            source.Url,
                             source.Id,
-                            ingestionResult.ErrorMessage);
-                        continue;
+                            perSourceCts.Token);
+
+                        if (!ingestionResult.Success)
+                        {
+                            _logger.LogWarning(
+                                "Failed to ingest from source {SourceId}: {Error}",
+                                source.Id,
+                                ingestionResult.ErrorMessage);
+                            continue;
+                        }
+
+                        // Save new resources and generate embeddings
+                        var newResources = new List<Resource>();
+
+                        foreach (var extractedResource in ingestionResult.Resources)
+                        {
+                            try
+                            {
+                                // Create resource entity
+                                var resource = CreateResourceEntity(extractedResource, source.Id);
+                                await resourceRepository.AddAsync(resource, perSourceCts.Token);
+                                newResources.Add(resource);
+
+                                totalIngested++;
+                                _logger.LogInformation("Saved new resource: {Title}", resource.Title);
+                            }
+                            catch (DbUpdateException ex) when (ex.InnerException?.Message.Contains("duplicate", StringComparison.OrdinalIgnoreCase) == true ||
+                                                               ex.InnerException?.Message.Contains("unique constraint", StringComparison.OrdinalIgnoreCase) == true ||
+                                                               ex.InnerException?.Message.Contains("UNIQUE", StringComparison.Ordinal) == true)
+                            {
+                                // Resource URL already exists - this is expected, just skip it
+                                _logger.LogDebug("Resource already exists (duplicate URL): {Url}", extractedResource.Url);
+                            }
+                            catch (Exception ex)
+                            {
+                                _logger.LogError(ex, "Error saving resource: {Title}", extractedResource.Title);
+                            }
+                        }
+
+                        // Generate embeddings and upsert to vector store
+                        if (newResources.Any())
+                        {
+                            await EmbedAndIndexResourcesAsync(
+                                newResources,
+                                embeddingService,
+                                vectorStore,
+                                perSourceCts.Token);
+
+                            totalEmbedded += newResources.Count;
+                        }
+
+                        stopwatch.Stop();
+                        _logger.LogInformation(
+                            "Completed ingestion for source {SourceName}: {New} new resources in {ElapsedMs} ms",
+                            source.Name,
+                            newResources.Count,
+                            stopwatch.ElapsedMilliseconds);
                     }
-
-                    // Save new resources and generate embeddings
-                    var newResources = new List<Resource>();
-
-                    foreach (var extractedResource in ingestionResult.Resources)
+                    catch (TaskCanceledException) when (!cancellationToken.IsCancellationRequested)
                     {
-                        try
-                        {
-                            // Create resource entity
-                            var resource = CreateResourceEntity(extractedResource, source.Id);
-                            await resourceRepository.AddAsync(resource, cancellationToken);
-                            newResources.Add(resource);
-
-                            totalIngested++;
-                            _logger.LogInformation("Saved new resource: {Title}", resource.Title);
-                        }
-                        catch (DbUpdateException ex) when (ex.InnerException?.Message.Contains("duplicate", StringComparison.OrdinalIgnoreCase) == true ||
-                                                           ex.InnerException?.Message.Contains("unique constraint", StringComparison.OrdinalIgnoreCase) == true ||
-                                                           ex.InnerException?.Message.Contains("UNIQUE", StringComparison.Ordinal) == true)
-                        {
-                            // Resource URL already exists - this is expected, just skip it
-                            _logger.LogDebug("Resource already exists (duplicate URL): {Url}", extractedResource.Url);
-                        }
-                        catch (Exception ex)
-                        {
-                            _logger.LogError(ex, "Error saving resource: {Title}", extractedResource.Title);
-                        }
+                        _logger.LogWarning("Ingestion timed out for source {SourceName} after {TimeoutSeconds}s", source.Name, PerSourceTimeout.TotalSeconds);
                     }
-
-                    // Generate embeddings and upsert to vector store
-                    if (newResources.Any())
+                    catch (Exception ex)
                     {
-                        await EmbedAndIndexResourcesAsync(
-                            newResources,
-                            embeddingService,
-                            vectorStore,
-                            cancellationToken);
-
-                        totalEmbedded += newResources.Count;
+                        _logger.LogError(ex, "Error processing source {SourceId}", source.Id);
                     }
-
-                    _logger.LogInformation(
-                        "Completed ingestion for source {SourceName}: {New} new resources",
-                        source.Name,
-                        newResources.Count);
-                }
-                catch (Exception ex)
-                {
-                    _logger.LogError(ex, "Error processing source {SourceId}", source.Id);
                 }
             }
 
