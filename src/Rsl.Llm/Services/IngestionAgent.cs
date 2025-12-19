@@ -225,37 +225,38 @@ public class IngestionAgent : IIngestionAgent
 
     private string GetSystemPrompt()
     {
-        return @"You are a precise learning-resource extractor.
+        return @"You extract learning resources from the provided HTML/RSS/XML.
 
-Rules:
-- Output JSON only, no prose or markdown.
-- Use this schema: { ""resources"": [ { ""title"": string, ""url"": string, ""description"": string, ""type"": ""Paper""|""Video""|""BlogPost"", ""published_date"": string (ISO, optional), ""author"": string (optional), ""channel"": string (optional), ""duration"": string (optional), ""doi"": string (optional), ""journal"": string (optional), ""thumbnail_url"": string (optional) } ] }
-- Always return the top results you can confidently extract (up to 20). If none, return { ""resources"": [] }.
-- Each resource must have: title (trimmed), absolute URL, non-empty description (summaries or abstracts are preferred).
-- Be generous but factual: pull summaries/abstracts/snippets that are present in the content; do not invent facts.
-- Classify:
-  - Paper: academic/research/technical papers, arXiv/DOI/journal indicators.
-  - Video: YouTube or other video entries, video watch links, channel videos, durations, thumbnails.
-  - BlogPost: blog articles, tutorials, how-tos, technical write-ups.
-- Do NOT return navigation, ads, categories, playlists without specific videos, or profile/about pages.
+Return valid JSON only (no prose, no markdown). If nothing can be confidently extracted, return { ""resources"": [] }.
 
-For RSS/Atom feeds:
-- Each <item> (RSS) or <entry> (Atom) represents one resource.
-- Extract title from <title>, url from <link> or <link href=""""> attribute, description from <description> or <summary> or <content>.
-- Parse published_date from <pubDate> or <published> or <updated>.
-- For YouTube feeds: extract channel from <author><name> or <yt:channelId>, thumbnail from <media:thumbnail url=""""> or <media:group><media:thumbnail>.
-- Duration from <media:content duration=""""> or <itunes:duration> if present.
+Output schema (required fields only; optional fields allowed only when present in the content):
+{
+  ""resources"": [
+    {
+      ""title"": string,
+      ""url"": string,
+      ""description"": string,
+      ""type"": ""Paper"" | ""Video"" | ""BlogPost""
+    }
+  ]
+}
 
-For HTML pages:
-- Extract individual videos from YouTube/channel pages (title + video URL + channel + duration/thumbnail if visible).
-- Extract papers from arXiv, journals, conference sites.
-- Extract blog posts from article listings.
+Extraction rules:
+- Only include resources that are explicitly present in the provided content. Do not invent or infer facts.
+- Each item must have a non-empty title and a URL. Skip items that are missing either.
+- URLs must be absolute. Resolve relative URLs using the source page URL as the base (and respect any HTML <base href> if present).
+- Descriptions must be non-empty:
+  - Prefer an abstract/summary/snippet when present.
+  - Otherwise, write a short factual description using only visible metadata (e.g., authors, venue/journal, date, subjects/tags, comments). Do not fabricate missing details.
+- Choose the most useful, distinct items and de-duplicate near-identical entries (e.g., same URL).
+- Limit to at most 20 items to avoid truncation.
 
-Normalize:
-- Make URLs absolute using the page base if needed.
-- Dates in ISO 8601 (YYYY-MM-DD) when present.
-- Duration as HH:MM:SS or MM:SS when present.
-- If data is missing (e.g., author, doi), omit the field rather than guessing.";
+Type guidance:
+- Paper: academic/research papers or preprints (e.g., arXiv entries, DOI/journal/conference pages).
+- Video: individual videos (watch pages or clearly identified video items).
+- BlogPost: articles/posts/tutorials.
+
+Exclude non-resources such as navigation links, ads, generic category/tag indexes, search pages without specific items, login/about/profile pages, or playlists without individual video entries.";
     }
 
     private string GetUserMessage(string sourceUrl, string htmlContent)
