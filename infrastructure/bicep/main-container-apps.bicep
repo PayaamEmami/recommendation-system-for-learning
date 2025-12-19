@@ -368,7 +368,7 @@ module jobsApp 'modules/container-app.bicep' = {
       }
       {
         name: 'Jobs__RunOnStartup'
-        value: 'true'
+        value: 'false'
       }
       {
         name: 'JobSchedules__SourceIngestionCron'
