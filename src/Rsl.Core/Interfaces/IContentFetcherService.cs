@@ -1,23 +1,23 @@
 namespace Rsl.Core.Interfaces;
 
 /// <summary>
-/// Service for fetching HTML content from URLs.
+/// Service for fetching content (HTML or RSS/XML) from URLs.
 /// </summary>
-public interface IHtmlFetcherService
+public interface IContentFetcherService
 {
     /// <summary>
-    /// Fetches HTML content from the specified URL.
+    /// Fetches content from the specified URL.
     /// </summary>
-    /// <param name="url">The URL to fetch HTML from</param>
+    /// <param name="url">The URL to fetch content from</param>
     /// <param name="cancellationToken">Cancellation token</param>
-    /// <returns>Result containing HTML content or error information</returns>
-    Task<HtmlFetchResult> FetchHtmlAsync(string url, CancellationToken cancellationToken = default);
+    /// <returns>Result containing content or error information</returns>
+    Task<ContentFetchResult> FetchContentAsync(string url, CancellationToken cancellationToken = default);
 }
 
 /// <summary>
-/// Result of an HTML fetch operation.
+/// Result of a content fetch operation.
 /// </summary>
-public class HtmlFetchResult
+public class ContentFetchResult
 {
     /// <summary>
     /// Whether the fetch was successful.
@@ -25,9 +25,9 @@ public class HtmlFetchResult
     public bool Success { get; set; }
 
     /// <summary>
-    /// The fetched HTML content (if successful).
+    /// The fetched content (if successful).
     /// </summary>
-    public string? Html { get; set; }
+    public string? Content { get; set; }
 
     /// <summary>
     /// Error message (if unsuccessful).

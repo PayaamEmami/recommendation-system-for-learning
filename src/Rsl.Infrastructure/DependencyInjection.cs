@@ -57,8 +57,8 @@ public static class DependencyInjection
         // Register vector store
         services.AddSingleton<IVectorStore, AzureAISearchVectorStore>();
 
-        // Register HTML fetcher service
-        services.AddHttpClient<IHtmlFetcherService, HtmlFetcherService>();
+        // Register content fetcher service (handles HTML and RSS/XML feeds)
+        services.AddHttpClient<IContentFetcherService, ContentFetcherService>();
 
         return services;
     }

@@ -13,16 +13,16 @@ namespace Rsl.Llm.Services;
 public class IngestionAgent : IIngestionAgent
 {
     private readonly ILlmClient _llmClient;
-    private readonly IHtmlFetcherService _htmlFetcher;
+    private readonly IContentFetcherService _contentFetcher;
     private readonly ILogger<IngestionAgent> _logger;
 
     public IngestionAgent(
         ILlmClient llmClient,
-        IHtmlFetcherService htmlFetcher,
+        IContentFetcherService contentFetcher,
         ILogger<IngestionAgent> logger)
     {
         _llmClient = llmClient;
-        _htmlFetcher = htmlFetcher;
+        _contentFetcher = contentFetcher;
         _logger = logger;
     }
 
@@ -35,13 +35,13 @@ public class IngestionAgent : IIngestionAgent
         {
             _logger.LogInformation("Starting ingestion from URL: {SourceUrl}", sourceUrl);
 
-            // Step 1: Fetch HTML content
-            var htmlResult = await _htmlFetcher.FetchHtmlAsync(sourceUrl, cancellationToken);
+            // Step 1: Fetch content (HTML or RSS/XML)
+            var contentResult = await _contentFetcher.FetchContentAsync(sourceUrl, cancellationToken);
 
-            if (!htmlResult.Success || string.IsNullOrWhiteSpace(htmlResult.Html))
+            if (!contentResult.Success || string.IsNullOrWhiteSpace(contentResult.Content))
             {
-                _logger.LogWarning("Failed to fetch HTML from {SourceUrl}: {Error}",
-                    sourceUrl, htmlResult.ErrorMessage);
+                _logger.LogWarning("Failed to fetch content from {SourceUrl}: {Error}",
+                    sourceUrl, contentResult.ErrorMessage);
 
                 return new IngestionResult
                 {
@@ -51,13 +51,13 @@ public class IngestionAgent : IIngestionAgent
                     TotalFound = 0,
                     NewResources = 0,
                     DuplicatesSkipped = 0,
-                    ErrorMessage = htmlResult.ErrorMessage ?? "Failed to fetch HTML"
+                    ErrorMessage = contentResult.ErrorMessage ?? "Failed to fetch content"
                 };
             }
 
-            // Step 2: Send HTML to ChatGPT for resource extraction
+            // Step 2: Send content to ChatGPT for resource extraction
             var systemPrompt = GetSystemPrompt();
-            var userMessage = GetUserMessage(sourceUrl, htmlResult.Html);
+            var userMessage = GetUserMessage(sourceUrl, contentResult.Content);
 
             var response = await _llmClient.SendMessageAsync(
                 systemPrompt,
@@ -232,33 +232,45 @@ Rules:
 - Use this schema: { ""resources"": [ { ""title"": string, ""url"": string, ""description"": string, ""type"": ""Paper""|""Video""|""BlogPost"", ""published_date"": string (ISO, optional), ""author"": string (optional), ""channel"": string (optional), ""duration"": string (optional), ""doi"": string (optional), ""journal"": string (optional), ""thumbnail_url"": string (optional) } ] }
 - Always return the top results you can confidently extract (up to 20). If none, return { ""resources"": [] }.
 - Each resource must have: title (trimmed), absolute URL, non-empty description (summaries or abstracts are preferred).
-- Be generous but factual: pull summaries/abstracts/snippets that are present in the HTML; do not invent facts.
+- Be generous but factual: pull summaries/abstracts/snippets that are present in the content; do not invent facts.
 - Classify:
   - Paper: academic/research/technical papers, arXiv/DOI/journal indicators.
   - Video: YouTube or other video entries, video watch links, channel videos, durations, thumbnails.
   - BlogPost: blog articles, tutorials, how-tos, technical write-ups.
 - Do NOT return navigation, ads, categories, playlists without specific videos, or profile/about pages.
-- For YouTube/channel pages: extract individual videos (title + video URL + channel + duration/thumbnail if visible).
-- Normalize:
-  - Make URLs absolute using the page base if needed.
-  - Dates in ISO 8601 (YYYY-MM-DD) when present.
-  - Duration as HH:MM:SS or MM:SS when present.
+
+For RSS/Atom feeds:
+- Each <item> (RSS) or <entry> (Atom) represents one resource.
+- Extract title from <title>, url from <link> or <link href=""""> attribute, description from <description> or <summary> or <content>.
+- Parse published_date from <pubDate> or <published> or <updated>.
+- For YouTube feeds: extract channel from <author><name> or <yt:channelId>, thumbnail from <media:thumbnail url=""""> or <media:group><media:thumbnail>.
+- Duration from <media:content duration=""""> or <itunes:duration> if present.
+
+For HTML pages:
+- Extract individual videos from YouTube/channel pages (title + video URL + channel + duration/thumbnail if visible).
+- Extract papers from arXiv, journals, conference sites.
+- Extract blog posts from article listings.
+
+Normalize:
+- Make URLs absolute using the page base if needed.
+- Dates in ISO 8601 (YYYY-MM-DD) when present.
+- Duration as HH:MM:SS or MM:SS when present.
 - If data is missing (e.g., author, doi), omit the field rather than guessing.";
     }
 
     private string GetUserMessage(string sourceUrl, string htmlContent)
     {
-        // Truncate HTML if it's too long to avoid token limits
+        // Truncate content if it's too long to avoid token limits
         const int maxHtmlLength = 50000; // ~12.5k tokens (rough estimate)
         var truncatedHtml = htmlContent.Length > maxHtmlLength
-            ? htmlContent.Substring(0, maxHtmlLength) + "\n\n[...HTML truncated for length...]"
+            ? htmlContent.Substring(0, maxHtmlLength) + "\n\n[...Content truncated for length...]"
             : htmlContent;
 
-        return $@"Extract all learning resources from this HTML content.
+        return $@"Extract all learning resources from this content (HTML page or RSS/XML feed).
 
 Source URL: {sourceUrl}
 
-HTML Content:
+Content:
 {truncatedHtml}
 
 Return the extracted resources as JSON. Respond with JSON only.";
