@@ -52,10 +52,13 @@ public class SourcesController : ControllerBase
         var userId = User.GetUserId();
         if (!userId.HasValue)
         {
+            _logger.LogWarning("GetUserSources: User ID not found in claims");
             return Unauthorized();
         }
 
+        _logger.LogInformation("GetUserSources: Fetching sources for user {UserId}", userId.Value);
         var sources = await _sourceService.GetUserSourcesAsync(userId.Value, cancellationToken);
+        _logger.LogInformation("GetUserSources: Returning {Count} sources for user {UserId}", sources.Count, userId.Value);
         return Ok(sources);
     }
 
@@ -166,14 +169,25 @@ public class SourcesController : ControllerBase
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
     public async Task<IActionResult> BulkImportSources([FromBody] BulkImportSourcesRequest request, CancellationToken cancellationToken)
     {
-        var userId = User.GetUserId();
-        if (!userId.HasValue)
+        try
         {
-            return Unauthorized();
-        }
+            var userId = User.GetUserId();
+            if (!userId.HasValue)
+            {
+                _logger.LogWarning("BulkImportSources: User ID not found in claims");
+                return Unauthorized();
+            }
 
-        var result = await _sourceService.BulkImportSourcesAsync(userId.Value, request, cancellationToken);
-        return Ok(result);
+            _logger.LogInformation("BulkImportSources: Starting bulk import of {Count} sources for user {UserId}", request.Sources.Count, userId.Value);
+            var result = await _sourceService.BulkImportSourcesAsync(userId.Value, request, cancellationToken);
+            _logger.LogInformation("BulkImportSources: Completed - {Imported} imported, {Failed} failed for user {UserId}", result.Imported, result.Failed, userId.Value);
+            return Ok(result);
+        }
+        catch (ArgumentException ex)
+        {
+            _logger.LogError(ex, "BulkImportSources: ArgumentException during bulk import");
+            return BadRequest(new { message = ex.Message });
+        }
     }
 }
 

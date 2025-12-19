@@ -344,6 +344,7 @@
     {
         _sources = await SourceService.GetUserSourcesAsync();
         ApplyFilter();
+        StateHasChanged(); // Force UI refresh
     }
 
     private void ApplyFilter()
@@ -356,7 +357,7 @@
 
         if (string.IsNullOrEmpty(CategoryFilter))
         {
-            _filteredSources = _sources;
+            _filteredSources = _sources.ToList(); // Create a new list to ensure change detection
         }
         else
         {
@@ -366,7 +367,7 @@
             }
             else
             {
-                _filteredSources = _sources;
+                _filteredSources = _sources.ToList(); // Create a new list to ensure change detection
             }
         }
     }

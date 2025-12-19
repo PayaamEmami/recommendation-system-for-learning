@@ -61,7 +61,8 @@ public class SourceService
 
             if (!response.IsSuccessStatusCode)
             {
-                _logger.LogWarning("Failed to fetch sources: {StatusCode}", response.StatusCode);
+                var errorContent = await response.Content.ReadAsStringAsync();
+                _logger.LogWarning("Failed to fetch sources: {StatusCode} - {Error}", response.StatusCode, errorContent);
                 return new List<SourceItem>();
             }
 
@@ -69,8 +70,11 @@ public class SourceService
 
             if (sources == null)
             {
+                _logger.LogWarning("Sources response was null");
                 return new List<SourceItem>();
             }
+
+            _logger.LogInformation("Successfully fetched {Count} sources from API", sources.Count);
 
             return sources.Select(s => new SourceItem
             {

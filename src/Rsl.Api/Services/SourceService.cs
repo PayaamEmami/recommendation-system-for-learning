@@ -145,8 +145,8 @@ public class SourceService : ISourceService
             try
             {
                 // Check if source already exists for this user
-                var existingSources = await _sourceRepository.GetByUserIdAsync(userId, cancellationToken);
-                if (existingSources.Any(s => s.Url.Equals(item.Url, StringComparison.OrdinalIgnoreCase)))
+                var urlExists = await _sourceRepository.UrlExistsForUserAsync(userId, item.Url, cancellationToken);
+                if (urlExists)
                 {
                     result.Failed++;
                     result.Errors.Add(new BulkImportError
@@ -160,15 +160,12 @@ public class SourceService : ISourceService
                 // Create the source
                 var source = new Source
                 {
-                    Id = Guid.NewGuid(),
                     UserId = userId,
                     Name = item.Name,
                     Url = item.Url,
                     Description = item.Description,
                     Category = item.Category,
-                    IsActive = true,
-                    CreatedAt = DateTime.UtcNow,
-                    UpdatedAt = DateTime.UtcNow
+                    IsActive = true
                 };
 
                 await _sourceRepository.AddAsync(source, cancellationToken);
