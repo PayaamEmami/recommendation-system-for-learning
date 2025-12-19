@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Rsl.Api.Extensions;
 using Rsl.Api.Middleware;
@@ -8,7 +9,37 @@ using Rsl.Llm;
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container
-builder.Services.AddControllers();
+builder.Services.AddControllers()
+    .ConfigureApiBehaviorOptions(options =>
+    {
+        // Customize automatic 400 responses to include more details
+        options.InvalidModelStateResponseFactory = context =>
+        {
+            var errors = context.ModelState
+                .Where(e => e.Value?.Errors.Count > 0)
+                .SelectMany(e => e.Value!.Errors.Select(err => new
+                {
+                    Field = e.Key,
+                    Message = err.ErrorMessage
+                }))
+                .ToList();
+
+            var result = new
+            {
+                Message = "Validation failed",
+                Errors = errors
+            };
+
+            return new BadRequestObjectResult(result);
+        };
+    })
+    .AddJsonOptions(options =>
+    {
+        // Configure JSON serialization
+        options.JsonSerializerOptions.PropertyNameCaseInsensitive = true;
+        options.JsonSerializerOptions.PropertyNamingPolicy = System.Text.Json.JsonNamingPolicy.CamelCase;
+        options.JsonSerializerOptions.Converters.Add(new System.Text.Json.Serialization.JsonStringEnumConverter());
+    });
 builder.Services.AddEndpointsApiExplorer();
 
 // Configure custom services
