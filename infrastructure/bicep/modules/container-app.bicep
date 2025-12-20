@@ -37,6 +37,9 @@ param minReplicas int = 0
 @description('Maximum replicas')
 param maxReplicas int = 3
 
+@description('Enable ingress (HTTP/HTTPS endpoints)')
+param enableIngress bool = true
+
 resource containerRegistry 'Microsoft.ContainerRegistry/registries@2023-01-01-preview' existing = {
   name: containerRegistryName
 }
@@ -54,14 +57,8 @@ resource containerApp 'Microsoft.App/containerApps@2023-05-01' = {
   }
   properties: {
     managedEnvironmentId: environmentId
-    configuration: {
+    configuration: union({
       activeRevisionsMode: 'Single'
-      ingress: {
-        external: true
-        targetPort: 8080
-        transport: 'auto'
-        allowInsecure: false
-      }
       registries: [
         {
           server: containerRegistry.properties.loginServer
@@ -75,7 +72,14 @@ resource containerApp 'Microsoft.App/containerApps@2023-05-01' = {
           value: containerRegistry.listCredentials().passwords[0].value
         }
       ], secrets)
-    }
+    }, enableIngress ? {
+      ingress: {
+        external: true
+        targetPort: 8080
+        transport: 'auto'
+        allowInsecure: false
+      }
+    } : {})
     template: {
       containers: [
         {
@@ -119,5 +123,5 @@ resource keyVaultAccessPolicy 'Microsoft.KeyVault/vaults/accessPolicies@2023-02-
 
 output id string = containerApp.id
 output name string = containerApp.name
-output fqdn string = containerApp.properties.configuration.ingress.fqdn
-output url string = 'https://${containerApp.properties.configuration.ingress.fqdn}'
+output fqdn string = enableIngress ? containerApp.properties.configuration.ingress.fqdn : ''
+output url string = enableIngress ? 'https://${containerApp.properties.configuration.ingress.fqdn}' : ''

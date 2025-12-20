@@ -152,7 +152,7 @@ module apiApp 'modules/container-app.bicep' = {
       }
       {
         name: 'azure-openai-api-key'
-        value: azureOpenAIApiKey
+        value: openAIApiKey
       }
       {
         name: 'azure-search-api-key'
@@ -178,7 +178,7 @@ module apiApp 'modules/container-app.bicep' = {
       }
       {
         name: 'Embedding__ApiKey'
-        secretRef: 'openai-api-key'
+        secretRef: 'azure-openai-api-key'
       }
       {
         name: 'Embedding__ModelName'
@@ -291,6 +291,7 @@ module jobsApp 'modules/container-app.bicep' = {
     applicationInsightsConnectionString: applicationInsights.outputs.connectionString
     minReplicas: 1
     maxReplicas: 1
+    enableIngress: false
     secrets: [
       {
         name: 'sql-connection-string'
@@ -298,7 +299,7 @@ module jobsApp 'modules/container-app.bicep' = {
       }
       {
         name: 'azure-openai-api-key'
-        value: azureOpenAIApiKey
+        value: openAIApiKey
       }
       {
         name: 'azure-search-api-key'
@@ -320,7 +321,7 @@ module jobsApp 'modules/container-app.bicep' = {
       }
       {
         name: 'Embedding__ApiKey'
-        secretRef: 'openai-api-key'
+        secretRef: 'azure-openai-api-key'
       }
       {
         name: 'Embedding__ModelName'
@@ -356,7 +357,7 @@ module jobsApp 'modules/container-app.bicep' = {
       }
       {
         name: 'OpenAI__ApiKey'
-        secretRef: 'openai-api-key'
+        secretRef: 'azure-openai-api-key'
       }
       {
         name: 'OpenAI__Model'
@@ -395,5 +396,5 @@ output keyVaultName string = keyVault.outputs.name
 output containerAppsEnvironmentName string = containerAppsEnvironment.outputs.name
 output apiAppUrl string = apiApp.outputs.url
 output webAppUrl string = webApp.outputs.url
-output jobsAppUrl string = jobsApp.outputs.url
+output jobsAppName string = jobsApp.outputs.name
 output applicationInsightsConnectionString string = applicationInsights.outputs.connectionString
