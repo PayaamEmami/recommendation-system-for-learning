@@ -68,7 +68,9 @@ services:
     networks:
       - rsl-network
 
-  # RSL Jobs (Background Worker)
+  # RSL Jobs (Run manually with docker compose exec)
+  # To run ingestion: docker compose exec jobs dotnet Rsl.Jobs.dll ingestion
+  # To run feed generation: docker compose exec jobs dotnet Rsl.Jobs.dll feed
   jobs:
     build:
       context: .
@@ -88,12 +90,14 @@ services:
       - AzureAISearch__Endpoint=${AZURE_SEARCH_ENDPOINT}
       - AzureAISearch__ApiKey=${AZURE_SEARCH_API_KEY}
       - AzureAISearch__IndexName=rsl-resources
-      - Jobs__RunOnStartup=true
     depends_on:
       sqlserver:
         condition: service_healthy
     networks:
       - rsl-network
+    # Override entrypoint to keep container running for manual job execution
+    entrypoint: ["/bin/sh", "-c"]
+    command: ["tail -f /dev/null"]
 
 networks:
   rsl-network:

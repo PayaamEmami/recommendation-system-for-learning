@@ -27,6 +27,7 @@ RSL provides:
 
 ### Cloud & Infrastructure (Azure)
 - **Azure Container Apps** - Serverless container hosting with auto-scaling
+- **Azure Container Apps Jobs** - Scheduled cron-based job execution
 - **Azure AI Search** - Vector database for semantic similarity search
 - **Azure OpenAI** - GPT-4 and text-embedding-3-small models
 - **Azure SQL Database** - Application data storage
@@ -99,19 +100,27 @@ At a high level, RSL is composed of:
   - Flexible, no custom parsers needed per source
 
 ### ⏰ Background Jobs & Scheduling
-- **Source Ingestion Job**: Runs every 24 hours
+Jobs are implemented as **Azure Container Apps Jobs** with cron scheduling:
+
+- **Source Ingestion Job**: Runs daily at midnight UTC
   - Pulls new content from all active sources using LLM agent
   - Generates embeddings for new resources via Azure OpenAI
   - Indexes resources in Azure AI Search vector database
   - Handles duplicate detection automatically
-- **Daily Feed Generation Job**: Runs daily
+  - Container only runs during execution (cost-efficient)
+
+- **Daily Feed Generation Job**: Runs daily at 2 AM UTC
   - Builds personalized feeds for each content type (5 recommendations per category)
   - Leverages vector similarity + heuristic signals
   - Pre-generates recommendations for fast UI access
   - Filters out already-seen and recently-recommended content
+  - Container only runs during execution (cost-efficient)
+
+**Benefits**: No retries on failure to prevent repeated API calls, schedule visible in Azure Portal, can be triggered manually
 
 ### ☁️ Infrastructure (Azure)
-- **Azure Container Apps**: Serverless container hosting with auto-scaling
+- **Azure Container Apps**: Serverless container hosting for API and Web (auto-scaling)
+- **Azure Container Apps Jobs**: Scheduled job execution with cron triggers (cost-efficient)
 - **Azure AI Search**: Vector database for semantic similarity search
 - **Azure OpenAI**: Embedding generation with text-embedding-3-small and GPT-4
 - **Azure SQL Database**: Application data storage
@@ -120,11 +129,13 @@ At a high level, RSL is composed of:
 - **Application Insights**: Monitoring and telemetry
 
 ### 🚀 Deployment & CI/CD
-- **Containerized Microservices**: Separate containers for API, Web, and Background Jobs
+- **Containerized Microservices**:
+  - 2 Container Apps (API, Web) - Always running
+  - 2 Container Apps Jobs (Ingestion, Feed Generation) - Scheduled execution
 - **GitHub Actions**: Automated CI/CD pipeline
   - Builds and tests on every push
   - Pushes Docker images to Azure Container Registry
-  - Deploys to Azure Container Apps automatically
+  - Deploys to Azure Container Apps and Jobs automatically
 - **Infrastructure as Code**: Azure Bicep templates for reproducible deployments
 - **Database Migrations**: Automated via EF Core on startup
 

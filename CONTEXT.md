@@ -14,9 +14,11 @@
 
 ### Core Services
 
-1. **Rsl.Api** - REST API with JWT authentication
-2. **Rsl.Web** - Blazor Server web UI
-3. **Rsl.Jobs** - Background worker (runs every 24h, must have `minReplicas: 1`)
+1. **Rsl.Api** - REST API with JWT authentication (Container App)
+2. **Rsl.Web** - Blazor Server web UI (Container App)
+3. **Rsl.Jobs** - Scheduled jobs (Container Apps Jobs):
+   - **Ingestion Job**: Runs daily at midnight UTC
+   - **Feed Generation Job**: Runs daily at 2 AM UTC
 4. **Rsl.Core** - Domain entities, interfaces
 5. **Rsl.Infrastructure** - Data access, Azure integrations, HTML fetching
 6. **Rsl.Recommendation** - Hybrid engine (70% vector, 30% heuristics)
@@ -24,7 +26,8 @@
 
 ### Azure Resources
 
-- 3 Container Apps (API, Web, Jobs)
+- 2 Container Apps (API, Web)
+- 2 Container Apps Jobs (Ingestion, Feed Generation)
 - Azure AI Search (vector database)
 - Azure SQL Database
 - Azure Container Registry
@@ -81,6 +84,39 @@ az containerapp update --name rsl-dev-web --resource-group rsl-dev-rg --set-env-
 
 **Important**: Job exits early if no active sources (no OpenAI calls made).
 
+## Job Scheduling
+
+Jobs are implemented as **Azure Container Apps Jobs** with cron scheduling:
+
+**Ingestion Job** (`rsl-dev-ingestion-job`):
+- Schedule: Daily at midnight UTC (`0 0 * * *`)
+- Timeout: 2 hours
+- Command: `dotnet Rsl.Jobs.dll ingestion`
+
+**Feed Generation Job** (`rsl-dev-feed-job`):
+- Schedule: Daily at 2 AM UTC (`0 2 * * *`)
+- Timeout: 1 hour
+- Command: `dotnet Rsl.Jobs.dll feed`
+
+**Benefits**:
+- Containers only run during job execution (cost-efficient)
+- No retries on failure (`replicaRetryLimit: 0`)
+- Schedule visible in Azure Portal
+- Can trigger manually via CLI or API
+- Built-in job history and monitoring
+
+**Manual Execution**:
+```bash
+# Trigger ingestion job manually
+az containerapp job start --name rsl-dev-ingestion-job --resource-group rsl-dev-rg
+
+# Trigger feed generation job manually
+az containerapp job start --name rsl-dev-feed-job --resource-group rsl-dev-rg
+
+# View job execution history
+az containerapp job execution list --name rsl-dev-ingestion-job --resource-group rsl-dev-rg -o table
+```
+
 ## Bulk Import
 
 **API**: `POST /api/v1/sources/bulk-import`
@@ -105,8 +141,13 @@ dotnet ef database update --project src/Rsl.Infrastructure --startup-project src
 # Deploy infrastructure
 cd infrastructure/scripts && ./deploy.sh dev rsl-dev-rg westus
 
-# Logs
-az containerapp logs show --name rsl-dev-jobs --resource-group rsl-dev-rg --tail 100 --follow
+# Logs (Container Apps)
+az containerapp logs show --name rsl-dev-api --resource-group rsl-dev-rg --tail 100 --follow
+az containerapp logs show --name rsl-dev-web --resource-group rsl-dev-rg --tail 100 --follow
+
+# Logs (Container Apps Jobs - requires execution name)
+az containerapp job logs show --name rsl-dev-ingestion-job --resource-group rsl-dev-rg --execution <execution-name>
+az containerapp job logs show --name rsl-dev-feed-job --resource-group rsl-dev-rg --execution <execution-name>
 ```
 
 ## Key Decisions

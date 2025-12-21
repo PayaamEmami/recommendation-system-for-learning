@@ -112,10 +112,17 @@ jobs:
           --resource-group ${{ secrets.AZURE_RESOURCE_GROUP }} \
           --image ${{ secrets.AZURE_CONTAINER_REGISTRY }}.azurecr.io/rsl-web:${{ github.sha }}
 
-    - name: Update Jobs Container App
+    - name: Update Ingestion Job
       run: |
-        az containerapp update \
-          --name rsl-${{ github.event.inputs.environment || 'dev' }}-jobs \
+        az containerapp job update \
+          --name rsl-${{ github.event.inputs.environment || 'dev' }}-ingestion-job \
+          --resource-group ${{ secrets.AZURE_RESOURCE_GROUP }} \
+          --image ${{ secrets.AZURE_CONTAINER_REGISTRY }}.azurecr.io/rsl-jobs:${{ github.sha }}
+
+    - name: Update Feed Generation Job
+      run: |
+        az containerapp job update \
+          --name rsl-${{ github.event.inputs.environment || 'dev' }}-feed-job \
           --resource-group ${{ secrets.AZURE_RESOURCE_GROUP }} \
           --image ${{ secrets.AZURE_CONTAINER_REGISTRY }}.azurecr.io/rsl-jobs:${{ github.sha }}
 
