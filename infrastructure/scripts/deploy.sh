@@ -42,6 +42,15 @@ ENVIRONMENT=${1:-dev}
 RESOURCE_GROUP=${2:-rsl-$ENVIRONMENT-rg}
 LOCATION=${3:-westus}
 
+# Determine which parameters file to use (prefer .local.json for secrets)
+PARAMETERS_FILE="../bicep/parameters.$ENVIRONMENT.local.json"
+if [ ! -f "$PARAMETERS_FILE" ]; then
+    PARAMETERS_FILE="../bicep/parameters.$ENVIRONMENT.json"
+    print_warning "Local parameters file not found, using: $PARAMETERS_FILE"
+else
+    print_info "Using local parameters file: $PARAMETERS_FILE"
+fi
+
 print_info "Starting deployment to Azure"
 print_info "Environment: $ENVIRONMENT"
 print_info "Resource Group: $RESOURCE_GROUP"
@@ -59,7 +68,7 @@ print_info "Validating Bicep template..."
 az deployment group validate \
     --resource-group "$RESOURCE_GROUP" \
     --template-file ../bicep/main-container-apps.bicep \
-    --parameters ../bicep/parameters.$ENVIRONMENT.json
+    --parameters "$PARAMETERS_FILE"
 
 # Deploy infrastructure
 print_info "Deploying infrastructure..."
@@ -67,7 +76,7 @@ DEPLOYMENT_NAME="rsl-deployment-$(date +%Y%m%d-%H%M%S)"
 az deployment group create \
     --resource-group "$RESOURCE_GROUP" \
     --template-file ../bicep/main-container-apps.bicep \
-    --parameters ../bicep/parameters.$ENVIRONMENT.json \
+    --parameters "$PARAMETERS_FILE" \
     --name "$DEPLOYMENT_NAME" \
     --verbose
 

@@ -48,7 +48,7 @@ resource keyVault 'Microsoft.KeyVault/vaults@2023-02-01' existing = {
   name: keyVaultName
 }
 
-resource containerApp 'Microsoft.App/containerApps@2023-05-01' = {
+resource containerApp 'Microsoft.App/containerApps@2024-03-01' = {
   name: name
   location: location
   tags: tags
@@ -57,7 +57,7 @@ resource containerApp 'Microsoft.App/containerApps@2023-05-01' = {
   }
   properties: {
     managedEnvironmentId: environmentId
-    configuration: union({
+    configuration: {
       activeRevisionsMode: 'Single'
       registries: [
         {
@@ -72,14 +72,13 @@ resource containerApp 'Microsoft.App/containerApps@2023-05-01' = {
           value: containerRegistry.listCredentials().passwords[0].value
         }
       ], secrets)
-    }, enableIngress ? {
-      ingress: {
+      ingress: enableIngress ? {
         external: true
         targetPort: 8080
         transport: 'auto'
         allowInsecure: false
-      }
-    } : {})
+      } : null
+    }
     template: {
       containers: [
         {
