@@ -256,7 +256,12 @@ Type guidance:
 - Video: individual videos (watch pages or clearly identified video items).
 - BlogPost: articles/posts/tutorials.
 
-Exclude non-resources such as navigation links, ads, generic category/tag indexes, search pages without specific items, login/about/profile pages, or playlists without individual video entries.";
+CRITICAL exclusions:
+- NEVER extract the source/feed/channel itself as a resource. Only extract individual content items (videos, articles, papers).
+- For RSS/XML feeds: extract only the individual <item> or <entry> elements. Do NOT extract the feed metadata, channel information, or feed URL itself.
+- For YouTube RSS feeds: extract only individual video watch URLs (e.g., youtube.com/watch?v=...). Do NOT extract channel URLs, feed URLs, or channel metadata.
+- Exclude navigation links, ads, generic category/tag indexes, search pages without specific items, login/about/profile pages, or playlists without individual video entries.
+- If the URL being extracted matches or is nearly identical to the source URL provided in the user message, skip it.";
     }
 
     private string GetUserMessage(string sourceUrl, string htmlContent)
