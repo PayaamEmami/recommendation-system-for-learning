@@ -95,6 +95,8 @@ az containerapp update --name rsl-dev-web --resource-group rsl-dev-rg --set-env-
 
 ## Development
 
+**Available Tools**: Azure CLI (`az`) and GitHub CLI (`gh`) are available for automation and deployment tasks.
+
 ```bash
 # Migrations
 dotnet ef migrations add Name --project src/Rsl.Infrastructure --startup-project src/Rsl.Api
@@ -114,14 +116,6 @@ az containerapp logs show --name rsl-dev-jobs --resource-group rsl-dev-rg --tail
 - **Chat Completion API**: Standard API
 - **Clean Architecture**: Core → Infrastructure → API/Web/Jobs
 - **Repository Pattern**: All data access through interfaces
-
-## Troubleshooting
-
-**Issue**: Recommendations not generating
-**Fix**: Check `minReplicas: 1` on Jobs service, verify env vars use `__`, check logs
-
-**Issue**: Vector store errors (`Invalid URI`)
-**Fix**: Use `AzureAISearch__Endpoint` not `AZURE_SEARCH_ENDPOINT`
 
 ## Important Rules
 
