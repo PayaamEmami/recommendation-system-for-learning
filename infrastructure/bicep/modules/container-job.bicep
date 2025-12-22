@@ -90,8 +90,7 @@ resource containerJob 'Microsoft.App/jobs@2024-03-01' = {
       containers: [
         {
           name: name
-          // Use public hello-world image initially, will be updated by CI/CD
-          image: 'mcr.microsoft.com/azuredocs/containerapps-helloworld:latest'
+          image: '${containerRegistry.properties.loginServer}/${imageName}:${imageTag}'
           resources: {
             cpu: json('0.5')
             memory: '1Gi'
