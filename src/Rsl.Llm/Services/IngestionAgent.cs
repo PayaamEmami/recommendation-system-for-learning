@@ -65,8 +65,13 @@ public class IngestionAgent : IIngestionAgent
                 tools: null,
                 cancellationToken);
 
+            // Log token usage and finish reason
+            _logger.LogInformation(
+                "OpenAI response: {CompletionTokens} completion tokens, finish_reason: {FinishReason}",
+                response.CompletionTokens, response.FinishReason);
+
             // Step 3: Parse the response
-            var result = ParseIngestionResult(response.Content, sourceUrl);
+            var result = ParseIngestionResult(response, sourceUrl);
 
             _logger.LogInformation(
                 "Ingestion completed from {SourceUrl}: {TotalFound} resources found",
@@ -91,18 +96,28 @@ public class IngestionAgent : IIngestionAgent
     }
 
 
-    private IngestionResult ParseIngestionResult(string llmResponse, string sourceUrl)
+    private IngestionResult ParseIngestionResult(LlmResponse response, string sourceUrl)
     {
+        var llmResponse = response.Content;
+
         try
         {
+            // Log last 200 chars for debugging truncation
+            if (llmResponse.Length > 200)
+            {
+                var lastChars = llmResponse.Substring(llmResponse.Length - 200);
+                _logger.LogDebug("Last 200 chars of response: {LastChars}", lastChars);
+            }
+
             // Try to extract JSON from the response
             var jsonStart = llmResponse.IndexOf('{');
             var jsonEnd = llmResponse.LastIndexOf('}');
 
             if (jsonStart == -1 || jsonEnd == -1)
             {
-                _logger.LogWarning("No JSON found in LLM response for {SourceUrl}. Response: {Response}",
-                    sourceUrl, llmResponse?.Substring(0, Math.Min(200, llmResponse?.Length ?? 0)));
+                _logger.LogWarning(
+                    "No JSON found in LLM response for {SourceUrl}. FinishReason: {FinishReason}, Response preview: {Response}",
+                    sourceUrl, response.FinishReason, llmResponse?.Substring(0, Math.Min(200, llmResponse?.Length ?? 0)));
 
                 // Return success with 0 resources rather than failing - this is expected for some sources
                 return new IngestionResult
@@ -113,11 +128,36 @@ public class IngestionAgent : IIngestionAgent
                     TotalFound = 0,
                     NewResources = 0,
                     DuplicatesSkipped = 0,
-                    ErrorMessage = "Source inaccessible or no resources found"
+                    ErrorMessage = $"No JSON found (finish_reason: {response.FinishReason})"
                 };
             }
 
             var jsonString = llmResponse.Substring(jsonStart, jsonEnd - jsonStart + 1);
+
+            // Validate JSON is complete (basic check)
+            var openBraces = jsonString.Count(c => c == '{');
+            var closeBraces = jsonString.Count(c => c == '}');
+            var openBrackets = jsonString.Count(c => c == '[');
+            var closeBrackets = jsonString.Count(c => c == ']');
+
+            if (openBraces != closeBraces || openBrackets != closeBrackets)
+            {
+                _logger.LogWarning(
+                    "Malformed JSON detected for {SourceUrl}: braces {OpenBrace}/{CloseBrace}, brackets {OpenBracket}/{CloseBracket}",
+                    sourceUrl, openBraces, closeBraces, openBrackets, closeBrackets);
+
+                return new IngestionResult
+                {
+                    Success = true,
+                    SourceUrl = sourceUrl,
+                    Resources = new List<ExtractedResource>(),
+                    TotalFound = 0,
+                    NewResources = 0,
+                    DuplicatesSkipped = 0,
+                    ErrorMessage = "Malformed JSON (likely truncated)"
+                };
+            }
+
             var parsedData = JsonSerializer.Deserialize<JsonElement>(jsonString);
 
             var resources = new List<ExtractedResource>();
@@ -149,6 +189,26 @@ public class IngestionAgent : IIngestionAgent
                 TotalFound = resources.Count,
                 NewResources = resources.Count,
                 DuplicatesSkipped = 0
+            };
+        }
+        catch (JsonException ex)
+        {
+            _logger.LogWarning(
+                ex,
+                "JSON parse error for {SourceUrl}. FinishReason: {FinishReason}, Last 100 chars: {LastChars}",
+                sourceUrl,
+                response.FinishReason,
+                llmResponse.Length > 100 ? llmResponse.Substring(llmResponse.Length - 100) : llmResponse);
+
+            return new IngestionResult
+            {
+                Success = true,
+                SourceUrl = sourceUrl,
+                Resources = new List<ExtractedResource>(),
+                TotalFound = 0,
+                NewResources = 0,
+                DuplicatesSkipped = 0,
+                ErrorMessage = $"JSON parse error: {ex.Message}"
             };
         }
         catch (Exception ex)
@@ -225,61 +285,74 @@ public class IngestionAgent : IIngestionAgent
 
     private string GetSystemPrompt()
     {
-        return @"You are a learning resource extraction assistant. You must respond ONLY with valid JSON.
+        return @"You are a learning resource extraction assistant. You MUST respond with ONLY valid JSON - no other text.
 
-Extract learning resources from the provided HTML/RSS/XML content. If nothing can be confidently extracted, return { ""resources"": [] }.
+Extract learning resources from the provided HTML/RSS/XML content. If nothing can be extracted, return { ""resources"": [] }.
 
-Output schema (required fields only; optional fields allowed only when present in the content):
+OUTPUT SCHEMA (strict):
 {
   ""resources"": [
     {
       ""title"": string,
-      ""url"": string,
+      ""url"": string (absolute URL),
       ""description"": string,
       ""type"": ""Paper"" | ""Video"" | ""BlogPost""
     }
   ]
 }
 
-Extraction rules:
-- Only include resources that are explicitly present in the provided content. Do not invent or infer facts.
-- Each item must have a non-empty title and a URL. Skip items that are missing either.
-- URLs must be absolute. Resolve relative URLs using the source page URL as the base (and respect any HTML <base href> if present).
-- Descriptions must be non-empty:
-  - Prefer an abstract/summary/snippet when present.
-  - Otherwise, write a short factual description using only visible metadata (e.g., authors, venue/journal, date, subjects/tags, comments). Do not fabricate missing details.
-- Choose the most useful, distinct items and de-duplicate near-identical entries (e.g., same URL).
-- Limit to at most 20 items to avoid truncation.
+CRITICAL CONSTRAINTS:
+1. Extract up to 20 most important/recent items
+2. DESCRIPTIONS: 200 characters maximum, concise and factual
+3. URLS: Must be absolute (not relative)
+4. DEDUPLICATE: Same URL = skip duplicate
+5. VALID JSON: Response must be parseable JSON, properly closed braces/brackets
 
-Type guidance:
-- Paper: academic/research papers or preprints (e.g., arXiv entries, DOI/journal/conference pages).
-- Video: individual videos (watch pages or clearly identified video items).
-- BlogPost: articles/posts/tutorials.
+EXTRACTION RULES:
+- Only extract explicitly present resources (no invention)
+- Each item MUST have: non-empty title, absolute URL, description
+- Description priority: use abstract/summary if concise, otherwise metadata (authors, venue, date)
+- De-duplicate by URL (keep first occurrence)
+- Select the most valuable/recent items
 
-CRITICAL exclusions:
-- NEVER extract the source/feed/channel itself as a resource. Only extract individual content items (videos, articles, papers).
-- For RSS/XML feeds: extract only the individual <item> or <entry> elements. Do NOT extract the feed metadata, channel information, or feed URL itself.
-- For YouTube RSS feeds: extract only individual video watch URLs (e.g., youtube.com/watch?v=...). Do NOT extract channel URLs, feed URLs, or channel metadata.
-- Exclude navigation links, ads, generic category/tag indexes, search pages without specific items, login/about/profile pages, or playlists without individual video entries.
-- If the URL being extracted matches or is nearly identical to the source URL provided in the user message, skip it.";
+TYPE GUIDANCE:
+- Paper: academic/research papers, preprints (arXiv, DOI pages)
+- Video: individual video watch pages
+- BlogPost: articles, posts, tutorials
+
+EXCLUDE:
+- Source/feed/channel itself (only extract individual items)
+- Navigation, ads, indexes, search pages, login pages
+- URLs matching the source URL provided
+- RSS/XML: extract <item>/<entry> only, NOT feed metadata
+- YouTube: extract watch URLs only, NOT channel URLs
+
+FAILURE MODE: If extraction fails or no valid items found, return { ""resources"": [] }";
     }
 
     private string GetUserMessage(string sourceUrl, string htmlContent)
     {
         // Truncate content if it's too long to avoid token limits
-        const int maxHtmlLength = 50000; // ~12.5k tokens (rough estimate)
+        const int maxHtmlLength = 50000; // ~12.5k tokens
         var truncatedHtml = htmlContent.Length > maxHtmlLength
             ? htmlContent.Substring(0, maxHtmlLength) + "\n\n[...Content truncated for length...]"
             : htmlContent;
 
-        return $@"Extract all learning resources from this content (HTML page or RSS/XML feed).
+        return $@"Extract learning resources from this content.
 
 Source URL: {sourceUrl}
 
 Content:
 {truncatedHtml}
 
-Return the extracted resources as JSON. Respond with JSON only.";
+REQUIREMENTS:
+- Maximum 20 resources
+- Each description: 200 characters maximum
+- URLs must be absolute
+- De-duplicate by URL
+- Return ONLY valid JSON
+
+Respond with JSON only (no markdown, no explanation):";
     }
 }
 

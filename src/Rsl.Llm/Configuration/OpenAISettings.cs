@@ -18,7 +18,7 @@ public class OpenAISettings
     /// <summary>
     /// Maximum tokens per request to control costs.
     /// </summary>
-    public int MaxTokens { get; set; } = 4096;
+    public int MaxTokens { get; set; } = 16384;
 
     /// <summary>
     /// Temperature for response generation (0-2). Lower = more focused/deterministic.

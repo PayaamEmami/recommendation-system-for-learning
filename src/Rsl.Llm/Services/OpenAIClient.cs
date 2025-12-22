@@ -165,6 +165,28 @@ public class OpenAIClient : ILlmClient
                 ConversationHistory = new List<object>(messages)
             };
 
+            // Capture finish_reason and token usage
+            if (choice.TryGetProperty("finish_reason", out var finishReasonProp))
+            {
+                llmResponse.FinishReason = finishReasonProp.GetString();
+            }
+
+            if (result.TryGetProperty("usage", out var usage))
+            {
+                if (usage.TryGetProperty("total_tokens", out var totalTokens))
+                    llmResponse.TotalTokens = totalTokens.GetInt32();
+                if (usage.TryGetProperty("completion_tokens", out var completionTokens))
+                    llmResponse.CompletionTokens = completionTokens.GetInt32();
+            }
+
+            // Log if truncated
+            if (llmResponse.IsTruncated)
+            {
+                _logger.LogWarning(
+                    "OpenAI response truncated due to token limit. Completion tokens: {CompletionTokens}, Finish reason: {FinishReason}",
+                    llmResponse.CompletionTokens, llmResponse.FinishReason);
+            }
+
             // Check if there are tool calls
             if (message.TryGetProperty("tool_calls", out var toolCalls))
             {

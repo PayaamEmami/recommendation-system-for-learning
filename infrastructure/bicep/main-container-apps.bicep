@@ -337,11 +337,11 @@ var jobEnvironmentVariables = [
   }
   {
     name: 'OpenAI__MaxTokens'
-    value: '4096'
+    value: '16384'
   }
   {
     name: 'OpenAI__Temperature'
-    value: '1'
+    value: '0'
   }
   {
     name: 'APPLICATIONINSIGHTS_CONNECTION_STRING'

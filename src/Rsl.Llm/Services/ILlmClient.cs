@@ -62,6 +62,26 @@ public class LlmResponse
     /// Full conversation history for continuing the conversation.
     /// </summary>
     public List<object> ConversationHistory { get; set; } = new();
+
+    /// <summary>
+    /// Reason the completion finished: "stop", "length", "content_filter", "tool_calls", etc.
+    /// </summary>
+    public string? FinishReason { get; set; }
+
+    /// <summary>
+    /// Whether the response was truncated due to token limit.
+    /// </summary>
+    public bool IsTruncated => FinishReason == "length";
+
+    /// <summary>
+    /// Total tokens used (prompt + completion).
+    /// </summary>
+    public int? TotalTokens { get; set; }
+
+    /// <summary>
+    /// Completion tokens used.
+    /// </summary>
+    public int? CompletionTokens { get; set; }
 }
 
 /// <summary>

@@ -96,13 +96,17 @@ public class ContentFetcherService : IContentFetcherService
     }
 
     /// <summary>
-    /// Performs minimal HTML cleaning by removing script and style tags.
-    /// This reduces token usage without losing content structure for ChatGPT.
+    /// Performs HTML cleaning by removing non-essential elements.
+    /// This significantly reduces token usage while preserving content for ChatGPT.
     /// </summary>
     private string CleanHtml(string html)
     {
         if (string.IsNullOrWhiteSpace(html))
             return string.Empty;
+
+        // Remove head section entirely (meta tags, links, etc. not useful for content extraction)
+        html = Regex.Replace(html, @"<head\b[^>]*>.*?<\/head>",
+            "", RegexOptions.IgnoreCase | RegexOptions.Singleline);
 
         // Remove script tags and their content
         html = Regex.Replace(html, @"<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>",
@@ -112,7 +116,25 @@ public class ContentFetcherService : IContentFetcherService
         html = Regex.Replace(html, @"<style\b[^<]*(?:(?!<\/style>)<[^<]*)*<\/style>",
             "", RegexOptions.IgnoreCase);
 
-        return html;
+        // Remove SVG elements (often large and not useful for text extraction)
+        html = Regex.Replace(html, @"<svg\b[^>]*>.*?<\/svg>",
+            "", RegexOptions.IgnoreCase | RegexOptions.Singleline);
+
+        // Remove nav elements (navigation menus)
+        html = Regex.Replace(html, @"<nav\b[^>]*>.*?<\/nav>",
+            "", RegexOptions.IgnoreCase | RegexOptions.Singleline);
+
+        // Remove footer elements
+        html = Regex.Replace(html, @"<footer\b[^>]*>.*?<\/footer>",
+            "", RegexOptions.IgnoreCase | RegexOptions.Singleline);
+
+        // Remove HTML comments
+        html = Regex.Replace(html, @"<!--.*?-->", "", RegexOptions.Singleline);
+
+        // Collapse multiple whitespace/newlines into single spaces
+        html = Regex.Replace(html, @"\s+", " ");
+
+        return html.Trim();
     }
 }
 
