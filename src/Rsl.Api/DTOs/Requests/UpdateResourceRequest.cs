@@ -27,11 +27,6 @@ public class UpdateResourceRequest
     public string? Url { get; set; }
 
     /// <summary>
-    /// When the resource was published.
-    /// </summary>
-    public DateTime? PublishedDate { get; set; }
-
-    /// <summary>
     /// Optional source ID if this resource was ingested from a configured source.
     /// </summary>
     public Guid? SourceId { get; set; }

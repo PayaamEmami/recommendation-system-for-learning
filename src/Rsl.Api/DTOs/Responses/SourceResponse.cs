@@ -53,16 +53,6 @@ public class SourceResponse
     public DateTime UpdatedAt { get; set; }
 
     /// <summary>
-    /// When content was last fetched from this source.
-    /// </summary>
-    public DateTime? LastFetchedAt { get; set; }
-
-    /// <summary>
-    /// Error message from the last fetch attempt, if any.
-    /// </summary>
-    public string? LastFetchError { get; set; }
-
-    /// <summary>
     /// Number of resources ingested from this source.
     /// </summary>
     public int ResourceCount { get; set; }

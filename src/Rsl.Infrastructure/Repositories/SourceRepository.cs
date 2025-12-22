@@ -54,7 +54,7 @@ public class SourceRepository : ISourceRepository
         return await _context.Sources
             .Where(s => s.IsActive)
             .Include(s => s.User)
-            .OrderBy(s => s.LastFetchedAt ?? DateTime.MinValue) // Prioritize sources that haven't been fetched recently
+            .OrderBy(s => s.Name)
             .ToListAsync(cancellationToken);
     }
 

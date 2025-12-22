@@ -201,7 +201,6 @@ public class SourceIngestionJob
                 Url = resource.Url,
                 Type = resource.Type,
                 SourceId = resource.SourceId,
-                PublishedDate = resource.PublishedDate,
                 CreatedAt = resource.CreatedAt,
                 UpdatedAt = resource.UpdatedAt,
                 Embedding = embedding
@@ -238,15 +237,9 @@ public class SourceIngestionJob
                 Title = extracted.Title,
                 Description = extracted.Description,
                 Url = extracted.Url,
-                PublishedDate = extracted.PublishedDate,
                 SourceId = sourceId,
                 CreatedAt = DateTime.UtcNow,
-                UpdatedAt = DateTime.UtcNow,
-                Authors = string.IsNullOrEmpty(extracted.Author)
-                    ? new List<string>()
-                    : new List<string> { extracted.Author },
-                DOI = extracted.DOI,
-                Journal = extracted.Journal
+                UpdatedAt = DateTime.UtcNow
             },
             Core.Enums.ResourceType.Video => new Video
             {
@@ -254,15 +247,9 @@ public class SourceIngestionJob
                 Title = extracted.Title,
                 Description = extracted.Description,
                 Url = extracted.Url,
-                PublishedDate = extracted.PublishedDate,
                 SourceId = sourceId,
                 CreatedAt = DateTime.UtcNow,
-                UpdatedAt = DateTime.UtcNow,
-                Channel = extracted.Channel,
-                Duration = !string.IsNullOrEmpty(extracted.Duration) && TimeSpan.TryParse(extracted.Duration, out var duration)
-                    ? duration
-                    : null,
-                ThumbnailUrl = extracted.ThumbnailUrl
+                UpdatedAt = DateTime.UtcNow
             },
             Core.Enums.ResourceType.BlogPost => new BlogPost
             {
@@ -270,11 +257,9 @@ public class SourceIngestionJob
                 Title = extracted.Title,
                 Description = extracted.Description,
                 Url = extracted.Url,
-                PublishedDate = extracted.PublishedDate,
                 SourceId = sourceId,
                 CreatedAt = DateTime.UtcNow,
-                UpdatedAt = DateTime.UtcNow,
-                Author = extracted.Author
+                UpdatedAt = DateTime.UtcNow
             },
             _ => throw new ArgumentException($"Unknown resource type: {extracted.Type}")
         };

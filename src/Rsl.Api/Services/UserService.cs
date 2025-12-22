@@ -49,8 +49,6 @@ public class UserService : IUserService
                 IsActive = s.IsActive,
                 CreatedAt = s.CreatedAt,
                 UpdatedAt = s.UpdatedAt,
-                LastFetchedAt = s.LastFetchedAt,
-                LastFetchError = s.LastFetchError,
                 ResourceCount = s.Resources?.Count ?? 0
             }).ToList()
         };

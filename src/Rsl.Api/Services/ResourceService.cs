@@ -110,7 +110,6 @@ public class ResourceService : IResourceService
         resource.Title = request.Title;
         resource.Description = request.Description;
         resource.Url = request.Url;
-        resource.PublishedDate = request.PublishedDate;
         resource.SourceId = request.SourceId;
         resource.CreatedAt = DateTime.UtcNow;
         resource.UpdatedAt = DateTime.UtcNow;
@@ -147,11 +146,6 @@ public class ResourceService : IResourceService
         if (request.Url != null)
         {
             resource.Url = request.Url;
-        }
-
-        if (request.PublishedDate.HasValue)
-        {
-            resource.PublishedDate = request.PublishedDate;
         }
 
         // Update source if provided
@@ -195,7 +189,6 @@ public class ResourceService : IResourceService
             Title = resource.Title,
             Description = resource.Description,
             Url = resource.Url,
-            PublishedDate = resource.PublishedDate,
             Type = resource.Type,
             CreatedAt = resource.CreatedAt,
             UpdatedAt = resource.UpdatedAt,
@@ -210,8 +203,6 @@ public class ResourceService : IResourceService
                 IsActive = resource.Source.IsActive,
                 CreatedAt = resource.Source.CreatedAt,
                 UpdatedAt = resource.Source.UpdatedAt,
-                LastFetchedAt = resource.Source.LastFetchedAt,
-                LastFetchError = resource.Source.LastFetchError,
                 ResourceCount = resource.Source.Resources?.Count ?? 0
             } : null
         };

@@ -55,16 +55,6 @@ public class Source
     /// </summary>
     public DateTime UpdatedAt { get; set; }
 
-    /// <summary>
-    /// When content was last successfully fetched from this source.
-    /// </summary>
-    public DateTime? LastFetchedAt { get; set; }
-
-    /// <summary>
-    /// Error message from the last fetch attempt, if any.
-    /// </summary>
-    public string? LastFetchError { get; set; }
-
     // Navigation properties
 
     /// <summary>

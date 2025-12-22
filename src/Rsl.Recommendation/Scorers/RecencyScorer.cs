@@ -19,7 +19,7 @@ public class RecencyScorer : IResourceScorer
         RecommendationContext context,
         CancellationToken cancellationToken = default)
     {
-        var publishedDate = resource.PublishedDate ?? resource.CreatedAt;
+        var publishedDate = resource.CreatedAt;
         var today = context.Date.ToDateTime(TimeOnly.MinValue);
         var ageInDays = (today - publishedDate).TotalDays;
 

@@ -77,10 +77,7 @@ public class IngestionController : ControllerBase
                 r.Title,
                 r.Url,
                 r.Description,
-                type = r.Type.ToString(),
-                r.PublishedDate,
-                r.Author,
-                r.Channel
+                type = r.Type.ToString()
             })
         });
     }
@@ -127,17 +124,6 @@ public class IngestionController : ControllerBase
         {
             _logger.LogError("Ingestion failed: {Error}", result.ErrorMessage);
 
-            // Update source with error
-            source.LastFetchError = result.ErrorMessage;
-            await _sourceService.UpdateSourceAsync(sourceId, new UpdateSourceRequest
-            {
-                Name = source.Name,
-                Url = source.Url,
-                Description = source.Description,
-                Category = source.Category,
-                IsActive = source.IsActive
-            }, cancellationToken);
-
             return StatusCode(StatusCodes.Status500InternalServerError, new
             {
                 message = "Ingestion failed",
@@ -156,7 +142,6 @@ public class IngestionController : ControllerBase
                     Title = extractedResource.Title,
                     Url = extractedResource.Url,
                     Description = extractedResource.Description,
-                    PublishedDate = extractedResource.PublishedDate,
                     SourceId = sourceId,
                     ResourceType = extractedResource.Type
                 };
@@ -170,19 +155,10 @@ public class IngestionController : ControllerBase
             }
         }
 
-        // Update source last fetched timestamp
-        source.LastFetchedAt = DateTime.UtcNow;
-        source.LastFetchError = null;
-        await _sourceService.UpdateSourceAsync(sourceId, new UpdateSourceRequest
-        {
-            Name = source.Name,
-            Url = source.Url,
-            Description = source.Description,
-            Category = source.Category,
-            IsActive = source.IsActive
-        }, cancellationToken);
-
-        _logger.LogInformation("Ingestion completed: {Saved} resources saved", savedResources.Count);
+        // Log successful ingestion
+        _logger.LogInformation(
+            "Successfully ingested {Count} resources from source {SourceId}",
+            savedResources.Count, sourceId);
 
         return Ok(new
         {

@@ -58,7 +58,6 @@ public class RecommendationService : IRecommendationService
                         Title = r.Resource.Title,
                         Description = r.Resource.Description,
                         Url = r.Resource.Url,
-                        PublishedDate = r.Resource.PublishedDate,
                         Type = r.Resource.Type,
                         CreatedAt = r.Resource.CreatedAt,
                         UpdatedAt = r.Resource.UpdatedAt,
@@ -73,8 +72,6 @@ public class RecommendationService : IRecommendationService
                             IsActive = r.Resource.Source.IsActive,
                             CreatedAt = r.Resource.Source.CreatedAt,
                             UpdatedAt = r.Resource.Source.UpdatedAt,
-                            LastFetchedAt = r.Resource.Source.LastFetchedAt,
-                            LastFetchError = r.Resource.Source.LastFetchError,
                             ResourceCount = r.Resource.Source.Resources?.Count ?? 0
                         } : null
                     },
@@ -127,7 +124,6 @@ public class RecommendationService : IRecommendationService
                                 Title = r.Resource.Title,
                                 Description = r.Resource.Description,
                                 Url = r.Resource.Url,
-                                PublishedDate = r.Resource.PublishedDate,
                                 Type = r.Resource.Type,
                                 CreatedAt = r.Resource.CreatedAt,
                                 UpdatedAt = r.Resource.UpdatedAt,
@@ -142,8 +138,6 @@ public class RecommendationService : IRecommendationService
                                     IsActive = r.Resource.Source.IsActive,
                                     CreatedAt = r.Resource.Source.CreatedAt,
                                     UpdatedAt = r.Resource.Source.UpdatedAt,
-                                    LastFetchedAt = r.Resource.Source.LastFetchedAt,
-                                    LastFetchError = r.Resource.Source.LastFetchError,
                                     ResourceCount = r.Resource.Source.Resources?.Count ?? 0
                                 } : null
                             },

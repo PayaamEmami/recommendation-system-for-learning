@@ -30,11 +30,6 @@ public class CreateResourceRequest
     public string Url { get; set; } = string.Empty;
 
     /// <summary>
-    /// When the resource was published.
-    /// </summary>
-    public DateTime? PublishedDate { get; set; }
-
-    /// <summary>
     /// Optional source ID if this resource was ingested from a configured source.
     /// If provided, the resource will be linked to the configured source.
     /// </summary>

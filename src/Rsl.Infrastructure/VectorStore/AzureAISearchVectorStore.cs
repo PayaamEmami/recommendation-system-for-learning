@@ -272,7 +272,6 @@ public class AzureAISearchVectorStore : IVectorStore
             ["url"] = document.Url,
             ["type"] = document.Type.ToString(),
             ["sourceId"] = document.SourceId?.ToString() ?? string.Empty,
-            ["publishedDate"] = document.PublishedDate,
             ["createdAt"] = document.CreatedAt,
             ["updatedAt"] = document.UpdatedAt,
             ["embedding"] = document.Embedding

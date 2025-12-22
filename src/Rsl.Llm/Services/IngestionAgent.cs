@@ -253,33 +253,6 @@ public class IngestionAgent : IIngestionAgent
             }
         }
 
-        // Parse optional fields
-        if (json.TryGetProperty("published_date", out var pubDate))
-        {
-            if (DateTime.TryParse(pubDate.GetString(), out var date))
-            {
-                resource.PublishedDate = date;
-            }
-        }
-
-        if (json.TryGetProperty("author", out var author))
-            resource.Author = author.GetString();
-
-        if (json.TryGetProperty("channel", out var channel))
-            resource.Channel = channel.GetString();
-
-        if (json.TryGetProperty("duration", out var duration))
-            resource.Duration = duration.GetString();
-
-        if (json.TryGetProperty("thumbnail_url", out var thumbnail))
-            resource.ThumbnailUrl = thumbnail.GetString();
-
-        if (json.TryGetProperty("doi", out var doi))
-            resource.DOI = doi.GetString();
-
-        if (json.TryGetProperty("journal", out var journal))
-            resource.Journal = journal.GetString();
-
         return resource;
     }
 
@@ -311,7 +284,7 @@ CRITICAL CONSTRAINTS:
 EXTRACTION RULES:
 - Only extract explicitly present resources (no invention)
 - Each item MUST have: non-empty title, absolute URL, description
-- Description priority: use abstract/summary if concise, otherwise metadata (authors, venue, date)
+- Description: extract abstract/summary or key details about the resource
 - De-duplicate by URL (keep first occurrence)
 - Select the most valuable/recent items
 

@@ -28,11 +28,6 @@ public class ResourceResponse
     public string Url { get; set; } = string.Empty;
 
     /// <summary>
-    /// When the resource was published.
-    /// </summary>
-    public DateTime? PublishedDate { get; set; }
-
-    /// <summary>
     /// The type of resource.
     /// </summary>
     public ResourceType Type { get; set; }

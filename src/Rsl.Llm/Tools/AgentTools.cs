@@ -120,7 +120,6 @@ public class AgentTools
             r.Id,
             r.Title,
             r.Url,
-            r.PublishedDate,
             Type = r.Type.ToString()
         });
 

@@ -99,7 +99,7 @@ public class RecommendationEngine : IRecommendationEngine
 
         // Filter to recent resources only
         var recentCandidates = candidates
-            .Where(r => (r.PublishedDate ?? r.CreatedAt) >= cutoffDate.ToDateTime(TimeOnly.MinValue))
+            .Where(r => r.CreatedAt >= cutoffDate.ToDateTime(TimeOnly.MinValue))
             .ToList();
 
         return recentCandidates;

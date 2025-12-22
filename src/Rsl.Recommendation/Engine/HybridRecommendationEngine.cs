@@ -164,7 +164,7 @@ public class HybridRecommendationEngine : IRecommendationEngine
         var candidates = await _resourceRepository.GetByTypeAsync(context.FeedType, cancellationToken);
 
         var recentCandidates = candidates
-            .Where(r => (r.PublishedDate ?? r.CreatedAt) >= cutoffDate)
+            .Where(r => r.CreatedAt >= cutoffDate)
             .ToList();
 
         // Convert to scored resources with neutral vector similarity

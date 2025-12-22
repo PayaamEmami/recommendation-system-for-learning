@@ -45,13 +45,6 @@ public class SourceConfiguration : IEntityTypeConfiguration<Source>
         builder.Property(s => s.UpdatedAt)
             .IsRequired();
 
-        builder.Property(s => s.LastFetchedAt)
-            .IsRequired(false);
-
-        // LastFetchError: optional, max length 2000
-        builder.Property(s => s.LastFetchError)
-            .HasMaxLength(2000);
-
         // Index on UserId for faster queries
         builder.HasIndex(s => s.UserId);
 

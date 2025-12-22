@@ -39,11 +39,6 @@ public class ResourceDocument
     public Guid? SourceId { get; set; }
 
     /// <summary>
-    /// Published date (optional).
-    /// </summary>
-    public DateTime? PublishedDate { get; set; }
-
-    /// <summary>
     /// Created date.
     /// </summary>
     public required DateTime CreatedAt { get; set; }

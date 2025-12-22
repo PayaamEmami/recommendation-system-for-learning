@@ -8,15 +8,5 @@ namespace Rsl.Core.Entities;
 public class BlogPost : Resource
 {
     public override ResourceType Type { get; protected set; } = ResourceType.BlogPost;
-
-    /// <summary>
-    /// The author(s) of the blog post.
-    /// </summary>
-    public string? Author { get; set; }
-
-    /// <summary>
-    /// The blog or website where the post was published.
-    /// </summary>
-    public string? Blog { get; set; }
 }
 

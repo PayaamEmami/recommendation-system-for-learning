@@ -25,10 +25,6 @@ public abstract class Resource
     /// </summary>
     public string Url { get; set; } = string.Empty;
 
-    /// <summary>
-    /// When this resource was published or created.
-    /// </summary>
-    public DateTime? PublishedDate { get; set; }
 
     /// <summary>
     /// When this resource was added to the system.

@@ -46,9 +46,6 @@ public class ResourceConfiguration : IEntityTypeConfiguration<Resource>
             .HasMaxLength(5000);
 
         // Timestamps
-        builder.Property(r => r.PublishedDate)
-            .IsRequired(false);
-
         builder.Property(r => r.CreatedAt)
             .IsRequired();
 

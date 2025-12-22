@@ -198,8 +198,6 @@ public class SourceService : ISourceService
             IsActive = source.IsActive,
             CreatedAt = source.CreatedAt,
             UpdatedAt = source.UpdatedAt,
-            LastFetchedAt = source.LastFetchedAt,
-            LastFetchError = source.LastFetchError,
             ResourceCount = source.Resources?.Count ?? 0
         };
     }
