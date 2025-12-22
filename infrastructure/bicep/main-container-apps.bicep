@@ -38,6 +38,15 @@ param azureSearchApiKey string
 @secure()
 param jwtSecretKey string
 
+@description('Container image tag for API app')
+param apiImageTag string = 'latest'
+
+@description('Container image tag for Web app')
+param webImageTag string = 'latest'
+
+@description('Container image tag for Jobs')
+param jobsImageTag string = 'latest'
+
 @description('Tags for all resources')
 param tags object = {
   Application: 'RSL'
@@ -140,7 +149,7 @@ module apiApp 'modules/container-app.bicep' = {
     environmentId: containerAppsEnvironment.outputs.id
     containerRegistryName: containerRegistry.outputs.name
     imageName: 'rsl-api'
-    imageTag: 'latest'
+    imageTag: apiImageTag
     keyVaultName: keyVault.outputs.name
     applicationInsightsConnectionString: applicationInsights.outputs.connectionString
     minReplicas: 1
@@ -250,7 +259,7 @@ module webApp 'modules/container-app.bicep' = {
     environmentId: containerAppsEnvironment.outputs.id
     containerRegistryName: containerRegistry.outputs.name
     imageName: 'rsl-web'
-    imageTag: 'latest'
+    imageTag: webImageTag
     keyVaultName: keyVault.outputs.name
     applicationInsightsConnectionString: applicationInsights.outputs.connectionString
     minReplicas: 0
@@ -373,7 +382,7 @@ module ingestionJob 'modules/container-job.bicep' = {
     environmentId: containerAppsEnvironment.outputs.id
     containerRegistryName: containerRegistry.outputs.name
     imageName: 'rsl-jobs'
-    imageTag: 'latest'
+    imageTag: jobsImageTag
     keyVaultName: keyVault.outputs.name
     applicationInsightsConnectionString: applicationInsights.outputs.connectionString
     cronExpression: '0 0 * * *' // Daily at midnight UTC
@@ -395,7 +404,7 @@ module feedGenerationJob 'modules/container-job.bicep' = {
     environmentId: containerAppsEnvironment.outputs.id
     containerRegistryName: containerRegistry.outputs.name
     imageName: 'rsl-jobs'
-    imageTag: 'latest'
+    imageTag: jobsImageTag
     keyVaultName: keyVault.outputs.name
     applicationInsightsConnectionString: applicationInsights.outputs.connectionString
     cronExpression: '0 2 * * *' // Daily at 2 AM UTC

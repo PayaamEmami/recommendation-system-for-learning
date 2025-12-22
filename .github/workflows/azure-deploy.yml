@@ -98,33 +98,23 @@ jobs:
       with:
         creds: ${{ secrets.AZURE_CREDENTIALS }}
 
-    - name: Update API Container App
+    - name: Deploy Bicep Infrastructure
       run: |
-        az containerapp update \
-          --name rsl-${{ github.event.inputs.environment || 'dev' }}-api \
+        az deployment group create \
           --resource-group ${{ secrets.AZURE_RESOURCE_GROUP }} \
-          --image ${{ secrets.AZURE_CONTAINER_REGISTRY }}.azurecr.io/rsl-api:${{ github.sha }}
-
-    - name: Update Web Container App
-      run: |
-        az containerapp update \
-          --name rsl-${{ github.event.inputs.environment || 'dev' }}-web \
-          --resource-group ${{ secrets.AZURE_RESOURCE_GROUP }} \
-          --image ${{ secrets.AZURE_CONTAINER_REGISTRY }}.azurecr.io/rsl-web:${{ github.sha }}
-
-    - name: Update Ingestion Job
-      run: |
-        az containerapp job update \
-          --name rsl-${{ github.event.inputs.environment || 'dev' }}-ingestion-job \
-          --resource-group ${{ secrets.AZURE_RESOURCE_GROUP }} \
-          --image ${{ secrets.AZURE_CONTAINER_REGISTRY }}.azurecr.io/rsl-jobs:${{ github.sha }}
-
-    - name: Update Feed Generation Job
-      run: |
-        az containerapp job update \
-          --name rsl-${{ github.event.inputs.environment || 'dev' }}-feed-job \
-          --resource-group ${{ secrets.AZURE_RESOURCE_GROUP }} \
-          --image ${{ secrets.AZURE_CONTAINER_REGISTRY }}.azurecr.io/rsl-jobs:${{ github.sha }}
+          --template-file infrastructure/bicep/main-container-apps.bicep \
+          --parameters \
+            appName=rsl \
+            environment=${{ github.event.inputs.environment || 'dev' }} \
+            sqlAdminUsername=${{ secrets.SQL_ADMIN_USERNAME }} \
+            sqlAdminPassword=${{ secrets.SQL_ADMIN_PASSWORD }} \
+            openAIApiKey=${{ secrets.OPENAI_API_KEY }} \
+            azureSearchEndpoint=${{ secrets.AZURE_SEARCH_ENDPOINT }} \
+            azureSearchApiKey=${{ secrets.AZURE_SEARCH_API_KEY }} \
+            jwtSecretKey=${{ secrets.JWT_SECRET_KEY }} \
+            apiImageTag=${{ github.sha }} \
+            webImageTag=${{ github.sha }} \
+            jobsImageTag=${{ github.sha }}
 
     - name: Run Database Migrations
       run: |
