@@ -39,9 +39,7 @@ namespace Rsl.Infrastructure.Migrations
                     Category = table.Column<int>(type: "int", nullable: false),
                     IsActive = table.Column<bool>(type: "bit", nullable: false, defaultValue: true),
                     CreatedAt = table.Column<DateTime>(type: "datetime2", nullable: false),
-                    UpdatedAt = table.Column<DateTime>(type: "datetime2", nullable: false),
-                    LastFetchedAt = table.Column<DateTime>(type: "datetime2", nullable: true),
-                    LastFetchError = table.Column<string>(type: "nvarchar(2000)", maxLength: 2000, nullable: true)
+                    UpdatedAt = table.Column<DateTime>(type: "datetime2", nullable: false)
                 },
                 constraints: table =>
                 {
@@ -62,20 +60,10 @@ namespace Rsl.Infrastructure.Migrations
                     Title = table.Column<string>(type: "nvarchar(500)", maxLength: 500, nullable: false),
                     Description = table.Column<string>(type: "nvarchar(max)", maxLength: 5000, nullable: true),
                     Url = table.Column<string>(type: "nvarchar(2000)", maxLength: 2000, nullable: false),
-                    PublishedDate = table.Column<DateTime>(type: "datetime2", nullable: true),
                     CreatedAt = table.Column<DateTime>(type: "datetime2", nullable: false),
                     UpdatedAt = table.Column<DateTime>(type: "datetime2", nullable: false),
                     Type = table.Column<string>(type: "nvarchar(max)", nullable: false),
-                    SourceId = table.Column<Guid>(type: "uniqueidentifier", nullable: true),
-                    Author = table.Column<string>(type: "nvarchar(max)", nullable: true),
-                    Blog = table.Column<string>(type: "nvarchar(max)", nullable: true),
-                    DOI = table.Column<string>(type: "nvarchar(max)", nullable: true),
-                    Journal = table.Column<string>(type: "nvarchar(max)", nullable: true),
-                    Authors = table.Column<string>(type: "nvarchar(max)", nullable: true),
-                    PublicationYear = table.Column<int>(type: "int", nullable: true),
-                    Duration = table.Column<TimeSpan>(type: "time", nullable: true),
-                    Channel = table.Column<string>(type: "nvarchar(max)", nullable: true),
-                    ThumbnailUrl = table.Column<string>(type: "nvarchar(max)", nullable: true)
+                    SourceId = table.Column<Guid>(type: "uniqueidentifier", nullable: true)
                 },
                 constraints: table =>
                 {

@@ -73,9 +73,6 @@ namespace Rsl.Infrastructure.Migrations
                         .HasMaxLength(5000)
                         .HasColumnType("nvarchar(max)");
 
-                    b.Property<DateTime?>("PublishedDate")
-                        .HasColumnType("datetime2");
-
                     b.Property<Guid?>("SourceId")
                         .HasColumnType("uniqueidentifier");
 
@@ -162,13 +159,6 @@ namespace Rsl.Infrastructure.Migrations
                         .HasColumnType("bit")
                         .HasDefaultValue(true);
 
-                    b.Property<string>("LastFetchError")
-                        .HasMaxLength(2000)
-                        .HasColumnType("nvarchar(2000)");
-
-                    b.Property<DateTime?>("LastFetchedAt")
-                        .HasColumnType("datetime2");
-
                     b.Property<string>("Name")
                         .IsRequired()
                         .HasMaxLength(200)
@@ -234,12 +224,6 @@ namespace Rsl.Infrastructure.Migrations
                 {
                     b.HasBaseType("Rsl.Core.Entities.Resource");
 
-                    b.Property<string>("Author")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("Blog")
-                        .HasColumnType("nvarchar(max)");
-
                     b.HasDiscriminator().HasValue("BlogPost");
                 });
 
@@ -247,34 +231,12 @@ namespace Rsl.Infrastructure.Migrations
                 {
                     b.HasBaseType("Rsl.Core.Entities.Resource");
 
-                    b.PrimitiveCollection<string>("Authors")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("DOI")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("Journal")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<int?>("PublicationYear")
-                        .HasColumnType("int");
-
                     b.HasDiscriminator().HasValue("Paper");
                 });
 
             modelBuilder.Entity("Rsl.Core.Entities.Video", b =>
                 {
                     b.HasBaseType("Rsl.Core.Entities.Resource");
-
-                    b.Property<string>("Channel")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<TimeSpan?>("Duration")
-                        .HasColumnType("time");
-
-                    b.Property<string>("ThumbnailUrl")
-                        .HasColumnType("nvarchar(max)");
 
                     b.HasDiscriminator().HasValue("Video");
                 });
