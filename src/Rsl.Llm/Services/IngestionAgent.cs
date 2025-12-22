@@ -164,22 +164,36 @@ public class IngestionAgent : IIngestionAgent
 
             if (parsedData.TryGetProperty("resources", out var resourcesArray))
             {
+                int arrayIndex = 0;
                 foreach (var item in resourcesArray.EnumerateArray())
                 {
+                    arrayIndex++;
                     try
                     {
                         var resource = ParseExtractedResource(item);
                         if (resource != null)
                         {
                             resources.Add(resource);
+                            _logger.LogInformation("Parsed resource #{Index}: {Title} (Type: {Type}, URL: {Url})",
+                                arrayIndex, resource.Title, resource.Type, resource.Url);
+                        }
+                        else
+                        {
+                            _logger.LogWarning("Failed to parse resource #{Index}: missing title or url. JSON: {Json}",
+                                arrayIndex, item.GetRawText());
                         }
                     }
                     catch (Exception ex)
                     {
-                        _logger.LogWarning(ex, "Failed to parse resource from JSON");
+                        _logger.LogWarning(ex, "Exception parsing resource #{Index} from JSON: {Json}",
+                            arrayIndex, item.GetRawText());
                     }
                 }
             }
+
+            _logger.LogInformation(
+                "Successfully parsed {ResourceCount} resources from {SourceUrl} (JSON had {ArrayLength} items)",
+                resources.Count, sourceUrl, resourcesArray.GetArrayLength());
 
             return new IngestionResult
             {
@@ -241,15 +255,25 @@ public class IngestionAgent : IIngestionAgent
             Title = title.GetString() ?? string.Empty,
             Url = url.GetString() ?? string.Empty,
             Description = json.TryGetProperty("description", out var desc)
-                ? desc.GetString() ?? string.Empty : string.Empty
+                ? desc.GetString() ?? string.Empty : string.Empty,
+            Type = ResourceType.Paper // Default if not specified
         };
 
-        // Parse resource type
+        // Parse resource type (override default if present)
         if (json.TryGetProperty("type", out var type))
         {
-            if (Enum.TryParse<ResourceType>(type.GetString(), true, out var resourceType))
+            var typeString = type.GetString();
+            if (!string.IsNullOrEmpty(typeString))
             {
-                resource.Type = resourceType;
+                if (Enum.TryParse<ResourceType>(typeString, true, out var resourceType))
+                {
+                    resource.Type = resourceType;
+                    _logger.LogDebug("Parsed type '{TypeString}' as {ResourceType}", typeString, resourceType);
+                }
+                else
+                {
+                    _logger.LogWarning("Failed to parse type string '{TypeString}' - using default", typeString);
+                }
             }
         }
 

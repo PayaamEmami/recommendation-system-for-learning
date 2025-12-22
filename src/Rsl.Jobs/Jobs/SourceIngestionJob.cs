@@ -105,29 +105,40 @@ public class SourceIngestionJob
 
                         // Save new resources and generate embeddings
                         var newResources = new List<Resource>();
+                        int duplicateCount = 0;
+                        int errorCount = 0;
+
+                        _logger.LogInformation("Attempting to save {Count} extracted resources from {SourceName}",
+                            ingestionResult.Resources.Count, source.Name);
 
                         foreach (var extractedResource in ingestionResult.Resources)
                         {
                             try
                             {
+                                _logger.LogDebug("Processing: {Title} (Type: {Type}, URL length: {UrlLength})",
+                                    extractedResource.Title, extractedResource.Type, extractedResource.Url?.Length ?? 0);
+
                                 // Create resource entity (fallback to source category if LLM omitted type)
                                 var resource = CreateResourceEntity(extractedResource, source.Id, source.Category);
                                 await resourceRepository.AddAsync(resource, perSourceCts.Token);
                                 newResources.Add(resource);
 
                                 totalIngested++;
-                                _logger.LogInformation("Saved new resource: {Title}", resource.Title);
+                                _logger.LogInformation("✓ Saved: {Title} (Type: {Type})", resource.Title, resource.Type);
                             }
                             catch (DbUpdateException ex) when (ex.InnerException?.Message.Contains("duplicate", StringComparison.OrdinalIgnoreCase) == true ||
                                                                ex.InnerException?.Message.Contains("unique constraint", StringComparison.OrdinalIgnoreCase) == true ||
                                                                ex.InnerException?.Message.Contains("UNIQUE", StringComparison.Ordinal) == true)
                             {
                                 // Resource URL already exists - this is expected, just skip it
-                                _logger.LogDebug("Resource already exists (duplicate URL): {Url}", extractedResource.Url);
+                                duplicateCount++;
+                                _logger.LogInformation("⏭ Duplicate: {Title} (URL: {Url})", extractedResource.Title, extractedResource.Url);
                             }
                             catch (Exception ex)
                             {
-                                _logger.LogError(ex, "Error saving resource: {Title}", extractedResource.Title);
+                                errorCount++;
+                                _logger.LogError(ex, "✗ Error saving: {Title} (Type: {Type}, URL: {Url}) - {Error}",
+                                    extractedResource.Title, extractedResource.Type, extractedResource.Url, ex.Message);
                             }
                         }
 
@@ -145,9 +156,12 @@ public class SourceIngestionJob
 
                         stopwatch.Stop();
                         _logger.LogInformation(
-                            "Completed ingestion for source {SourceName}: {New} new resources in {ElapsedMs} ms",
+                            "Completed {SourceName}: {Extracted} extracted, {New} saved, {Duplicates} duplicates, {Errors} errors in {ElapsedMs} ms",
                             source.Name,
+                            ingestionResult.Resources.Count,
                             newResources.Count,
+                            duplicateCount,
+                            errorCount,
                             stopwatch.ElapsedMilliseconds);
                     }
                     catch (TaskCanceledException) when (!cancellationToken.IsCancellationRequested)
