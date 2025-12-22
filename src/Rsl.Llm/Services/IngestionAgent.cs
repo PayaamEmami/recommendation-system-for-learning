@@ -225,9 +225,9 @@ public class IngestionAgent : IIngestionAgent
 
     private string GetSystemPrompt()
     {
-        return @"You extract learning resources from the provided HTML/RSS/XML.
+        return @"You are a learning resource extraction assistant. You must respond ONLY with valid JSON.
 
-Return valid JSON only (no prose, no markdown). If nothing can be confidently extracted, return { ""resources"": [] }.
+Extract learning resources from the provided HTML/RSS/XML content. If nothing can be confidently extracted, return { ""resources"": [] }.
 
 Output schema (required fields only; optional fields allowed only when present in the content):
 {

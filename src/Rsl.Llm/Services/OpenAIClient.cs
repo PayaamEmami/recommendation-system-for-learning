@@ -123,6 +123,13 @@ public class OpenAIClient : ILlmClient
                 requestBody["tool_choice"] = "auto";
             }
 
+            // Force JSON response format when no tools are specified
+            // This ensures the model returns valid JSON (required for ingestion)
+            if (tools == null || !tools.Any())
+            {
+                requestBody["response_format"] = new { type = "json_object" };
+            }
+
             var jsonContent = JsonSerializer.Serialize(requestBody);
             var content = new StringContent(jsonContent, Encoding.UTF8, "application/json");
 

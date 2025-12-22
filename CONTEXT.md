@@ -133,7 +133,20 @@ az containerapp job execution list --name rsl-dev-ingestion-job --resource-group
 
 **Available Tools**: Azure CLI (`az`) and GitHub CLI (`gh`) are available for automation and deployment tasks.
 
+### Infrastructure Scripts
+
+Helper scripts in `infrastructure/scripts/`:
+- **get-resource-names.sh** - Shows all Azure resource names (ACR, Key Vault, etc.)
+- **deploy.sh** - Deploys Bicep templates (uses `parameters.*.local.json`)
+- **build-and-push.sh** - Builds and pushes Docker images (requires ACR name, not "dev")
+- **run-migrations.sh** - Runs EF Core migrations (requires Key Vault name with suffix)
+
+See `infrastructure/scripts/README.md` for detailed usage.
+
 ```bash
+# Get resource names
+cd infrastructure/scripts && ./get-resource-names.sh dev
+
 # Migrations
 dotnet ef migrations add Name --project src/Rsl.Infrastructure --startup-project src/Rsl.Api
 dotnet ef database update --project src/Rsl.Infrastructure --startup-project src/Rsl.Api
