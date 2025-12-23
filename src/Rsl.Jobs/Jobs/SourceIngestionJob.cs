@@ -115,29 +115,49 @@ public class SourceIngestionJob
                         {
                             try
                             {
-                                _logger.LogDebug("Processing: {Title} (Type: {Type}, URL length: {UrlLength})",
-                                    extractedResource.Title, extractedResource.Type, extractedResource.Url?.Length ?? 0);
+                                _logger.LogInformation("Processing: {Title} (Type: {Type}, URL: {Url})",
+                                    extractedResource.Title, extractedResource.Type, extractedResource.Url);
+
+                                // Validate URL is not empty
+                                if (string.IsNullOrWhiteSpace(extractedResource.Url))
+                                {
+                                    errorCount++;
+                                    _logger.LogWarning("Skipping resource with empty URL: {Title}", extractedResource.Title);
+                                    continue;
+                                }
+
+                                // Check for duplicate URL before adding to context
+                                if (await resourceRepository.ExistsByUrlAsync(extractedResource.Url, perSourceCts.Token))
+                                {
+                                    duplicateCount++;
+                                    _logger.LogInformation("Duplicate URL found: {Title} (URL: {Url})", extractedResource.Title, extractedResource.Url);
+                                    continue;
+                                }
 
                                 // Create resource entity (fallback to source category if LLM omitted type)
                                 var resource = CreateResourceEntity(extractedResource, source.Id, source.Category);
+
+                                _logger.LogInformation("Attempting to save: {Title} (Type: {Type}, URL: {Url})",
+                                    resource.Title, resource.Type, resource.Url);
+
                                 await resourceRepository.AddAsync(resource, perSourceCts.Token);
                                 newResources.Add(resource);
 
                                 totalIngested++;
-                                _logger.LogInformation("✓ Saved: {Title} (Type: {Type})", resource.Title, resource.Type);
+                                _logger.LogInformation("Successfully saved: {Title} (Type: {Type})", resource.Title, resource.Type);
                             }
                             catch (DbUpdateException ex) when (ex.InnerException?.Message.Contains("duplicate", StringComparison.OrdinalIgnoreCase) == true ||
                                                                ex.InnerException?.Message.Contains("unique constraint", StringComparison.OrdinalIgnoreCase) == true ||
                                                                ex.InnerException?.Message.Contains("UNIQUE", StringComparison.Ordinal) == true)
                             {
-                                // Resource URL already exists - this is expected, just skip it
+                                // Resource URL already exists - this is a race condition edge case, just skip it
                                 duplicateCount++;
-                                _logger.LogInformation("⏭ Duplicate: {Title} (URL: {Url})", extractedResource.Title, extractedResource.Url);
+                                _logger.LogInformation("Duplicate (race condition): {Title} (URL: {Url})", extractedResource.Title, extractedResource.Url);
                             }
                             catch (Exception ex)
                             {
                                 errorCount++;
-                                _logger.LogError(ex, "✗ Error saving: {Title} (Type: {Type}, URL: {Url}) - {Error}",
+                                _logger.LogError(ex, "Error saving: {Title} (Type: {Type}, URL: {Url}) - {Error}",
                                     extractedResource.Title, extractedResource.Type, extractedResource.Url, ex.Message);
                             }
                         }

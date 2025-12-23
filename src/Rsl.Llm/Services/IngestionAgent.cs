@@ -300,7 +300,7 @@ OUTPUT SCHEMA (strict):
 
 CRITICAL CONSTRAINTS:
 1. Extract up to 20 most important/recent items
-2. DESCRIPTIONS: 200 characters maximum, concise and factual
+2. DESCRIPTIONS: Write a clear, concise description (max 200 characters) that explains what this resource is about. Use information from the title, abstract, or summary if available. Do not use promotional language or random text from the page.
 3. URLS: Must be absolute (not relative)
 4. DEDUPLICATE: Same URL = skip duplicate
 5. VALID JSON: Response must be parseable JSON, properly closed braces/brackets
@@ -308,7 +308,7 @@ CRITICAL CONSTRAINTS:
 EXTRACTION RULES:
 - Only extract explicitly present resources (no invention)
 - Each item MUST have: non-empty title, absolute URL, description
-- Description: extract abstract/summary or key details about the resource
+- Description: A factual summary of what the resource teaches or discusses. Prioritize abstracts, summaries, or descriptions from the content. If none exist, create a brief description based on the title and context.
 - De-duplicate by URL (keep first occurrence)
 - Select the most valuable/recent items
 
@@ -344,7 +344,7 @@ Content:
 
 REQUIREMENTS:
 - Maximum 20 resources
-- Each description: 200 characters maximum
+- Each description: Write a clear, factual summary (max 200 chars) of what the resource teaches or discusses. Use abstracts/summaries if available, otherwise derive from title and context.
 - URLs must be absolute
 - De-duplicate by URL
 - Return ONLY valid JSON
