@@ -22,8 +22,12 @@ public static class DependencyInjection
         services.Configure<OpenAISettings>(
             configuration.GetSection("OpenAI"));
 
-        // Register HttpClient for OpenAI
-        services.AddHttpClient<ILlmClient, OpenAIClient>();
+        // Register HttpClient for OpenAI with extended timeout for large feeds
+        services.AddHttpClient<ILlmClient, OpenAIClient>()
+            .ConfigureHttpClient(client =>
+            {
+                client.Timeout = TimeSpan.FromMinutes(5); // 300 seconds for processing large RSS feeds
+            });
 
         // Register agent services
         services.AddScoped<AgentTools>();
