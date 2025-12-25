@@ -635,6 +635,23 @@ textarea.form-input {
     min-height: 400px;
 }
 
+.feed-sections {
+    display: flex;
+    flex-direction: column;
+    gap: 3rem;
+}
+
+.feed-section {
+    margin-bottom: 1rem;
+}
+
+.section-title {
+    font-size: 1.5rem;
+    margin-bottom: 1rem;
+    color: var(--text-primary);
+    font-weight: 600;
+}
+
 /* Netflix-style Horizontal Carousel */
 .carousel-wrapper {
     position: relative;

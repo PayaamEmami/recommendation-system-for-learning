@@ -1,5 +1,4 @@
 @page "/feeds"
-@page "/feeds/{FeedType}"
 @rendermode InteractiveServer
 @using Rsl.Web.Services
 @using Rsl.Core.Enums
@@ -12,25 +11,12 @@
 @inject IJSRuntime JSRuntime
 @implements IDisposable
 
-<PageTitle>@GetPageTitle() - RSL</PageTitle>
+<PageTitle>My Feed - RSL</PageTitle>
 
 <div class="page-container">
     <div class="page-header">
-        <h1>@GetPageTitle()</h1>
+        <h1>My Feed</h1>
         <p class="subtitle">Discover and explore learning resources</p>
-    </div>
-
-    <div class="feed-filters">
-        <a href="/feeds" class="filter-button @(string.IsNullOrEmpty(FeedType) ? "active" : "")">
-            All
-        </a>
-        @foreach (var type in Enum.GetValues<ResourceType>())
-        {
-            var typeName = type.ToString().ToLower();
-            <a href="/feeds/@typeName" class="filter-button @(FeedType?.Equals(typeName, StringComparison.OrdinalIgnoreCase) == true ? "active" : "")">
-                @GetResourceTypeDisplay(type)
-            </a>
-        }
     </div>
 
     <div class="feed-container">
@@ -73,46 +59,57 @@
         }
         else
         {
-            <div class="carousel-wrapper">
-                <button class="carousel-nav carousel-nav-left" @onclick="ScrollLeft">
-                    ‹
-                </button>
-                <div class="resources-carousel" @ref="_carouselRef">
-                    @foreach (var resource in _resources)
+            <div class="feed-sections">
+                @foreach (var type in Enum.GetValues<ResourceType>())
+                {
+                    var resourcesOfType = _resourcesByType.ContainsKey(type) ? _resourcesByType[type] : new List<ResourceItem>();
+
+                    @if (resourcesOfType.Any())
                     {
-                        <div class="resource-card-horizontal">
-                            <div class="resource-header">
-                                <span class="resource-type">@GetResourceTypeDisplay(resource.Type)</span>
-                                <span class="resource-date">@FormatDate(resource.PublishedAt)</span>
-                            </div>
-                            <h3 class="resource-title">
-                                <a href="@resource.Url" target="_blank">@resource.Title</a>
-                            </h3>
-                            @if (!string.IsNullOrEmpty(resource.Description))
-                            {
-                                <p class="resource-description">@resource.Description</p>
-                            }
-                            <div class="resource-footer">
-                                <a href="@resource.Url" target="_blank" class="resource-link">View Resource →</a>
+                        <div class="feed-section">
+                            <h2 class="section-title">@GetResourceTypeDisplay(type)</h2>
+                            <div class="carousel-wrapper">
+                                <button class="carousel-nav carousel-nav-left" @onclick="() => ScrollCarouselLeft(type)">
+                                    ‹
+                                </button>
+                                <div class="resources-carousel" @ref="_carouselRefs[type]">
+                                    @foreach (var resource in resourcesOfType)
+                                    {
+                                        <div class="resource-card-horizontal">
+                                            <div class="resource-header">
+                                                <span class="resource-type">@GetResourceTypeDisplay(resource.Type)</span>
+                                                <span class="resource-date">@FormatDate(resource.PublishedAt)</span>
+                                            </div>
+                                            <h3 class="resource-title">
+                                                <a href="@resource.Url" target="_blank">@resource.Title</a>
+                                            </h3>
+                                            @if (!string.IsNullOrEmpty(resource.Description))
+                                            {
+                                                <p class="resource-description">@resource.Description</p>
+                                            }
+                                            <div class="resource-footer">
+                                                <a href="@resource.Url" target="_blank" class="resource-link">View Resource →</a>
+                                            </div>
+                                        </div>
+                                    }
+                                </div>
+                                <button class="carousel-nav carousel-nav-right" @onclick="() => ScrollCarouselRight(type)">
+                                    ›
+                                </button>
                             </div>
                         </div>
                     }
-                </div>
-                <button class="carousel-nav carousel-nav-right" @onclick="ScrollRight">
-                    ›
-                </button>
+                }
             </div>
         }
     </div>
 </div>
 
 @code {
-    [Parameter]
-    public string? FeedType { get; set; }
-
     private List<ResourceItem>? _resources;
     private List<SourceItem>? _sources;
-    private ElementReference _carouselRef;
+    private Dictionary<ResourceType, List<ResourceItem>> _resourcesByType = new();
+    private Dictionary<ResourceType, ElementReference> _carouselRefs = new();
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
@@ -130,28 +127,24 @@
             return;
         }
 
-        AuthService.OnAuthStateChanged += HandleAuthStateChanged;
-        await LoadFeed();
-    }
+        // Initialize carousel refs for each resource type
+        foreach (var type in Enum.GetValues<ResourceType>())
+        {
+            _carouselRefs[type] = new ElementReference();
+        }
 
-    protected override async Task OnParametersSetAsync()
-    {
+        AuthService.OnAuthStateChanged += HandleAuthStateChanged;
         await LoadFeed();
     }
 
     private async Task LoadFeed()
     {
-        ResourceType? type = null;
+        _resources = await FeedService.GetFeedAsync(null);
 
-        if (!string.IsNullOrEmpty(FeedType))
-        {
-            if (Enum.TryParse<ResourceType>(FeedType, ignoreCase: true, out var parsedType))
-            {
-                type = parsedType;
-            }
-        }
-
-        _resources = await FeedService.GetFeedAsync(type);
+        // Group resources by type
+        _resourcesByType = _resources
+            .GroupBy(r => r.Type)
+            .ToDictionary(g => g.Key, g => g.ToList());
 
         // Only check for sources if we have no resources to show appropriate message
         if (!_resources.Any())
@@ -166,19 +159,6 @@
         {
             Navigation.NavigateTo("/login");
         }
-    }
-
-    private string GetPageTitle()
-    {
-        if (string.IsNullOrEmpty(FeedType))
-            return "All Feeds";
-
-        if (Enum.TryParse<ResourceType>(FeedType, ignoreCase: true, out var type))
-        {
-            return GetResourceTypeDisplay(type);
-        }
-
-        return "Feed";
     }
 
     private static string GetResourceTypeDisplay(ResourceType type)
@@ -206,14 +186,20 @@
         return date.ToString("MMM d, yyyy");
     }
 
-    private async Task ScrollLeft()
+    private async Task ScrollCarouselLeft(ResourceType type)
     {
-        await JSRuntime.InvokeVoidAsync("scrollCarousel", _carouselRef, -1);
+        if (_carouselRefs.ContainsKey(type))
+        {
+            await JSRuntime.InvokeVoidAsync("scrollCarousel", _carouselRefs[type], -1);
+        }
     }
 
-    private async Task ScrollRight()
+    private async Task ScrollCarouselRight(ResourceType type)
     {
-        await JSRuntime.InvokeVoidAsync("scrollCarousel", _carouselRef, 1);
+        if (_carouselRefs.ContainsKey(type))
+        {
+            await JSRuntime.InvokeVoidAsync("scrollCarousel", _carouselRefs[type], 1);
+        }
     }
 
     public void Dispose()
