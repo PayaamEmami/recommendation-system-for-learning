@@ -3,11 +3,13 @@
 @rendermode InteractiveServer
 @using Rsl.Web.Services
 @using Rsl.Core.Enums
+@using Microsoft.JSInterop
 @inject AuthService AuthService
 @inject FeedService FeedService
 @inject SourceService SourceService
 @inject ThemeService ThemeService
 @inject NavigationManager Navigation
+@inject IJSRuntime JSRuntime
 @implements IDisposable
 
 <PageTitle>@GetPageTitle() - RSL</PageTitle>
@@ -71,26 +73,34 @@
         }
         else
         {
-            <div class="resources-list">
-                @foreach (var resource in _resources)
-                {
-                    <div class="resource-card">
-                        <div class="resource-header">
-                            <span class="resource-type">@GetResourceTypeDisplay(resource.Type)</span>
-                            <span class="resource-date">@FormatDate(resource.PublishedAt)</span>
+            <div class="carousel-wrapper">
+                <button class="carousel-nav carousel-nav-left" @onclick="ScrollLeft">
+                    ‹
+                </button>
+                <div class="resources-carousel" @ref="_carouselRef">
+                    @foreach (var resource in _resources)
+                    {
+                        <div class="resource-card-horizontal">
+                            <div class="resource-header">
+                                <span class="resource-type">@GetResourceTypeDisplay(resource.Type)</span>
+                                <span class="resource-date">@FormatDate(resource.PublishedAt)</span>
+                            </div>
+                            <h3 class="resource-title">
+                                <a href="@resource.Url" target="_blank">@resource.Title</a>
+                            </h3>
+                            @if (!string.IsNullOrEmpty(resource.Description))
+                            {
+                                <p class="resource-description">@resource.Description</p>
+                            }
+                            <div class="resource-footer">
+                                <a href="@resource.Url" target="_blank" class="resource-link">View Resource →</a>
+                            </div>
                         </div>
-                        <h3 class="resource-title">
-                            <a href="@resource.Url" target="_blank">@resource.Title</a>
-                        </h3>
-                        @if (!string.IsNullOrEmpty(resource.Description))
-                        {
-                            <p class="resource-description">@resource.Description</p>
-                        }
-                        <div class="resource-footer">
-                            <a href="@resource.Url" target="_blank" class="resource-link">View Resource →</a>
-                        </div>
-                    </div>
-                }
+                    }
+                </div>
+                <button class="carousel-nav carousel-nav-right" @onclick="ScrollRight">
+                    ›
+                </button>
             </div>
         }
     </div>
@@ -102,6 +112,7 @@
 
     private List<ResourceItem>? _resources;
     private List<SourceItem>? _sources;
+    private ElementReference _carouselRef;
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
@@ -193,6 +204,16 @@
             return $"{(int)(span.TotalDays / 7)}w ago";
 
         return date.ToString("MMM d, yyyy");
+    }
+
+    private async Task ScrollLeft()
+    {
+        await JSRuntime.InvokeVoidAsync("scrollCarousel", _carouselRef, -1);
+    }
+
+    private async Task ScrollRight()
+    {
+        await JSRuntime.InvokeVoidAsync("scrollCarousel", _carouselRef, 1);
     }
 
     public void Dispose()

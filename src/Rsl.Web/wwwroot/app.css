@@ -437,6 +437,51 @@ textarea.form-input {
 }
 
 /* ============================================
+   Collapsible Panels
+   ============================================ */
+
+.collapsible-panel {
+    margin: 0;
+}
+
+.collapsible-panel summary {
+    list-style: none;
+    cursor: pointer;
+    user-select: none;
+}
+
+.collapsible-panel summary::-webkit-details-marker {
+    display: none;
+}
+
+.panel-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0;
+    margin-bottom: 0;
+}
+
+.panel-header h2 {
+    margin: 0;
+    font-size: 1.25rem;
+}
+
+.toggle-icon {
+    font-size: 1.5rem;
+    transition: transform 0.2s ease;
+    color: var(--text-secondary);
+}
+
+.collapsible-panel[open] .toggle-icon {
+    transform: rotate(180deg);
+}
+
+.panel-content {
+    padding-top: 1.5rem;
+}
+
+/* ============================================
    Sources Page
    ============================================ */
 
@@ -588,6 +633,91 @@ textarea.form-input {
 
 .feed-container {
     min-height: 400px;
+}
+
+/* Netflix-style Horizontal Carousel */
+.carousel-wrapper {
+    position: relative;
+    padding: 0 3rem;
+}
+
+.carousel-nav {
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    background-color: rgba(0, 0, 0, 0.7);
+    color: white;
+    border: none;
+    border-radius: 4px;
+    width: 40px;
+    height: 60px;
+    font-size: 2rem;
+    cursor: pointer;
+    z-index: 10;
+    transition: all 0.2s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0;
+}
+
+.carousel-nav:hover {
+    background-color: rgba(0, 0, 0, 0.9);
+    transform: translateY(-50%) scale(1.1);
+}
+
+.carousel-nav-left {
+    left: 0;
+}
+
+.carousel-nav-right {
+    right: 0;
+}
+
+.resources-carousel {
+    display: flex;
+    gap: 1rem;
+    overflow-x: auto;
+    scroll-behavior: smooth;
+    padding: 1rem 0;
+    scrollbar-width: thin;
+    scrollbar-color: var(--border-color) transparent;
+}
+
+.resources-carousel::-webkit-scrollbar {
+    height: 8px;
+}
+
+.resources-carousel::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+.resources-carousel::-webkit-scrollbar-thumb {
+    background-color: var(--border-color);
+    border-radius: 4px;
+}
+
+.resources-carousel::-webkit-scrollbar-thumb:hover {
+    background-color: var(--text-tertiary);
+}
+
+.resource-card-horizontal {
+    min-width: 350px;
+    max-width: 350px;
+    background-color: var(--bg-primary);
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    padding: 1.5rem;
+    transition: all 0.3s ease;
+    flex-shrink: 0;
+    display: flex;
+    flex-direction: column;
+    height: 280px;
+}
+
+.resource-card-horizontal:hover {
+    box-shadow: 0 8px 16px var(--shadow);
+    transform: scale(1.05);
 }
 
 .resources-list {

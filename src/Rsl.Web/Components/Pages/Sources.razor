@@ -31,72 +31,83 @@
     </div>
 
     <div class="content-card">
-        <h2>Add New Source</h2>
+        <details class="collapsible-panel">
+            <summary class="panel-header">
+                <h2>Add New Source</h2>
+                <span class="toggle-icon">▼</span>
+            </summary>
+            <div class="panel-content">
+                @if (!string.IsNullOrEmpty(_errorMessage))
+                {
+                    <div class="error-message">@_errorMessage</div>
+                }
 
-        @if (!string.IsNullOrEmpty(_errorMessage))
-        {
-            <div class="error-message">@_errorMessage</div>
-        }
+                @if (!string.IsNullOrEmpty(_successMessage))
+                {
+                    <div class="success-message">@_successMessage</div>
+                }
 
-        @if (!string.IsNullOrEmpty(_successMessage))
-        {
-            <div class="success-message">@_successMessage</div>
-        }
+                <EditForm Model="@_newSource" OnValidSubmit="HandleAddSource" FormName="addSourceForm">
+                    <DataAnnotationsValidator />
 
-        <EditForm Model="@_newSource" OnValidSubmit="HandleAddSource" FormName="addSourceForm">
-            <DataAnnotationsValidator />
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="name">Name</label>
+                            <InputText id="name" @bind-Value="_newSource.Name" class="form-input" placeholder="ArXiv AI Papers" />
+                            <ValidationMessage For="@(() => _newSource.Name)" />
+                        </div>
 
-            <div class="form-row">
-                <div class="form-group">
-                    <label for="name">Name</label>
-                    <InputText id="name" @bind-Value="_newSource.Name" class="form-input" placeholder="ArXiv AI Papers" />
-                    <ValidationMessage For="@(() => _newSource.Name)" />
-                </div>
+                        <div class="form-group">
+                            <label for="category">Category</label>
+                            <InputSelect id="category" @bind-Value="_newSource.Category" class="form-input">
+                                <option value="">Select category...</option>
+                                @foreach (var type in Enum.GetValues<ResourceType>())
+                                {
+                                    <option value="@type">@GetResourceTypeDisplay(type)</option>
+                                }
+                            </InputSelect>
+                            <ValidationMessage For="@(() => _newSource.Category)" />
+                        </div>
+                    </div>
 
-                <div class="form-group">
-                    <label for="category">Category</label>
-                    <InputSelect id="category" @bind-Value="_newSource.Category" class="form-input">
-                        <option value="">Select category...</option>
-                        @foreach (var type in Enum.GetValues<ResourceType>())
+                    <div class="form-group">
+                        <label for="url">URL</label>
+                        <InputText id="url" @bind-Value="_newSource.Url" class="form-input" placeholder="https://example.com/feed" />
+                        <ValidationMessage For="@(() => _newSource.Url)" />
+                    </div>
+
+                    <div class="form-group">
+                        <label for="description">Description (optional)</label>
+                        <InputTextArea id="description" @bind-Value="_newSource.Description" class="form-input" placeholder="A brief description of this source" rows="2" />
+                    </div>
+
+                    <button type="submit" class="btn-primary" disabled="@_isLoading">
+                        @if (_isLoading)
                         {
-                            <option value="@type">@GetResourceTypeDisplay(type)</option>
+                            <span>Adding...</span>
                         }
-                    </InputSelect>
-                    <ValidationMessage For="@(() => _newSource.Category)" />
-                </div>
+                        else
+                        {
+                            <span>Add Source</span>
+                        }
+                    </button>
+                </EditForm>
             </div>
-
-            <div class="form-group">
-                <label for="url">URL</label>
-                <InputText id="url" @bind-Value="_newSource.Url" class="form-input" placeholder="https://example.com/feed" />
-                <ValidationMessage For="@(() => _newSource.Url)" />
-            </div>
-
-            <div class="form-group">
-                <label for="description">Description (optional)</label>
-                <InputTextArea id="description" @bind-Value="_newSource.Description" class="form-input" placeholder="A brief description of this source" rows="2" />
-            </div>
-
-            <button type="submit" class="btn-primary" disabled="@_isLoading">
-                @if (_isLoading)
-                {
-                    <span>Adding...</span>
-                }
-                else
-                {
-                    <span>Add Source</span>
-                }
-            </button>
-        </EditForm>
+        </details>
     </div>
 
     <div class="content-card">
-        <h2>Bulk Import Sources</h2>
-        <p class="subtitle">Paste JSON to import multiple sources at once</p>
+        <details class="collapsible-panel">
+            <summary class="panel-header">
+                <h2>Bulk Import Sources</h2>
+                <span class="toggle-icon">▼</span>
+            </summary>
+            <div class="panel-content">
+                <p class="subtitle">Paste JSON to import multiple sources at once</p>
 
-        <details style="margin-bottom: 1rem; padding: 0.75rem; background: var(--bg-secondary); border-radius: 0.375rem;">
-            <summary style="cursor: pointer; font-weight: 600; user-select: none;">Show JSON Format Example</summary>
-            <div style="margin-top: 0.75rem; font-family: monospace; font-size: 0.875rem; white-space: pre-wrap; overflow-x: auto;">
+                <details style="margin-bottom: 1rem; padding: 0.75rem; background: var(--bg-secondary); border-radius: 0.375rem;">
+                    <summary style="cursor: pointer; font-weight: 600; user-select: none;">Show JSON Format Example</summary>
+                    <div style="margin-top: 0.75rem; font-family: monospace; font-size: 0.875rem; white-space: pre-wrap; overflow-x: auto;">
 {
   "sources": [
     {
@@ -119,55 +130,57 @@
     }
   ]
 }
-            </div>
-        </details>
+                    </div>
+                </details>
 
-        @if (!string.IsNullOrEmpty(_bulkImportError))
-        {
-            <div class="error-message">@_bulkImportError</div>
-        }
-
-        @if (!string.IsNullOrEmpty(_bulkImportSuccess))
-        {
-            <div class="success-message">@_bulkImportSuccess</div>
-        }
-
-        <div class="form-group">
-            <label for="bulkJson">JSON Input</label>
-            <textarea id="bulkJson" @bind="_bulkImportJson" class="form-input" rows="8" placeholder='Paste your JSON here...'></textarea>
-        </div>
-
-        <button @onclick="HandleBulkImport" class="btn-primary" disabled="@_isBulkImporting">
-            @if (_isBulkImporting)
-            {
-                <span>Importing...</span>
-            }
-            else
-            {
-                <span>Import Sources</span>
-            }
-        </button>
-
-        @if (_bulkImportResult != null)
-        {
-            <div style="margin-top: 1rem;">
-                <strong>Import Results:</strong>
-                <p>✓ Imported: @_bulkImportResult.Imported</p>
-                <p>✗ Failed: @_bulkImportResult.Failed</p>
-                @if (_bulkImportResult.Errors.Any())
+                @if (!string.IsNullOrEmpty(_bulkImportError))
                 {
-                    <details>
-                        <summary>Show Errors</summary>
-                        <ul>
-                            @foreach (var error in _bulkImportResult.Errors)
-                            {
-                                <li><strong>@error.Url:</strong> @error.Error</li>
-                            }
-                        </ul>
-                    </details>
+                    <div class="error-message">@_bulkImportError</div>
+                }
+
+                @if (!string.IsNullOrEmpty(_bulkImportSuccess))
+                {
+                    <div class="success-message">@_bulkImportSuccess</div>
+                }
+
+                <div class="form-group">
+                    <label for="bulkJson">JSON Input</label>
+                    <textarea id="bulkJson" @bind="_bulkImportJson" class="form-input" rows="8" placeholder='Paste your JSON here...'></textarea>
+                </div>
+
+                <button @onclick="HandleBulkImport" class="btn-primary" disabled="@_isBulkImporting">
+                    @if (_isBulkImporting)
+                    {
+                        <span>Importing...</span>
+                    }
+                    else
+                    {
+                        <span>Import Sources</span>
+                    }
+                </button>
+
+                @if (_bulkImportResult != null)
+                {
+                    <div style="margin-top: 1rem;">
+                        <strong>Import Results:</strong>
+                        <p>✓ Imported: @_bulkImportResult.Imported</p>
+                        <p>✗ Failed: @_bulkImportResult.Failed</p>
+                        @if (_bulkImportResult.Errors.Any())
+                        {
+                            <details>
+                                <summary>Show Errors</summary>
+                                <ul>
+                                    @foreach (var error in _bulkImportResult.Errors)
+                                    {
+                                        <li><strong>@error.Url:</strong> @error.Error</li>
+                                    }
+                                </ul>
+                            </details>
+                        }
+                    </div>
                 }
             </div>
-        }
+        </details>
     </div>
 
     <div class="content-card">
