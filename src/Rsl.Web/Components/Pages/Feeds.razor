@@ -72,27 +72,78 @@
                                 <button class="carousel-nav carousel-nav-left" @onclick="() => ScrollCarouselLeft(type)">
                                     ‹
                                 </button>
-                                <div class="resources-carousel" @ref="_carouselRefs[type]">
-                                    @foreach (var resource in resourcesOfType)
-                                    {
-                                        <div class="resource-card-horizontal">
-                                            <div class="resource-header">
-                                                <span class="resource-type">@GetResourceTypeDisplay(resource.Type)</span>
-                                                <span class="resource-date">@FormatDate(resource.PublishedAt)</span>
+                                @if (type == ResourceType.Paper)
+                                {
+                                    <div class="resources-carousel" @ref="_paperCarousel">
+                                        @foreach (var resource in resourcesOfType)
+                                        {
+                                            <div class="resource-card-horizontal">
+                                                <div class="resource-header">
+                                                    <span class="resource-type">@GetResourceTypeDisplay(resource.Type)</span>
+                                                    <span class="resource-date">@FormatDate(resource.PublishedAt)</span>
+                                                </div>
+                                                <h3 class="resource-title">
+                                                    <a href="@resource.Url" target="_blank">@resource.Title</a>
+                                                </h3>
+                                                @if (!string.IsNullOrEmpty(resource.Description))
+                                                {
+                                                    <p class="resource-description">@resource.Description</p>
+                                                }
+                                                <div class="resource-footer">
+                                                    <a href="@resource.Url" target="_blank" class="resource-link">View Resource →</a>
+                                                </div>
                                             </div>
-                                            <h3 class="resource-title">
-                                                <a href="@resource.Url" target="_blank">@resource.Title</a>
-                                            </h3>
-                                            @if (!string.IsNullOrEmpty(resource.Description))
-                                            {
-                                                <p class="resource-description">@resource.Description</p>
-                                            }
-                                            <div class="resource-footer">
-                                                <a href="@resource.Url" target="_blank" class="resource-link">View Resource →</a>
+                                        }
+                                    </div>
+                                }
+                                else if (type == ResourceType.Video)
+                                {
+                                    <div class="resources-carousel" @ref="_videoCarousel">
+                                        @foreach (var resource in resourcesOfType)
+                                        {
+                                            <div class="resource-card-horizontal">
+                                                <div class="resource-header">
+                                                    <span class="resource-type">@GetResourceTypeDisplay(resource.Type)</span>
+                                                    <span class="resource-date">@FormatDate(resource.PublishedAt)</span>
+                                                </div>
+                                                <h3 class="resource-title">
+                                                    <a href="@resource.Url" target="_blank">@resource.Title</a>
+                                                </h3>
+                                                @if (!string.IsNullOrEmpty(resource.Description))
+                                                {
+                                                    <p class="resource-description">@resource.Description</p>
+                                                }
+                                                <div class="resource-footer">
+                                                    <a href="@resource.Url" target="_blank" class="resource-link">View Resource →</a>
+                                                </div>
                                             </div>
-                                        </div>
-                                    }
-                                </div>
+                                        }
+                                    </div>
+                                }
+                                else if (type == ResourceType.BlogPost)
+                                {
+                                    <div class="resources-carousel" @ref="_blogPostCarousel">
+                                        @foreach (var resource in resourcesOfType)
+                                        {
+                                            <div class="resource-card-horizontal">
+                                                <div class="resource-header">
+                                                    <span class="resource-type">@GetResourceTypeDisplay(resource.Type)</span>
+                                                    <span class="resource-date">@FormatDate(resource.PublishedAt)</span>
+                                                </div>
+                                                <h3 class="resource-title">
+                                                    <a href="@resource.Url" target="_blank">@resource.Title</a>
+                                                </h3>
+                                                @if (!string.IsNullOrEmpty(resource.Description))
+                                                {
+                                                    <p class="resource-description">@resource.Description</p>
+                                                }
+                                                <div class="resource-footer">
+                                                    <a href="@resource.Url" target="_blank" class="resource-link">View Resource →</a>
+                                                </div>
+                                            </div>
+                                        }
+                                    </div>
+                                }
                                 <button class="carousel-nav carousel-nav-right" @onclick="() => ScrollCarouselRight(type)">
                                     ›
                                 </button>
@@ -109,7 +160,9 @@
     private List<ResourceItem>? _resources;
     private List<SourceItem>? _sources;
     private Dictionary<ResourceType, List<ResourceItem>> _resourcesByType = new();
-    private Dictionary<ResourceType, ElementReference> _carouselRefs = new();
+    private ElementReference _paperCarousel;
+    private ElementReference _videoCarousel;
+    private ElementReference _blogPostCarousel;
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
@@ -127,12 +180,6 @@
             return;
         }
 
-        // Initialize carousel refs for each resource type
-        foreach (var type in Enum.GetValues<ResourceType>())
-        {
-            _carouselRefs[type] = new ElementReference();
-        }
-
         AuthService.OnAuthStateChanged += HandleAuthStateChanged;
         await LoadFeed();
     }
@@ -142,15 +189,24 @@
         _resources = await FeedService.GetFeedAsync(null);
 
         // Group resources by type
-        _resourcesByType = _resources
-            .GroupBy(r => r.Type)
-            .ToDictionary(g => g.Key, g => g.ToList());
+        if (_resources != null && _resources.Any())
+        {
+            _resourcesByType = _resources
+                .GroupBy(r => r.Type)
+                .ToDictionary(g => g.Key, g => g.ToList());
+        }
+        else
+        {
+            _resourcesByType = new Dictionary<ResourceType, List<ResourceItem>>();
+        }
 
         // Only check for sources if we have no resources to show appropriate message
-        if (!_resources.Any())
+        if (_resources == null || !_resources.Any())
         {
             _sources = await SourceService.GetUserSourcesAsync();
         }
+
+        StateHasChanged();
     }
 
     private void HandleAuthStateChanged()
@@ -186,20 +242,27 @@
         return date.ToString("MMM d, yyyy");
     }
 
+    private ElementReference GetCarouselRef(ResourceType type)
+    {
+        return type switch
+        {
+            ResourceType.Paper => _paperCarousel,
+            ResourceType.Video => _videoCarousel,
+            ResourceType.BlogPost => _blogPostCarousel,
+            _ => default
+        };
+    }
+
     private async Task ScrollCarouselLeft(ResourceType type)
     {
-        if (_carouselRefs.ContainsKey(type))
-        {
-            await JSRuntime.InvokeVoidAsync("scrollCarousel", _carouselRefs[type], -1);
-        }
+        var carouselRef = GetCarouselRef(type);
+        await JSRuntime.InvokeVoidAsync("scrollCarousel", carouselRef, -1);
     }
 
     private async Task ScrollCarouselRight(ResourceType type)
     {
-        if (_carouselRefs.ContainsKey(type))
-        {
-            await JSRuntime.InvokeVoidAsync("scrollCarousel", _carouselRefs[type], 1);
-        }
+        var carouselRef = GetCarouselRef(type);
+        await JSRuntime.InvokeVoidAsync("scrollCarousel", carouselRef, 1);
     }
 
     public void Dispose()
