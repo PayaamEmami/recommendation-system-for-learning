@@ -19,11 +19,16 @@ namespace Rsl.Api.Controllers;
 public class UsersController : ControllerBase
 {
     private readonly IUserService _userService;
+    private readonly IVoteService _voteService;
     private readonly ILogger<UsersController> _logger;
 
-    public UsersController(IUserService userService, ILogger<UsersController> logger)
+    public UsersController(
+        IUserService userService,
+        IVoteService voteService,
+        ILogger<UsersController> logger)
     {
         _userService = userService;
+        _voteService = voteService;
         _logger = logger;
     }
 
@@ -133,5 +138,24 @@ public class UsersController : ControllerBase
         return Ok(user);
     }
 
+    /// <summary>
+    /// Gets the current user's votes on resources.
+    /// </summary>
+    /// <param name="cancellationToken">Cancellation token.</param>
+    /// <returns>List of the user's votes.</returns>
+    [HttpGet("me/votes")]
+    [ProducesResponseType(typeof(List<DTOs.Responses.VoteResponse>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status401Unauthorized)]
+    public async Task<IActionResult> GetCurrentUserVotes(CancellationToken cancellationToken)
+    {
+        var userId = User.GetUserId();
+        if (userId == null)
+        {
+            return Unauthorized();
+        }
+
+        var votes = await _voteService.GetUserVotesAsync(userId.Value, cancellationToken);
+        return Ok(votes);
+    }
 }
 

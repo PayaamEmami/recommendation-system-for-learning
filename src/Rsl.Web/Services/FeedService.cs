@@ -114,6 +114,92 @@ public class FeedService
             return new List<ResourceItem>();
         }
     }
+
+    public async Task<List<VoteItem>> GetUserVotesAsync()
+    {
+        try
+        {
+            if (!_authService.CurrentState.IsAuthenticated)
+            {
+                return new List<VoteItem>();
+            }
+
+            using var httpClient = CreateHttpClient();
+            var response = await httpClient.GetAsync("/api/v1/users/me/votes");
+
+            if (!response.IsSuccessStatusCode)
+            {
+                _logger.LogWarning("Failed to fetch user votes: {StatusCode}", response.StatusCode);
+                return new List<VoteItem>();
+            }
+
+            var votes = await response.Content.ReadFromJsonAsync<List<VoteItem>>(JsonOptions);
+            return votes ?? new List<VoteItem>();
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error fetching user votes");
+            return new List<VoteItem>();
+        }
+    }
+
+    public async Task<VoteItem?> VoteAsync(Guid resourceId, VoteType voteType)
+    {
+        try
+        {
+            if (!_authService.CurrentState.IsAuthenticated)
+            {
+                return null;
+            }
+
+            using var httpClient = CreateHttpClient();
+            var request = new { voteType = voteType };
+            var response = await httpClient.PostAsJsonAsync($"/api/v1/resources/{resourceId}/vote", request, JsonOptions);
+
+            if (!response.IsSuccessStatusCode)
+            {
+                _logger.LogWarning("Failed to vote on resource {ResourceId}: {StatusCode}", resourceId, response.StatusCode);
+                return null;
+            }
+
+            var vote = await response.Content.ReadFromJsonAsync<VoteItem>(JsonOptions);
+            _logger.LogInformation("Successfully voted {VoteType} on resource {ResourceId}", voteType, resourceId);
+            return vote;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error voting on resource {ResourceId}", resourceId);
+            return null;
+        }
+    }
+
+    public async Task<bool> RemoveVoteAsync(Guid resourceId)
+    {
+        try
+        {
+            if (!_authService.CurrentState.IsAuthenticated)
+            {
+                return false;
+            }
+
+            using var httpClient = CreateHttpClient();
+            var response = await httpClient.DeleteAsync($"/api/v1/resources/{resourceId}/vote");
+
+            if (!response.IsSuccessStatusCode)
+            {
+                _logger.LogWarning("Failed to remove vote from resource {ResourceId}: {StatusCode}", resourceId, response.StatusCode);
+                return false;
+            }
+
+            _logger.LogInformation("Successfully removed vote from resource {ResourceId}", resourceId);
+            return true;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error removing vote from resource {ResourceId}", resourceId);
+            return false;
+        }
+    }
 }
 
 public class ResourceItem
@@ -124,6 +210,16 @@ public class ResourceItem
     public ResourceType Type { get; set; }
     public string? Description { get; set; }
     public DateTime PublishedAt { get; set; }
+}
+
+public class VoteItem
+{
+    public Guid Id { get; set; }
+    public Guid UserId { get; set; }
+    public Guid ResourceId { get; set; }
+    public VoteType VoteType { get; set; }
+    public DateTime CreatedAt { get; set; }
+    public DateTime? UpdatedAt { get; set; }
 }
 
 // API Response DTOs
