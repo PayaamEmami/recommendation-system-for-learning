@@ -12,572 +12,537 @@
 <PageTitle>@GetPageTitle() - RSL</PageTitle>
 
 <div class="page-container">
-    <div class="page-header">
-        <h1>@GetPageTitle()</h1>
-        <p class="subtitle">Manage your learning resource sources</p>
-    </div>
+  <div class="page-header">
+    <h1>@GetPageTitle()</h1>
+    <p class="subtitle">Manage your learning resource sources</p>
+  </div>
 
-    <div class="feed-filters">
-        <a href="/sources" class="filter-button @(string.IsNullOrEmpty(CategoryFilter) ? "active" : "")">
-            All Sources
-        </a>
-        @foreach (var type in Enum.GetValues<ResourceType>())
-        {
-            var typeName = type.ToString().ToLower();
-            <a href="/sources/@typeName" class="filter-button @(CategoryFilter?.Equals(typeName, StringComparison.OrdinalIgnoreCase) == true ? "active" : "")">
-                @GetResourceTypeDisplay(type)
-            </a>
-        }
-    </div>
-
-    <div class="content-card">
-        <details class="collapsible-panel">
-            <summary class="panel-header">
-                <h2>Add New Source</h2>
-                <span class="toggle-icon">▼</span>
-            </summary>
-            <div class="panel-content">
-                @if (!string.IsNullOrEmpty(_errorMessage))
-                {
-                    <div class="error-message">@_errorMessage</div>
-                }
-
-                @if (!string.IsNullOrEmpty(_successMessage))
-                {
-                    <div class="success-message">@_successMessage</div>
-                }
-
-                <EditForm Model="@_newSource" OnValidSubmit="HandleAddSource" FormName="addSourceForm">
-                    <DataAnnotationsValidator />
-
-                    <div class="form-row">
-                        <div class="form-group">
-                            <label for="name">Name</label>
-                            <InputText id="name" @bind-Value="_newSource.Name" class="form-input" placeholder="ArXiv AI Papers" />
-                            <ValidationMessage For="@(() => _newSource.Name)" />
-                        </div>
-
-                        <div class="form-group">
-                            <label for="category">Category</label>
-                            <InputSelect id="category" @bind-Value="_newSource.Category" class="form-input">
-                                <option value="">Select category...</option>
-                                @foreach (var type in Enum.GetValues<ResourceType>())
-                                {
-                                    <option value="@type">@GetResourceTypeDisplay(type)</option>
-                                }
-                            </InputSelect>
-                            <ValidationMessage For="@(() => _newSource.Category)" />
-                        </div>
-                    </div>
-
-                    <div class="form-group">
-                        <label for="url">URL</label>
-                        <InputText id="url" @bind-Value="_newSource.Url" class="form-input" placeholder="https://example.com/feed" />
-                        <ValidationMessage For="@(() => _newSource.Url)" />
-                    </div>
-
-                    <div class="form-group">
-                        <label for="description">Description (optional)</label>
-                        <InputTextArea id="description" @bind-Value="_newSource.Description" class="form-input" placeholder="A brief description of this source" rows="2" />
-                    </div>
-
-                    <button type="submit" class="btn-primary" disabled="@_isLoading">
-                        @if (_isLoading)
-                        {
-                            <span>Adding...</span>
-                        }
-                        else
-                        {
-                            <span>Add Source</span>
-                        }
-                    </button>
-                </EditForm>
-            </div>
-        </details>
-    </div>
-
-    <div class="content-card">
-        <details class="collapsible-panel">
-            <summary class="panel-header">
-                <h2>Bulk Import Sources</h2>
-                <span class="toggle-icon">▼</span>
-            </summary>
-            <div class="panel-content">
-                <p class="subtitle">Paste JSON to import multiple sources at once</p>
-
-                <details style="margin-bottom: 1rem; padding: 0.75rem; background: var(--bg-secondary); border-radius: 0.375rem;">
-                    <summary style="cursor: pointer; font-weight: 600; user-select: none;">Show JSON Format Example</summary>
-                    <div style="margin-top: 0.75rem; font-family: monospace; font-size: 0.875rem; white-space: pre-wrap; overflow-x: auto;">
-{
-  "sources": [
+  <!-- Category Filter Pills -->
+  <div class="sources-filter-bar">
+    <a href="/sources" class="filter-pill @(string.IsNullOrEmpty(CategoryFilter) ? "active" : "")">
+      All
+    </a>
+    @foreach (var type in Enum.GetValues<ResourceType>())
     {
-      "name": "ArXiv AI Papers",
-      "url": "https://arxiv.org/list/cs.AI/recent",
-      "category": "Paper",
-      "description": "Recent AI papers from ArXiv"
-    },
-    {
-      "name": "3Blue1Brown",
-      "url": "https://www.youtube.com/c/3blue1brown",
-      "category": "Video",
-      "description": "Math and science videos"
-    },
-    {
-      "name": "Paul Graham Essays",
-      "url": "http://www.paulgraham.com/articles.html",
-      "category": "BlogPost",
-      "description": "Essays on startups and tech"
+      var typeName = type.ToString().ToLower();
+      <a href="/sources/@typeName"
+        class="filter-pill @(CategoryFilter?.Equals(typeName, StringComparison.OrdinalIgnoreCase) == true ? "active" : "")">
+        @GetResourceTypeIcon(type) @GetResourceTypeDisplay(type)
+      </a>
     }
-  ]
-}
-                    </div>
-                </details>
 
-                @if (!string.IsNullOrEmpty(_bulkImportError))
-                {
-                    <div class="error-message">@_bulkImportError</div>
-                }
+    <div class="filter-spacer"></div>
 
-                @if (!string.IsNullOrEmpty(_bulkImportSuccess))
-                {
-                    <div class="success-message">@_bulkImportSuccess</div>
-                }
+    <button class="add-source-btn" @onclick="() => _showAddForm = !_showAddForm">
+      @if (_showAddForm)
+      {
+        <span>✕ Close</span>
+      }
+      else
+      {
+        <span>+ Add Source</span>
+      }
+    </button>
+  </div>
 
-                <div class="form-group">
-                    <label for="bulkJson">JSON Input</label>
-                    <textarea id="bulkJson" @bind="_bulkImportJson" class="form-input" rows="8" placeholder='Paste your JSON here...'></textarea>
-                </div>
+  <!-- Add Source Panel (collapsible) -->
+  @if (_showAddForm)
+  {
+    <div class="add-source-panel">
+      <div class="add-source-tabs">
+        <button class="tab-btn @(_activeTab == "single" ? "active" : "")" @onclick="SetTabSingle">
+          Single Source
+        </button>
+        <button class="tab-btn @(_activeTab == "bulk" ? "active" : "")" @onclick="SetTabBulk">
+          Bulk Import
+        </button>
+      </div>
 
-                <button @onclick="HandleBulkImport" class="btn-primary" disabled="@_isBulkImporting">
-                    @if (_isBulkImporting)
-                    {
-                        <span>Importing...</span>
-                    }
-                    else
-                    {
-                        <span>Import Sources</span>
-                    }
-                </button>
+      @if (_activeTab == "single")
+      {
+        <div class="add-source-form">
+          @if (!string.IsNullOrEmpty(_errorMessage))
+          {
+            <div class="error-message">@_errorMessage</div>
+          }
+          @if (!string.IsNullOrEmpty(_successMessage))
+          {
+            <div class="success-message">@_successMessage</div>
+          }
 
-                @if (_bulkImportResult != null)
-                {
-                    <div style="margin-top: 1rem;">
-                        <strong>Import Results:</strong>
-                        <p>✓ Imported: @_bulkImportResult.Imported</p>
-                        <p>✗ Failed: @_bulkImportResult.Failed</p>
-                        @if (_bulkImportResult.Errors.Any())
-                        {
-                            <details>
-                                <summary>Show Errors</summary>
-                                <ul>
-                                    @foreach (var error in _bulkImportResult.Errors)
-                                    {
-                                        <li><strong>@error.Url:</strong> @error.Error</li>
-                                    }
-                                </ul>
-                            </details>
-                        }
-                    </div>
-                }
+          <EditForm Model="@_newSource" OnValidSubmit="HandleAddSource" FormName="addSourceForm">
+            <DataAnnotationsValidator />
+            <div class="form-grid">
+              <div class="form-group">
+                <label for="name">Name</label>
+                <InputText id="name" @bind-Value="_newSource.Name" class="form-input" placeholder="e.g. ArXiv AI Papers" />
+                <ValidationMessage For="@(() => _newSource.Name)" />
+              </div>
+              <div class="form-group">
+                <label for="category">Category</label>
+                <InputSelect id="category" @bind-Value="_newSource.Category" class="form-input">
+                  <option value="">Select...</option>
+                  @foreach (var type in Enum.GetValues<ResourceType>())
+                  {
+                    <option value="@type">@GetResourceTypeDisplay(type)</option>
+                  }
+                </InputSelect>
+                <ValidationMessage For="@(() => _newSource.Category)" />
+              </div>
+              <div class="form-group form-group-wide">
+                <label for="url">URL</label>
+                <InputText id="url" @bind-Value="_newSource.Url" class="form-input"
+                  placeholder="https://example.com/feed" />
+                <ValidationMessage For="@(() => _newSource.Url)" />
+              </div>
+              <div class="form-group form-group-wide">
+                <label for="description">Description <span class="optional">(optional)</span></label>
+                <InputText id="description" @bind-Value="_newSource.Description" class="form-input"
+                  placeholder="Brief description" />
+              </div>
             </div>
-        </details>
+            <button type="submit" class="btn-primary" disabled="@_isLoading">
+              @(_isLoading ? "Adding..." : "Add Source")
+            </button>
+          </EditForm>
+        </div>
+      }
+      else
+      {
+        <div class="bulk-import-form">
+          <p class="bulk-hint">Paste JSON array of sources. <button type="button" class="link-btn"
+              @onclick="() => _showJsonExample = !_showJsonExample">@(_showJsonExample ? "Hide" : "Show") format</button>
+          </p>
+
+          @if (_showJsonExample)
+          {
+            <pre class="json-example">[
+                                { "name": "ArXiv AI", "url": "https://arxiv.org/list/cs.AI/recent", "category": "Paper" },
+                                { "name": "3Blue1Brown", "url": "https://youtube.com/c/3blue1brown", "category": "Video" }
+                              ]</pre>
+          }
+
+          @if (!string.IsNullOrEmpty(_bulkImportError))
+          {
+            <div class="error-message">@_bulkImportError</div>
+          }
+          @if (!string.IsNullOrEmpty(_bulkImportSuccess))
+          {
+            <div class="success-message">@_bulkImportSuccess</div>
+          }
+
+          <textarea @bind="_bulkImportJson" class="form-input bulk-textarea" rows="6"
+            placeholder='{"sources": [{"name": "...", "url": "...", "category": "Paper|Video|BlogPost"}]}'></textarea>
+
+          <button @onclick="HandleBulkImport" class="btn-primary" disabled="@_isBulkImporting">
+            @(_isBulkImporting ? "Importing..." : "Import Sources")
+          </button>
+
+          @if (_bulkImportResult != null)
+          {
+            <div class="import-results">
+              <span class="result-success">✓ @_bulkImportResult.Imported imported</span>
+              @if (_bulkImportResult.Failed > 0)
+              {
+                <span class="result-fail">✗ @_bulkImportResult.Failed failed</span>
+              }
+            </div>
+          }
+        </div>
+      }
     </div>
+  }
 
-    <div class="content-card">
-        <h2>Your Sources</h2>
-
-        @if (_sources == null)
+  <!-- Sources List -->
+  <div class="sources-container">
+    @if (_sources == null)
+    {
+      <div class="sources-loading">Loading sources...</div>
+    }
+    else if (!_filteredSources.Any())
+    {
+      <div class="sources-empty">
+        @if (!_sources.Any())
         {
-            <p>Loading sources...</p>
-        }
-        else if (!_filteredSources.Any())
-        {
-            <div class="empty-state" style="text-align: center; padding: 2rem 1rem; background-color: var(--surface-secondary); border-radius: 0.5rem;">
-                <p style="font-size: 1.1rem; margin-bottom: 0.5rem; color: var(--text-primary);">
-                    @if (!_sources.Any())
-                    {
-                        <span>🎯 No sources yet</span>
-                    }
-                    else
-                    {
-                        <span>No sources in this category</span>
-                    }
-                </p>
-                <p style="color: var(--text-secondary); margin: 0;">
-                    @if (!_sources.Any())
-                    {
-                        <span>Add your first source above to get started!</span>
-                    }
-                    else
-                    {
-                        <span>Try selecting a different category filter</span>
-                    }
-                </p>
-            </div>
+          <span class="empty-icon">📚</span>
+          <p>No sources yet</p>
+          <span class="empty-hint">Add your first source to get started</span>
         }
         else
         {
-            <div class="sources-list">
-                @foreach (var source in _filteredSources)
-                {
-                    <div class="source-item">
-                        @if (_editingSourceId == source.Id)
-                        {
-                            <!-- Edit Form -->
-                            <EditForm Model="@_editModel" OnValidSubmit="HandleUpdateSource" FormName="@($"editSourceForm_{source.Id}")">
-                                <DataAnnotationsValidator />
-
-                                @if (!string.IsNullOrEmpty(_editErrorMessage))
-                                {
-                                    <div class="error-message">@_editErrorMessage</div>
-                                }
-
-                                <div class="form-group">
-                                    <label for="edit-name">Name</label>
-                                    <InputText id="edit-name" @bind-Value="_editModel.Name" class="form-input" placeholder="Source name" />
-                                    <ValidationMessage For="@(() => _editModel.Name)" />
-                                </div>
-
-                                <div class="form-group">
-                                    <label for="edit-category">Category</label>
-                                    <InputSelect id="edit-category" @bind-Value="_editModel.Category" class="form-input">
-                                        @foreach (var type in Enum.GetValues<ResourceType>())
-                                        {
-                                            <option value="@type">@GetResourceTypeDisplay(type)</option>
-                                        }
-                                    </InputSelect>
-                                    <ValidationMessage For="@(() => _editModel.Category)" />
-                                </div>
-
-                                <div class="form-group">
-                                    <label for="edit-url">URL</label>
-                                    <InputText id="edit-url" @bind-Value="_editModel.Url" class="form-input" placeholder="https://example.com/feed" />
-                                    <ValidationMessage For="@(() => _editModel.Url)" />
-                                </div>
-
-                                <div class="form-group">
-                                    <label for="edit-description">Description (optional)</label>
-                                    <InputTextArea id="edit-description" @bind-Value="_editModel.Description" class="form-input" placeholder="A brief description" rows="2" />
-                                </div>
-
-                                <div class="source-actions">
-                                    <button type="submit" class="btn-primary" disabled="@_isLoading">
-                                        @if (_isLoading)
-                                        {
-                                            <span>Saving...</span>
-                                        }
-                                        else
-                                        {
-                                            <span>Save Changes</span>
-                                        }
-                                    </button>
-                                    <button type="button" @onclick="CancelEdit" class="btn-secondary">Cancel</button>
-                                </div>
-                            </EditForm>
-                        }
-                        else
-                        {
-                            <!-- View Mode -->
-                            <div class="source-header">
-                                <h3>@source.Name</h3>
-                                <span class="source-badge @(source.IsActive ? "active" : "inactive")">
-                                    @(source.IsActive ? "Active" : "Inactive")
-                                </span>
-                            </div>
-                            <div class="source-details">
-                                <span class="source-category">@GetResourceTypeDisplay(source.Category)</span>
-                                <a href="@source.Url" target="_blank" class="source-url">@source.Url</a>
-                            </div>
-                            @if (!string.IsNullOrEmpty(source.Description))
-                            {
-                                <p class="source-description">@source.Description</p>
-                            }
-                            <div class="source-actions">
-                                <button @onclick="() => StartEdit(source)" class="btn-secondary">Edit</button>
-                                <button @onclick="() => ToggleSource(source.Id)" class="btn-secondary">
-                                    @(source.IsActive ? "Deactivate" : "Activate")
-                                </button>
-                                <button @onclick="() => DeleteSource(source.Id)" class="btn-danger">Delete</button>
-                            </div>
-                        }
-                    </div>
-                }
-            </div>
+          <span class="empty-icon">🔍</span>
+          <p>No sources in this category</p>
+          <span class="empty-hint">Try a different filter</span>
         }
-    </div>
-</div>
-
-@code {
-    [Parameter]
-    public string? CategoryFilter { get; set; }
-
-    private List<SourceItem>? _sources;
-    private List<SourceItem> _filteredSources = new();
-    private AddSourceModel _newSource = new();
-    private EditSourceModel _editModel = new();
-    private string? _errorMessage;
-    private string? _successMessage;
-    private string? _editErrorMessage;
-    private bool _isLoading;
-    private Guid? _editingSourceId;
-
-    // Bulk import fields
-    private string _bulkImportJson = "";
-    private string? _bulkImportError;
-    private string? _bulkImportSuccess;
-    private bool _isBulkImporting;
-    private Rsl.Web.Services.BulkImportResultModel? _bulkImportResult;
-
-    protected override async Task OnAfterRenderAsync(bool firstRender)
-    {
-        if (firstRender)
-        {
-            await ThemeService.InitializeAsync();
-        }
+      </div>
     }
-
-    protected override async Task OnInitializedAsync()
+    else
     {
-        if (!AuthService.CurrentState.IsAuthenticated)
+      <div class="sources-table">
+        @foreach (var source in _filteredSources)
         {
-            Navigation.NavigateTo("/login");
-            return;
-        }
-
-        AuthService.OnAuthStateChanged += HandleAuthStateChanged;
-        await LoadSources();
-    }
-
-    protected override Task OnParametersSetAsync()
-    {
-        ApplyFilter();
-        return Task.CompletedTask;
-    }
-
-    private async Task LoadSources()
-    {
-        _sources = await SourceService.GetUserSourcesAsync();
-        ApplyFilter();
-        StateHasChanged(); // Force UI refresh
-    }
-
-    private void ApplyFilter()
-    {
-        if (_sources == null)
-        {
-            _filteredSources = new();
-            return;
-        }
-
-        if (string.IsNullOrEmpty(CategoryFilter))
-        {
-            _filteredSources = _sources.ToList(); // Create a new list to ensure change detection
-        }
-        else
-        {
-            if (Enum.TryParse<ResourceType>(CategoryFilter, ignoreCase: true, out var parsedType))
+          <div class="source-row @(source.IsActive ? "" : "inactive") @(_editingSourceId == source.Id ? "editing" : "")">
+            @if (_editingSourceId == source.Id)
             {
-                _filteredSources = _sources.Where(s => s.Category == parsedType).ToList();
+              <!-- Inline Edit Mode -->
+              <div class="source-edit-form">
+                @if (!string.IsNullOrEmpty(_editErrorMessage))
+                {
+                  <div class="error-message compact">@_editErrorMessage</div>
+                }
+                <EditForm Model="@_editModel" OnValidSubmit="HandleUpdateSource" FormName="@($"editForm_{source.Id}")">
+                  <DataAnnotationsValidator />
+                  <div class="edit-grid">
+                    <div class="form-group">
+                      <InputText @bind-Value="_editModel.Name" class="form-input" placeholder="Name" />
+                    </div>
+                    <div class="form-group">
+                      <InputSelect @bind-Value="_editModel.Category" class="form-input">
+                        @foreach (var type in Enum.GetValues<ResourceType>())
+                        {
+                          <option value="@type">@GetResourceTypeDisplay(type)</option>
+                        }
+                      </InputSelect>
+                    </div>
+                    <div class="form-group form-group-url">
+                      <InputText @bind-Value="_editModel.Url" class="form-input" placeholder="URL" />
+                    </div>
+                    <div class="form-group">
+                      <InputText @bind-Value="_editModel.Description" class="form-input"
+                        placeholder="Description (optional)" />
+                    </div>
+                  </div>
+                  <div class="edit-actions">
+                    <button type="submit" class="btn-sm btn-primary" disabled="@_isLoading">Save</button>
+                    <button type="button" class="btn-sm btn-secondary" @onclick="CancelEdit">Cancel</button>
+                  </div>
+                </EditForm>
+              </div>
             }
             else
             {
-                _filteredSources = _sources.ToList(); // Create a new list to ensure change detection
-            }
-        }
-    }
-
-    private async Task HandleAddSource()
-    {
-        _isLoading = true;
-        _errorMessage = null;
-        _successMessage = null;
-
-        var success = await SourceService.AddSourceAsync(
-            _newSource.Name,
-            _newSource.Url,
-            _newSource.Category,
-            _newSource.Description
-        );
-
-        if (success)
-        {
-            _successMessage = "Source added successfully!";
-            _newSource = new AddSourceModel();
-            await LoadSources();
-        }
-        else
-        {
-            _errorMessage = "Failed to add source. Please try again.";
-        }
-
-        _isLoading = false;
-    }
-
-    private void StartEdit(SourceItem source)
-    {
-        _editingSourceId = source.Id;
-        _editModel = new EditSourceModel
-        {
-            Name = source.Name,
-            Url = source.Url,
-            Category = source.Category,
-            Description = source.Description
-        };
-        _editErrorMessage = null;
-    }
-
-    private void CancelEdit()
-    {
-        _editingSourceId = null;
-        _editModel = new EditSourceModel();
-        _editErrorMessage = null;
-    }
-
-    private async Task HandleUpdateSource()
-    {
-        if (!_editingSourceId.HasValue)
-            return;
-
-        _isLoading = true;
-        _editErrorMessage = null;
-
-        var success = await SourceService.UpdateSourceAsync(
-            _editingSourceId.Value,
-            _editModel.Name,
-            _editModel.Url,
-            _editModel.Category,
-            _editModel.Description
-        );
-
-        if (success)
-        {
-            _editingSourceId = null;
-            _editModel = new EditSourceModel();
-            await LoadSources();
-        }
-        else
-        {
-            _editErrorMessage = "Failed to update source. Please try again.";
-        }
-
-        _isLoading = false;
-    }
-
-    private async Task ToggleSource(Guid sourceId)
-    {
-        await SourceService.ToggleSourceActiveAsync(sourceId);
-        await LoadSources();
-    }
-
-    private async Task DeleteSource(Guid sourceId)
-    {
-        await SourceService.DeleteSourceAsync(sourceId);
-        await LoadSources();
-    }
-
-    private void HandleAuthStateChanged()
-    {
-        if (!AuthService.CurrentState.IsAuthenticated)
-        {
-            Navigation.NavigateTo("/login");
-        }
-    }
-
-    private string GetPageTitle()
-    {
-        if (string.IsNullOrEmpty(CategoryFilter))
-            return "My Sources";
-
-        if (Enum.TryParse<ResourceType>(CategoryFilter, ignoreCase: true, out var type))
-        {
-            return $"{GetResourceTypeDisplay(type)} Sources";
-        }
-
-        return "My Sources";
-    }
-
-    private static string GetResourceTypeDisplay(ResourceType type)
-    {
-        return type switch
-        {
-            ResourceType.Paper => "Papers",
-            ResourceType.Video => "Videos",
-            ResourceType.BlogPost => "Blogs",
-            _ => type.ToString()
-        };
-    }
-
-    private async Task HandleBulkImport()
-    {
-        _isBulkImporting = true;
-        _bulkImportError = null;
-        _bulkImportSuccess = null;
-        _bulkImportResult = null;
-
-        try
-        {
-            var result = await SourceService.BulkImportSourcesAsync(_bulkImportJson);
-            _bulkImportResult = result;
-
-            if (result.Imported > 0)
-            {
-                _bulkImportSuccess = $"Successfully imported {result.Imported} source(s)";
-                await LoadSources();
-
-                // Clear the textarea on successful import
-                if (result.Failed == 0)
+              <!-- View Mode -->
+              <div class="source-icon">
+                @GetResourceTypeIcon(source.Category)
+              </div>
+              <div class="source-info">
+                <div class="source-name-row">
+                  <span class="source-name">@source.Name</span>
+                  @if (!source.IsActive)
+                  {
+                    <span class="status-badge inactive">Paused</span>
+                  }
+                </div>
+                <a href="@source.Url" target="_blank" rel="noopener" class="source-url">@TruncateUrl(source.Url)</a>
+                @if (!string.IsNullOrEmpty(source.Description))
                 {
-                    _bulkImportJson = "";
+                  <span class="source-desc">@source.Description</span>
                 }
+              </div>
+              <div class="source-meta">
+                @if (source.ResourceCount > 0)
+                {
+                  <span class="meta-item" title="Resources fetched">@source.ResourceCount items</span>
+                }
+                @if (source.LastFetchedAt.HasValue)
+                {
+                  <span class="meta-item" title="Last fetched">@FormatDate(source.LastFetchedAt.Value)</span>
+                }
+              </div>
+              <div class="source-actions">
+                <button class="action-btn" @onclick="() => StartEdit(source)" title="Edit">✏️</button>
+                <button class="action-btn" @onclick="() => ToggleSource(source.Id)"
+                  title="@(source.IsActive ? "Pause" : "Activate")">
+                  @(source.IsActive ? "⏸️" : "▶️")
+                </button>
+                <button class="action-btn danger" @onclick="() => DeleteSource(source.Id)" title="Delete">🗑️</button>
+              </div>
             }
-
-            if (result.Failed > 0)
-            {
-                _bulkImportError = $"{result.Failed} source(s) failed to import. See details below.";
-            }
+          </div>
         }
-        catch (Exception ex)
-        {
-            _bulkImportError = $"Import failed: {ex.Message}";
-        }
-        finally
-        {
-            _isBulkImporting = false;
-        }
+      </div>
     }
+  </div>
+</div>
 
-    public void Dispose()
+@code {
+  [Parameter]
+  public string? CategoryFilter { get; set; }
+
+  private List<SourceItem>? _sources;
+  private List<SourceItem> _filteredSources = new();
+  private AddSourceModel _newSource = new();
+  private EditSourceModel _editModel = new();
+  private string? _errorMessage;
+  private string? _successMessage;
+  private string? _editErrorMessage;
+  private bool _isLoading;
+  private Guid? _editingSourceId;
+  private bool _showAddForm;
+  private string _activeTab = "single";
+  private bool _showJsonExample;
+
+  // Bulk import fields
+  private string _bulkImportJson = "";
+  private string? _bulkImportError;
+  private string? _bulkImportSuccess;
+  private bool _isBulkImporting;
+  private BulkImportResultModel? _bulkImportResult;
+
+  protected override async Task OnAfterRenderAsync(bool firstRender)
+  {
+    if (firstRender)
     {
-        AuthService.OnAuthStateChanged -= HandleAuthStateChanged;
+      await ThemeService.InitializeAsync();
     }
+  }
 
-    private class AddSourceModel
+  protected override async Task OnInitializedAsync()
+  {
+    if (!AuthService.CurrentState.IsAuthenticated)
     {
-        [Required(ErrorMessage = "Name is required")]
-        public string Name { get; set; } = string.Empty;
-
-        [Required(ErrorMessage = "URL is required")]
-        [Url(ErrorMessage = "Please enter a valid URL")]
-        public string Url { get; set; } = string.Empty;
-
-        [Required(ErrorMessage = "Category is required")]
-        public ResourceType Category { get; set; }
-
-        public string? Description { get; set; }
+      Navigation.NavigateTo("/login");
+      return;
     }
 
-    private class EditSourceModel
+    AuthService.OnAuthStateChanged += HandleAuthStateChanged;
+    await LoadSources();
+  }
+
+  protected override Task OnParametersSetAsync()
+  {
+    ApplyFilter();
+    return Task.CompletedTask;
+  }
+
+  private async Task LoadSources()
+  {
+    _sources = await SourceService.GetUserSourcesAsync();
+    ApplyFilter();
+    StateHasChanged();
+  }
+
+  private void ApplyFilter()
+  {
+    if (_sources == null)
     {
-        [Required(ErrorMessage = "Name is required")]
-        public string Name { get; set; } = string.Empty;
-
-        [Required(ErrorMessage = "URL is required")]
-        [Url(ErrorMessage = "Please enter a valid URL")]
-        public string Url { get; set; } = string.Empty;
-
-        [Required(ErrorMessage = "Category is required")]
-        public ResourceType Category { get; set; }
-
-        public string? Description { get; set; }
+      _filteredSources = new();
+      return;
     }
+
+    if (string.IsNullOrEmpty(CategoryFilter))
+    {
+      _filteredSources = _sources.ToList();
+    }
+    else if (Enum.TryParse<ResourceType>(CategoryFilter, ignoreCase: true, out var parsedType))
+    {
+      _filteredSources = _sources.Where(s => s.Category == parsedType).ToList();
+    }
+    else
+    {
+      _filteredSources = _sources.ToList();
+    }
+  }
+
+  private async Task HandleAddSource()
+  {
+    _isLoading = true;
+    _errorMessage = null;
+    _successMessage = null;
+
+    var success = await SourceService.AddSourceAsync(
+    _newSource.Name,
+    _newSource.Url,
+    _newSource.Category,
+    _newSource.Description
+    );
+
+    if (success)
+    {
+      _successMessage = "Source added!";
+      _newSource = new AddSourceModel();
+      await LoadSources();
+    }
+    else
+    {
+      _errorMessage = "Failed to add source. Please try again.";
+    }
+
+    _isLoading = false;
+  }
+
+  private void StartEdit(SourceItem source)
+  {
+    _editingSourceId = source.Id;
+    _editModel = new EditSourceModel
+    {
+      Name = source.Name,
+      Url = source.Url,
+      Category = source.Category,
+      Description = source.Description
+    };
+    _editErrorMessage = null;
+  }
+
+  private void CancelEdit()
+  {
+    _editingSourceId = null;
+    _editModel = new EditSourceModel();
+    _editErrorMessage = null;
+  }
+
+  private async Task HandleUpdateSource()
+  {
+    if (!_editingSourceId.HasValue) return;
+
+    _isLoading = true;
+    _editErrorMessage = null;
+
+    var success = await SourceService.UpdateSourceAsync(
+    _editingSourceId.Value,
+    _editModel.Name,
+    _editModel.Url,
+    _editModel.Category,
+    _editModel.Description
+    );
+
+    if (success)
+    {
+      _editingSourceId = null;
+      _editModel = new EditSourceModel();
+      await LoadSources();
+    }
+    else
+    {
+      _editErrorMessage = "Failed to update. Try again.";
+    }
+
+    _isLoading = false;
+  }
+
+  private async Task ToggleSource(Guid sourceId)
+  {
+    await SourceService.ToggleSourceActiveAsync(sourceId);
+    await LoadSources();
+  }
+
+  private async Task DeleteSource(Guid sourceId)
+  {
+    await SourceService.DeleteSourceAsync(sourceId);
+    await LoadSources();
+  }
+
+  private async Task HandleBulkImport()
+  {
+    _isBulkImporting = true;
+    _bulkImportError = null;
+    _bulkImportSuccess = null;
+    _bulkImportResult = null;
+
+    try
+    {
+      var result = await SourceService.BulkImportSourcesAsync(_bulkImportJson);
+      _bulkImportResult = result;
+
+      if (result.Imported > 0)
+      {
+        _bulkImportSuccess = $"Imported {result.Imported} source(s)";
+        await LoadSources();
+        if (result.Failed == 0) _bulkImportJson = "";
+      }
+
+      if (result.Failed > 0)
+      {
+        _bulkImportError = $"{result.Failed} failed to import";
+      }
+    }
+    catch (Exception ex)
+    {
+      _bulkImportError = $"Import failed: {ex.Message}";
+    }
+    finally
+    {
+      _isBulkImporting = false;
+    }
+  }
+
+  private void HandleAuthStateChanged()
+  {
+    if (!AuthService.CurrentState.IsAuthenticated)
+    {
+      Navigation.NavigateTo("/login");
+    }
+  }
+
+  private void SetTabSingle() => _activeTab = "single";
+  private void SetTabBulk() => _activeTab = "bulk";
+
+  private string GetPageTitle()
+  {
+    if (string.IsNullOrEmpty(CategoryFilter)) return "My Sources";
+    if (Enum.TryParse<ResourceType>(CategoryFilter, ignoreCase: true, out var type))
+      return $"{GetResourceTypeDisplay(type)} Sources";
+    return "My Sources";
+  }
+
+  private static string GetResourceTypeDisplay(ResourceType type) => type switch
+  {
+    ResourceType.Paper => "Papers",
+    ResourceType.Video => "Videos",
+    ResourceType.BlogPost => "Blogs",
+    _ => type.ToString()
+  };
+
+  private static string GetResourceTypeIcon(ResourceType type) => type switch
+  {
+    ResourceType.Paper => "📄",
+    ResourceType.Video => "🎬",
+    ResourceType.BlogPost => "📝",
+    _ => "📎"
+  };
+
+  private static string TruncateUrl(string url)
+  {
+    if (url.Length <= 50) return url;
+    var uri = new Uri(url);
+    var display = uri.Host + uri.AbsolutePath;
+    return display.Length > 50 ? display[..47] + "..." : display;
+  }
+
+  private static string FormatDate(DateTime date)
+  {
+    var span = DateTime.UtcNow - date;
+    if (span.TotalHours < 1) return "just now";
+    if (span.TotalDays < 1) return $"{(int)span.TotalHours}h ago";
+    if (span.TotalDays < 7) return $"{(int)span.TotalDays}d ago";
+    return date.ToString("MMM d");
+  }
+
+  public void Dispose()
+  {
+    AuthService.OnAuthStateChanged -= HandleAuthStateChanged;
+  }
+
+  private class AddSourceModel
+  {
+    [Required(ErrorMessage = "Name is required")]
+    public string Name { get; set; } = string.Empty;
+
+    [Required(ErrorMessage = "URL is required")]
+    [Url(ErrorMessage = "Enter a valid URL")]
+    public string Url { get; set; } = string.Empty;
+
+    [Required(ErrorMessage = "Category is required")]
+    public ResourceType Category { get; set; }
+
+    public string? Description { get; set; }
+  }
+
+  private class EditSourceModel
+  {
+    [Required] public string Name { get; set; } = string.Empty;
+    [Required][Url] public string Url { get; set; } = string.Empty;
+    [Required] public ResourceType Category { get; set; }
+    public string? Description { get; set; }
+  }
 }
