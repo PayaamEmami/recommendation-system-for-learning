@@ -17,5 +17,6 @@ public interface IRecommendationRepository
     Task<bool> HasRecommendationsForDateAsync(Guid userId, DateOnly date, ResourceType feedType, CancellationToken cancellationToken = default);
     Task<IEnumerable<Recommendation>> GetRecentByUserAsync(Guid userId, DateOnly startDate, DateOnly endDate, CancellationToken cancellationToken = default);
     Task AddAsync(Recommendation recommendation, CancellationToken cancellationToken = default);
+    Task<DateOnly?> GetMostRecentDateWithRecommendationsAsync(Guid userId, ResourceType feedType, CancellationToken cancellationToken = default);
 }
 

@@ -106,5 +106,17 @@ public class RecommendationRepository : IRecommendationRepository
         _context.Recommendations.Add(recommendation);
         await _context.SaveChangesAsync(cancellationToken);
     }
+
+    public async Task<DateOnly?> GetMostRecentDateWithRecommendationsAsync(
+        Guid userId,
+        ResourceType feedType,
+        CancellationToken cancellationToken = default)
+    {
+        return await _context.Recommendations
+            .Where(r => r.UserId == userId && r.FeedType == feedType)
+            .OrderByDescending(r => r.Date)
+            .Select(r => (DateOnly?)r.Date)
+            .FirstOrDefaultAsync(cancellationToken);
+    }
 }
 
