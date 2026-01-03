@@ -49,6 +49,12 @@ public class ResourceDocument
     public required DateTime UpdatedAt { get; set; }
 
     /// <summary>
+    /// Published/discovered date (used for date-based filtering in vector search).
+    /// Falls back to CreatedAt if no specific published date is available.
+    /// </summary>
+    public DateTime? PublishedDate { get; set; }
+
+    /// <summary>
     /// Embedding vector for the resource.
     /// </summary>
     public required float[] Embedding { get; set; }

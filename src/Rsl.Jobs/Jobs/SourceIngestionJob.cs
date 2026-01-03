@@ -235,6 +235,7 @@ public class SourceIngestionJob
                 Url = resource.Url,
                 Type = resource.Type,
                 SourceId = resource.SourceId,
+                PublishedDate = resource.CreatedAt, // Use CreatedAt as the published date for filtering
                 CreatedAt = resource.CreatedAt,
                 UpdatedAt = resource.UpdatedAt,
                 Embedding = embedding
