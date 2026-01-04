@@ -7,26 +7,25 @@
 <PageTitle>Welcome - RSL</PageTitle>
 
 <div class="landing-container">
-    <div class="landing-content">
-        <h1 class="landing-title">Recommendation System for Learning</h1>
-        <p class="landing-subtitle">Your personalized learning resource aggregator</p>
-        <p class="landing-description">
-            Discover papers, videos, blogs, and more from your favorite sources,
-            all in one place with personalized recommendations.
-        </p>
-        <div class="landing-actions">
-            <a href="/signup" class="btn-primary btn-large">Get Started</a>
-            <a href="/login" class="btn-secondary btn-large">Login</a>
-        </div>
+  <div class="landing-content">
+    <h1 class="landing-title">Recommendation System for Learning</h1>
+    <p class="landing-description">
+      Discover papers, videos, blogs, and more from your favorite sources,
+      all in one place with personalized recommendations.
+    </p>
+    <div class="landing-actions">
+      <a href="/signup" class="btn-primary btn-large">Get Started</a>
+      <a href="/login" class="btn-secondary btn-large">Login</a>
     </div>
+  </div>
 </div>
 
 @code {
-    protected override async Task OnAfterRenderAsync(bool firstRender)
+  protected override async Task OnAfterRenderAsync(bool firstRender)
+  {
+    if (firstRender)
     {
-        if (firstRender)
-        {
-            await ThemeService.InitializeAsync();
-        }
+      await ThemeService.InitializeAsync();
     }
+  }
 }
