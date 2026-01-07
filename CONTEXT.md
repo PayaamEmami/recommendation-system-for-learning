@@ -5,8 +5,9 @@
 **Purpose**: Personalized recommendation system that aggregates learning resources from user-defined sources using AI-powered recommendations.
 
 **Tech Stack**:
+
 - **Backend**: .NET 10, ASP.NET Core, Entity Framework Core
-- **Frontend**: Blazor Server
+- **Frontend**: Blazor WebAssembly (client-side, served via nginx)
 - **Cloud**: Azure Container Apps, AI Search, SQL Database
 - **AI**: OpenAI API (GPT-5-nano, text-embedding-3-small)
 
@@ -15,7 +16,7 @@
 ### Core Services
 
 1. **Rsl.Api** - REST API with JWT authentication (Container App)
-2. **Rsl.Web** - Blazor Server web UI (Container App)
+2. **Rsl.Web** - Blazor WebAssembly web UI (Container App, nginx static hosting)
 3. **Rsl.Jobs** - Scheduled jobs (Container Apps Jobs):
    - **Ingestion Job**: Runs daily at midnight UTC
    - **Feed Generation Job**: Runs daily at 2 AM UTC
@@ -60,12 +61,14 @@ SQL_CONNECTION_STRING
 ### Registration
 
 **Toggle user registration** in `infrastructure/bicep/main-container-apps.bicep`:
+
 ```
 Registration__Enabled: 'true'  // Allow new user registrations
 Registration__Enabled: 'false' // Block new registrations
 ```
 
 **Update both API and Web apps** (two places in the file). Or via Azure CLI:
+
 ```bash
 az containerapp update --name rsl-dev-api --resource-group rsl-dev-rg --set-env-vars "Registration__Enabled=true"
 az containerapp update --name rsl-dev-web --resource-group rsl-dev-rg --set-env-vars "Registration__Enabled=true"
@@ -89,16 +92,19 @@ az containerapp update --name rsl-dev-web --resource-group rsl-dev-rg --set-env-
 Jobs are implemented as **Azure Container Apps Jobs** with cron scheduling:
 
 **Ingestion Job** (`rsl-dev-ingestion-job`):
+
 - Schedule: Daily at midnight UTC (`0 0 * * *`)
 - Timeout: 2 hours
 - Command: `dotnet Rsl.Jobs.dll ingestion`
 
 **Feed Generation Job** (`rsl-dev-feed-job`):
+
 - Schedule: Daily at 2 AM UTC (`0 2 * * *`)
 - Timeout: 1 hour
 - Command: `dotnet Rsl.Jobs.dll feed`
 
 **Benefits**:
+
 - Containers only run during job execution (cost-efficient)
 - No retries on failure (`replicaRetryLimit: 0`)
 - Schedule visible in Azure Portal
@@ -106,6 +112,7 @@ Jobs are implemented as **Azure Container Apps Jobs** with cron scheduling:
 - Built-in job history and monitoring
 
 **Manual Execution**:
+
 ```bash
 # Trigger ingestion job manually
 az containerapp job start --name rsl-dev-ingestion-job --resource-group rsl-dev-rg
@@ -121,10 +128,16 @@ az containerapp job execution list --name rsl-dev-ingestion-job --resource-group
 
 **API**: `POST /api/v1/sources/bulk-import`
 **Format**:
+
 ```json
 {
   "sources": [
-    {"name": "...", "url": "...", "category": "Paper|Video|BlogPost", "description": "..."}
+    {
+      "name": "...",
+      "url": "...",
+      "category": "Paper|Video|BlogPost",
+      "description": "..."
+    }
   ]
 }
 ```
@@ -136,6 +149,7 @@ az containerapp job execution list --name rsl-dev-ingestion-job --resource-group
 ### Infrastructure Scripts
 
 Helper scripts in `infrastructure/scripts/`:
+
 - **get-resource-names.sh** - Shows all Azure resource names (ACR, Key Vault, etc.)
 - **deploy.sh** - Deploys Bicep templates (uses `parameters.*.local.json`)
 - **build-and-push.sh** - Builds and pushes Docker images (requires ACR name, not "dev")

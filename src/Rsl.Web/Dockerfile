@@ -5,6 +5,7 @@ WORKDIR /src
 # Copy solution and project files
 COPY ["Rsl.sln", "./"]
 COPY ["src/Rsl.Web/Rsl.Web.csproj", "src/Rsl.Web/"]
+COPY ["src/Rsl.Core/Rsl.Core.csproj", "src/Rsl.Core/"]
 
 # Restore dependencies
 RUN dotnet restore "src/Rsl.Web/Rsl.Web.csproj"
@@ -12,35 +13,21 @@ RUN dotnet restore "src/Rsl.Web/Rsl.Web.csproj"
 # Copy all source code
 COPY . .
 
-# Build the application
+# Publish the WebAssembly app
 WORKDIR "/src/src/Rsl.Web"
-RUN dotnet build "Rsl.Web.csproj" -c Release -o /app/build
+RUN dotnet publish "Rsl.Web.csproj" -c Release -o /app/publish
 
-# Publish stage
-FROM build AS publish
-RUN dotnet publish "Rsl.Web.csproj" -c Release -o /app/publish /p:UseAppHost=false
+# Runtime stage - use nginx to serve static files
+FROM nginx:alpine AS final
 
-# Runtime stage
-FROM mcr.microsoft.com/dotnet/aspnet:10.0 AS final
-WORKDIR /app
+# Copy nginx configuration
+COPY src/Rsl.Web/nginx.conf /etc/nginx/nginx.conf
 
-# Create non-root user for security
-RUN groupadd -r appuser && useradd -r -g appuser appuser
-
-# Copy published app
-COPY --from=publish /app/publish .
-
-# Set ownership
-RUN chown -R appuser:appuser /app
-
-# Switch to non-root user
-USER appuser
+# Copy published WebAssembly files to nginx html directory
+COPY --from=build /app/publish/wwwroot /usr/share/nginx/html
 
 # Expose port
 EXPOSE 8080
 
-# Set environment variables
-ENV ASPNETCORE_URLS=http://+:8080
-ENV ASPNETCORE_ENVIRONMENT=Production
-
-ENTRYPOINT ["dotnet", "Rsl.Web.dll"]
+# Start nginx
+CMD ["nginx", "-g", "daemon off;"]

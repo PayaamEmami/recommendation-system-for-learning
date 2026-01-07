@@ -2,7 +2,6 @@ using System.Net.Http.Headers;
 using System.Net.Http.Json;
 using System.Text.Json;
 using System.Text.Json.Serialization;
-using Microsoft.Extensions.Configuration;
 using Rsl.Core.Enums;
 
 namespace Rsl.Web.Services;
@@ -12,8 +11,7 @@ namespace Rsl.Web.Services;
 /// </summary>
 public class SourceService
 {
-    private readonly IHttpClientFactory _httpClientFactory;
-    private readonly IConfiguration _configuration;
+    private readonly HttpClient _httpClient;
     private readonly AuthService _authService;
     private readonly ILogger<SourceService> _logger;
 
@@ -25,34 +23,22 @@ public class SourceService
     };
 
     public SourceService(
-        IHttpClientFactory httpClientFactory,
-        IConfiguration configuration,
+        HttpClient httpClient,
         AuthService authService,
         ILogger<SourceService> logger)
     {
-        _httpClientFactory = httpClientFactory;
-        _configuration = configuration;
+        _httpClient = httpClient;
         _authService = authService;
         _logger = logger;
     }
 
-    private HttpClient CreateHttpClient()
+    private void SetAuthHeader()
     {
-        var client = _httpClientFactory.CreateClient();
-        var apiBaseUrl = _configuration.GetValue<string>("ApiBaseUrl");
-        if (!string.IsNullOrEmpty(apiBaseUrl))
-        {
-            client.BaseAddress = new Uri(apiBaseUrl);
-        }
-
-        // Add authentication token if available
         if (!string.IsNullOrEmpty(_authService.CurrentState.AccessToken))
         {
-            client.DefaultRequestHeaders.Authorization =
+            _httpClient.DefaultRequestHeaders.Authorization =
                 new AuthenticationHeaderValue("Bearer", _authService.CurrentState.AccessToken);
         }
-
-        return client;
     }
 
     public async Task<List<SourceItem>> GetUserSourcesAsync()
@@ -65,8 +51,8 @@ public class SourceService
                 return new List<SourceItem>();
             }
 
-            using var httpClient = CreateHttpClient();
-            var response = await httpClient.GetAsync("/api/v1/sources");
+            SetAuthHeader();
+            var response = await _httpClient.GetAsync("/api/v1/sources");
 
             if (!response.IsSuccessStatusCode)
             {
@@ -124,8 +110,8 @@ public class SourceService
                 Description = description
             };
 
-            using var httpClient = CreateHttpClient();
-            var response = await httpClient.PostAsJsonAsync("/api/v1/sources", request);
+            SetAuthHeader();
+            var response = await _httpClient.PostAsJsonAsync("/api/v1/sources", request);
 
             if (!response.IsSuccessStatusCode)
             {
@@ -154,8 +140,8 @@ public class SourceService
                 return false;
             }
 
-            using var httpClient = CreateHttpClient();
-            var response = await httpClient.DeleteAsync($"/api/v1/sources/{sourceId}");
+            SetAuthHeader();
+            var response = await _httpClient.DeleteAsync($"/api/v1/sources/{sourceId}");
 
             if (!response.IsSuccessStatusCode)
             {
@@ -183,9 +169,10 @@ public class SourceService
                 return false;
             }
 
+            SetAuthHeader();
+
             // First, get the current source to determine its state
-            using var httpClient = CreateHttpClient();
-            var getResponse = await httpClient.GetAsync($"/api/v1/sources/{sourceId}");
+            var getResponse = await _httpClient.GetAsync($"/api/v1/sources/{sourceId}");
 
             if (!getResponse.IsSuccessStatusCode)
             {
@@ -209,7 +196,7 @@ public class SourceService
                 IsActive = !source.IsActive
             };
 
-            var updateResponse = await httpClient.PutAsJsonAsync($"/api/v1/sources/{sourceId}", updateRequest);
+            var updateResponse = await _httpClient.PutAsJsonAsync($"/api/v1/sources/{sourceId}", updateRequest);
 
             if (!updateResponse.IsSuccessStatusCode)
             {
@@ -237,9 +224,10 @@ public class SourceService
                 return false;
             }
 
+            SetAuthHeader();
+
             // First get the current source to preserve its IsActive state
-            using var httpClient = CreateHttpClient();
-            var getResponse = await httpClient.GetAsync($"/api/v1/sources/{sourceId}");
+            var getResponse = await _httpClient.GetAsync($"/api/v1/sources/{sourceId}");
 
             if (!getResponse.IsSuccessStatusCode)
             {
@@ -262,7 +250,7 @@ public class SourceService
                 IsActive = source.IsActive // Preserve existing active state
             };
 
-            var response = await httpClient.PutAsJsonAsync($"/api/v1/sources/{sourceId}", updateRequest);
+            var response = await _httpClient.PutAsJsonAsync($"/api/v1/sources/{sourceId}", updateRequest);
 
             if (!response.IsSuccessStatusCode)
             {
@@ -290,9 +278,9 @@ public class SourceService
                 throw new InvalidOperationException("User not authenticated");
             }
 
-            using var httpClient = CreateHttpClient();
+            SetAuthHeader();
             var content = new StringContent(json, System.Text.Encoding.UTF8, "application/json");
-            var response = await httpClient.PostAsync("/api/v1/sources/bulk-import", content);
+            var response = await _httpClient.PostAsync("/api/v1/sources/bulk-import", content);
 
             if (!response.IsSuccessStatusCode)
             {

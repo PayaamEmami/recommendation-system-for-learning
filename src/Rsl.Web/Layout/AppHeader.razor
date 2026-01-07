@@ -1,6 +1,5 @@
-@rendermode InteractiveServer
-@using Rsl.Web.Services
 @inject AuthService AuthService
+@inject NavigationManager NavigationManager
 @inject ThemeService ThemeService
 @implements IDisposable
 
@@ -26,7 +25,7 @@
             </button>
 
             <div class="user-menu">
-                <span class="user-name">@_authService.CurrentState.DisplayName</span>
+                <span class="user-name">@AuthService.CurrentState.DisplayName</span>
                 <button @onclick="HandleLogout" class="btn-text">Logout</button>
             </div>
         </div>
@@ -34,7 +33,6 @@
 </header>
 
 @code {
-    private AuthService _authService = default!;
     private ThemeService _themeService = default!;
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
@@ -48,7 +46,6 @@
 
     protected override void OnInitialized()
     {
-        _authService = AuthService;
         _themeService = ThemeService;
     }
 
@@ -57,9 +54,10 @@
         await _themeService.ToggleThemeAsync();
     }
 
-    private void HandleLogout()
+    private async Task HandleLogout()
     {
-        _authService.Logout();
+        await AuthService.LogoutAsync();
+        NavigationManager.NavigateTo("/", forceLoad: true);
     }
 
     public void Dispose()

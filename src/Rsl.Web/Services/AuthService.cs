@@ -1,17 +1,23 @@
 using System.Net.Http.Json;
+using Blazored.LocalStorage;
 using Microsoft.Extensions.Configuration;
 
 namespace Rsl.Web.Services;
 
 /// <summary>
 /// Authentication service that integrates with the RSL API.
+/// Uses localStorage for token persistence in WebAssembly.
 /// </summary>
 public class AuthService
 {
+    private const string AuthStateKey = "rsl_auth_state";
+
     private AuthState _currentState = new();
-    private readonly IHttpClientFactory _httpClientFactory;
+    private readonly HttpClient _httpClient;
+    private readonly ILocalStorageService _localStorage;
     private readonly IConfiguration _configuration;
     private readonly ILogger<AuthService> _logger;
+    private bool _isInitialized;
 
     public event Action? OnAuthStateChanged;
 
@@ -25,24 +31,40 @@ public class AuthService
             "New account registrations are currently closed. Please check back later.") ?? string.Empty;
 
     public AuthService(
-        IHttpClientFactory httpClientFactory,
+        HttpClient httpClient,
+        ILocalStorageService localStorage,
         IConfiguration configuration,
         ILogger<AuthService> logger)
     {
-        _httpClientFactory = httpClientFactory;
+        _httpClient = httpClient;
+        _localStorage = localStorage;
         _configuration = configuration;
         _logger = logger;
     }
 
-    private HttpClient CreateHttpClient()
+    /// <summary>
+    /// Initialize auth state from localStorage. Call this on app startup.
+    /// </summary>
+    public async Task InitializeAsync()
     {
-        var client = _httpClientFactory.CreateClient();
-        var apiBaseUrl = _configuration.GetValue<string>("ApiBaseUrl");
-        if (!string.IsNullOrEmpty(apiBaseUrl))
+        if (_isInitialized) return;
+
+        try
         {
-            client.BaseAddress = new Uri(apiBaseUrl);
+            var storedState = await _localStorage.GetItemAsync<AuthState>(AuthStateKey);
+            if (storedState?.IsAuthenticated == true && !string.IsNullOrEmpty(storedState.AccessToken))
+            {
+                _currentState = storedState;
+                OnAuthStateChanged?.Invoke();
+                _logger.LogInformation("Restored auth state from storage for user {Email}", storedState.Email);
+            }
         }
-        return client;
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Failed to restore auth state from storage");
+        }
+
+        _isInitialized = true;
     }
 
     public async Task<AuthResult> SignUpAsync(string email, string password, string? displayName)
@@ -60,8 +82,7 @@ public class AuthService
                 displayName = displayName
             };
 
-            using var httpClient = CreateHttpClient();
-            var response = await httpClient.PostAsJsonAsync("/api/v1/auth/register", request);
+            var response = await _httpClient.PostAsJsonAsync("/api/v1/auth/register", request);
 
             if (response.IsSuccessStatusCode)
             {
@@ -77,6 +98,7 @@ public class AuthService
                         AccessToken = result.AccessToken
                     };
 
+                    await PersistAuthStateAsync();
                     OnAuthStateChanged?.Invoke();
                     return new AuthResult { Success = true };
                 }
@@ -104,8 +126,7 @@ public class AuthService
                 password = password
             };
 
-            using var httpClient = CreateHttpClient();
-            var response = await httpClient.PostAsJsonAsync("/api/v1/auth/login", request);
+            var response = await _httpClient.PostAsJsonAsync("/api/v1/auth/login", request);
 
             if (response.IsSuccessStatusCode)
             {
@@ -121,6 +142,7 @@ public class AuthService
                         AccessToken = result.AccessToken
                     };
 
+                    await PersistAuthStateAsync();
                     OnAuthStateChanged?.Invoke();
                     return new AuthResult { Success = true };
                 }
@@ -135,10 +157,23 @@ public class AuthService
         }
     }
 
-    public void Logout()
+    public async Task LogoutAsync()
     {
         _currentState = new AuthState();
+        await _localStorage.RemoveItemAsync(AuthStateKey);
         OnAuthStateChanged?.Invoke();
+    }
+
+    private async Task PersistAuthStateAsync()
+    {
+        try
+        {
+            await _localStorage.SetItemAsync(AuthStateKey, _currentState);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Failed to persist auth state to storage");
+        }
     }
 }
 

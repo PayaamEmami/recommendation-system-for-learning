@@ -2,7 +2,6 @@ using System.Net.Http.Headers;
 using System.Net.Http.Json;
 using System.Text.Json;
 using System.Text.Json.Serialization;
-using Microsoft.Extensions.Configuration;
 using Rsl.Core.Enums;
 
 namespace Rsl.Web.Services;
@@ -12,8 +11,7 @@ namespace Rsl.Web.Services;
 /// </summary>
 public class FeedService
 {
-    private readonly IHttpClientFactory _httpClientFactory;
-    private readonly IConfiguration _configuration;
+    private readonly HttpClient _httpClient;
     private readonly AuthService _authService;
     private readonly ILogger<FeedService> _logger;
 
@@ -25,34 +23,22 @@ public class FeedService
     };
 
     public FeedService(
-        IHttpClientFactory httpClientFactory,
-        IConfiguration configuration,
+        HttpClient httpClient,
         AuthService authService,
         ILogger<FeedService> logger)
     {
-        _httpClientFactory = httpClientFactory;
-        _configuration = configuration;
+        _httpClient = httpClient;
         _authService = authService;
         _logger = logger;
     }
 
-    private HttpClient CreateHttpClient()
+    private void SetAuthHeader()
     {
-        var client = _httpClientFactory.CreateClient();
-        var apiBaseUrl = _configuration.GetValue<string>("ApiBaseUrl");
-        if (!string.IsNullOrEmpty(apiBaseUrl))
-        {
-            client.BaseAddress = new Uri(apiBaseUrl);
-        }
-
-        // Add authentication token if available
         if (!string.IsNullOrEmpty(_authService.CurrentState.AccessToken))
         {
-            client.DefaultRequestHeaders.Authorization =
+            _httpClient.DefaultRequestHeaders.Authorization =
                 new AuthenticationHeaderValue("Bearer", _authService.CurrentState.AccessToken);
         }
-
-        return client;
     }
 
     public async Task<List<ResourceItem>> GetFeedAsync(ResourceType? type = null)
@@ -65,10 +51,10 @@ public class FeedService
                 return new List<ResourceItem>();
             }
 
-            using var httpClient = CreateHttpClient();
+            SetAuthHeader();
 
             // Get today's recommendations from the API
-            var response = await httpClient.GetAsync("/api/v1/recommendations");
+            var response = await _httpClient.GetAsync("/api/v1/recommendations");
 
             if (!response.IsSuccessStatusCode)
             {
@@ -124,8 +110,8 @@ public class FeedService
                 return new List<VoteItem>();
             }
 
-            using var httpClient = CreateHttpClient();
-            var response = await httpClient.GetAsync("/api/v1/users/me/votes");
+            SetAuthHeader();
+            var response = await _httpClient.GetAsync("/api/v1/users/me/votes");
 
             if (!response.IsSuccessStatusCode)
             {
@@ -152,9 +138,9 @@ public class FeedService
                 return null;
             }
 
-            using var httpClient = CreateHttpClient();
+            SetAuthHeader();
             var request = new { voteType = voteType };
-            var response = await httpClient.PostAsJsonAsync($"/api/v1/resources/{resourceId}/vote", request, JsonOptions);
+            var response = await _httpClient.PostAsJsonAsync($"/api/v1/resources/{resourceId}/vote", request, JsonOptions);
 
             if (!response.IsSuccessStatusCode)
             {
@@ -182,8 +168,8 @@ public class FeedService
                 return false;
             }
 
-            using var httpClient = CreateHttpClient();
-            var response = await httpClient.DeleteAsync($"/api/v1/resources/{resourceId}/vote");
+            SetAuthHeader();
+            var response = await _httpClient.DeleteAsync($"/api/v1/resources/{resourceId}/vote");
 
             if (!response.IsSuccessStatusCode)
             {

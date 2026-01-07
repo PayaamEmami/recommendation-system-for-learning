@@ -1,14 +1,10 @@
 @page "/feeds"
-@rendermode InteractiveServer
-@using Rsl.Web.Services
 @using Rsl.Core.Enums
-@using Microsoft.JSInterop
 @inject AuthService AuthService
 @inject FeedService FeedService
 @inject SourceService SourceService
 @inject ThemeService ThemeService
 @inject NavigationManager Navigation
-@inject IJSRuntime JSRuntime
 @implements IDisposable
 
 <PageTitle>My Feed - RSL</PageTitle>
@@ -132,6 +128,8 @@
 
     protected override async Task OnInitializedAsync()
     {
+        await AuthService.InitializeAsync();
+
         if (!AuthService.CurrentState.IsAuthenticated)
         {
             Navigation.NavigateTo("/login");

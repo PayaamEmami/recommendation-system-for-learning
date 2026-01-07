@@ -250,7 +250,7 @@ module apiApp 'modules/container-app.bicep' = {
   }
 }
 
-// Web Container App
+// Web Container App (Blazor WebAssembly served via nginx - no env vars needed)
 module webApp 'modules/container-app.bicep' = {
   name: 'webAppDeployment'
   params: {
@@ -264,24 +264,7 @@ module webApp 'modules/container-app.bicep' = {
     applicationInsightsConnectionString: applicationInsights.outputs.connectionString
     minReplicas: 0
     maxReplicas: 3
-    environmentVariables: [
-      {
-        name: 'ASPNETCORE_ENVIRONMENT'
-        value: 'Production'
-      }
-      {
-        name: 'ApiBaseUrl'
-        value: apiApp.outputs.url
-      }
-      {
-        name: 'Registration__Enabled'
-        value: 'true'
-      }
-      {
-        name: 'APPLICATIONINSIGHTS_CONNECTION_STRING'
-        value: applicationInsights.outputs.connectionString
-      }
-    ]
+    environmentVariables: []
     tags: tags
   }
 }

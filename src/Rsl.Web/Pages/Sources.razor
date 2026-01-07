@@ -1,7 +1,5 @@
 @page "/sources"
 @page "/sources/{CategoryFilter}"
-@rendermode InteractiveServer
-@using Rsl.Web.Services
 @using Rsl.Core.Enums
 @inject AuthService AuthService
 @inject SourceService SourceService
@@ -70,7 +68,7 @@
             <div class="success-message">@_successMessage</div>
           }
 
-          <EditForm Model="@_newSource" OnValidSubmit="HandleAddSource" FormName="addSourceForm">
+          <EditForm Model="@_newSource" OnValidSubmit="HandleAddSource">
             <DataAnnotationsValidator />
             <div class="form-grid">
               <div class="form-group">
@@ -190,7 +188,7 @@
                 {
                   <div class="error-message compact">@_editErrorMessage</div>
                 }
-                <EditForm Model="@_editModel" OnValidSubmit="HandleUpdateSource" FormName="@($"editForm_{source.Id}")">
+                <EditForm Model="@_editModel" OnValidSubmit="HandleUpdateSource">
                   <DataAnnotationsValidator />
                   <div class="edit-grid">
                     <div class="form-group">
@@ -299,6 +297,8 @@
 
   protected override async Task OnInitializedAsync()
   {
+    await AuthService.InitializeAsync();
+
     if (!AuthService.CurrentState.IsAuthenticated)
     {
       Navigation.NavigateTo("/login");

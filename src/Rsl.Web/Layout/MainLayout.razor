@@ -1,0 +1,37 @@
+@inherits LayoutComponentBase
+@inject AuthService AuthService
+@implements IDisposable
+
+<CascadingValue Value="AuthService">
+    @if (_authService?.CurrentState.IsAuthenticated == true)
+    {
+        <AppHeader />
+    }
+
+    <main class="app-main">
+        @Body
+    </main>
+</CascadingValue>
+
+@code {
+    private AuthService? _authService;
+
+    protected override async Task OnInitializedAsync()
+    {
+        _authService = AuthService;
+
+        // Initialize auth state from localStorage
+        await _authService.InitializeAsync();
+
+        // Subscribe to auth state changes
+        _authService.OnAuthStateChanged += StateHasChanged;
+    }
+
+    public void Dispose()
+    {
+        if (_authService != null)
+        {
+            _authService.OnAuthStateChanged -= StateHasChanged;
+        }
+    }
+}

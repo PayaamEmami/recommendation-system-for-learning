@@ -1,6 +1,4 @@
 @page "/login"
-@rendermode InteractiveServer
-@using Rsl.Web.Services
 @inject AuthService AuthService
 @inject NavigationManager Navigation
 @inject ThemeService ThemeService
@@ -17,7 +15,7 @@
             <div class="error-message">@_errorMessage</div>
         }
 
-        <EditForm Model="@_model" OnValidSubmit="HandleLogin" FormName="loginForm">
+        <EditForm Model="@_model" OnValidSubmit="HandleLogin">
             <DataAnnotationsValidator />
 
             <div class="form-group">
@@ -55,6 +53,16 @@
     private string? _errorMessage;
     private bool _isLoading;
 
+    protected override async Task OnInitializedAsync()
+    {
+        await AuthService.InitializeAsync();
+
+        if (AuthService.CurrentState.IsAuthenticated)
+        {
+            Navigation.NavigateTo("/feeds");
+        }
+    }
+
     private async Task HandleLogin()
     {
         _isLoading = true;
@@ -79,14 +87,6 @@
         if (firstRender)
         {
             await ThemeService.InitializeAsync();
-        }
-    }
-
-    protected override void OnInitialized()
-    {
-        if (AuthService.CurrentState.IsAuthenticated)
-        {
-            Navigation.NavigateTo("/feeds");
         }
     }
 

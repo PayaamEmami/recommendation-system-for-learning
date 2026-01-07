@@ -1,45 +1,40 @@
 using System.Text.Json;
 using System.Text.Json.Serialization;
-using Rsl.Web.Components;
+using Blazored.LocalStorage;
+using Microsoft.AspNetCore.Components.Web;
+using Microsoft.AspNetCore.Components.WebAssembly.Hosting;
+using Rsl.Web;
 using Rsl.Web.Services;
 
-var builder = WebApplication.CreateBuilder(args);
+var builder = WebAssemblyHostBuilder.CreateDefault(args);
+builder.RootComponents.Add<App>("#app");
+builder.RootComponents.Add<HeadOutlet>("head::after");
 
-// Add services to the container.
-builder.Services.AddRazorComponents()
-    .AddInteractiveServerComponents();
-
-// Configure JSON serialization options for HttpClient
-builder.Services.ConfigureHttpJsonOptions(options =>
+// Configure JSON serialization options
+var jsonOptions = new JsonSerializerOptions
 {
-    options.SerializerOptions.PropertyNameCaseInsensitive = true;
-    options.SerializerOptions.PropertyNamingPolicy = JsonNamingPolicy.CamelCase;
-    options.SerializerOptions.Converters.Add(new JsonStringEnumConverter());
+    PropertyNameCaseInsensitive = true,
+    PropertyNamingPolicy = JsonNamingPolicy.CamelCase
+};
+jsonOptions.Converters.Add(new JsonStringEnumConverter());
+
+// Add Blazored LocalStorage for token persistence
+builder.Services.AddBlazoredLocalStorage(config =>
+{
+    config.JsonSerializerOptions.PropertyNameCaseInsensitive = true;
+    config.JsonSerializerOptions.PropertyNamingPolicy = JsonNamingPolicy.CamelCase;
+    config.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter());
 });
 
-// Register HttpClient and application services
-builder.Services.AddHttpClient();
-builder.Services.AddSingleton<AuthService>();
+// Register HttpClient with base address from configuration
+var apiBaseUrl = builder.Configuration.GetValue<string>("ApiBaseUrl") 
+    ?? "https://localhost:5001";
+builder.Services.AddScoped(sp => new HttpClient { BaseAddress = new Uri(apiBaseUrl) });
+
+// Register application services
+builder.Services.AddScoped<AuthService>();
 builder.Services.AddScoped<ThemeService>();
 builder.Services.AddScoped<SourceService>();
 builder.Services.AddScoped<FeedService>();
 
-var app = builder.Build();
-
-// Configure the HTTP request pipeline.
-if (!app.Environment.IsDevelopment())
-{
-    app.UseExceptionHandler("/Error", createScopeForErrors: true);
-    // The default HSTS value is 30 days. You may want to change this for production scenarios, see https://aka.ms/aspnetcore-hsts.
-    app.UseHsts();
-}
-app.UseStatusCodePagesWithReExecute("/not-found", createScopeForStatusCodePages: true);
-app.UseHttpsRedirection();
-
-app.UseAntiforgery();
-
-app.MapStaticAssets();
-app.MapRazorComponents<App>()
-    .AddInteractiveServerRenderMode();
-
-app.Run();
+await builder.Build().RunAsync();
