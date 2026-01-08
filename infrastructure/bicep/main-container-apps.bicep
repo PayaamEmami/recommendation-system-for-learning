@@ -41,8 +41,6 @@ param jwtSecretKey string
 @description('Container image tag for API app')
 param apiImageTag string = 'latest'
 
-@description('Container image tag for Web app')
-param webImageTag string = 'latest'
 
 @description('Container image tag for Jobs')
 param jobsImageTag string = 'latest'
@@ -235,7 +233,7 @@ module apiApp 'modules/container-app.bicep' = {
       }
       {
         name: 'Cors__AllowedOrigins__0'
-        value: 'https://${resourcePrefix}-web.${containerAppsEnvironment.outputs.defaultDomain}'
+        value: staticWebApp.outputs.url
       }
       {
         name: 'Registration__Enabled'
@@ -250,21 +248,13 @@ module apiApp 'modules/container-app.bicep' = {
   }
 }
 
-// Web Container App (Blazor WebAssembly served via nginx - no env vars needed)
-module webApp 'modules/container-app.bicep' = {
-  name: 'webAppDeployment'
+// Static Web App (Blazor WebAssembly)
+module staticWebApp 'modules/static-web-app.bicep' = {
+  name: 'staticWebAppDeployment'
   params: {
     name: '${resourcePrefix}-web'
-    location: location
-    environmentId: containerAppsEnvironment.outputs.id
-    containerRegistryName: containerRegistry.outputs.name
-    imageName: 'rsl-web'
-    imageTag: webImageTag
-    keyVaultName: keyVault.outputs.name
-    applicationInsightsConnectionString: applicationInsights.outputs.connectionString
-    minReplicas: 0
-    maxReplicas: 3
-    environmentVariables: []
+    location: 'westus2' // Static Web Apps have limited region availability
+    sku: 'Free'
     tags: tags
   }
 }
@@ -407,7 +397,8 @@ output sqlServerFqdn string = sqlServer.outputs.serverFqdn
 output keyVaultName string = keyVault.outputs.name
 output containerAppsEnvironmentName string = containerAppsEnvironment.outputs.name
 output apiAppUrl string = apiApp.outputs.url
-output webAppUrl string = webApp.outputs.url
+output staticWebAppUrl string = staticWebApp.outputs.url
+output staticWebAppDeploymentToken string = staticWebApp.outputs.deploymentToken
 output ingestionJobName string = ingestionJob.outputs.name
 output feedGenerationJobName string = feedGenerationJob.outputs.name
 output applicationInsightsConnectionString string = applicationInsights.outputs.connectionString

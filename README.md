@@ -20,33 +20,39 @@ RSL provides:
 ## Technology Stack
 
 ### Backend
+
 - **.NET 10** with C#
 - **ASP.NET Core** for REST API
 - **Entity Framework Core** for data access
-- **Blazor Server** for interactive web UI
+- **Blazor WebAssembly** for interactive web UI
 
 ### Cloud & Infrastructure (Azure)
-- **Azure Container Apps** - Serverless container hosting with auto-scaling
+
+- **Azure Static Web Apps** - Free hosting for Blazor WebAssembly frontend
+- **Azure Container Apps** - Serverless container hosting for API
 - **Azure Container Apps Jobs** - Scheduled cron-based job execution
 - **Azure AI Search** - Vector database for semantic similarity search
-- **Azure OpenAI** - GPT-4 and text-embedding-3-small models
+- **OpenAI API** - GPT-5-nano and text-embedding-3-small models
 - **Azure SQL Database** - Application data storage
 - **Azure Container Registry** - Container image storage
 - **Azure Key Vault** - Secure secrets management
 - **Application Insights** - Monitoring and telemetry
 
 ### AI & Machine Learning
-- **Vector Embeddings** (text-embedding-3-small)
+
+- **Vector Embeddings** (text-embedding-3-small via OpenAI API)
 - **Semantic Search** via Azure AI Search
-- **LLM Agents** with function calling (GPT-4)
+- **LLM Agents** with function calling (GPT-5-nano via OpenAI API)
 - **Hybrid Recommendation Engine** (70% vector similarity, 30% heuristics)
 
 ### DevOps & Deployment
+
 - **Docker** - Containerization
 - **GitHub Actions** - CI/CD pipelines
 - **Azure Bicep** - Infrastructure as Code
 
 ### Security & Authentication
+
 - **JWT Authentication** - JSON Web Tokens
 - **Password Hashing** - ASP.NET Core Identity
 - **Rate Limiting** - API throttling
@@ -56,13 +62,16 @@ RSL provides:
 
 At a high level, RSL is composed of:
 
-### 🎨 Blazor Server Frontend
-- Interactive web UI with multiple feed types (Papers, Videos, Blogs)
+### 🎨 Blazor WebAssembly Frontend
+
+- Client-side interactive web UI hosted on Azure Static Web Apps (Free tier)
+- Multiple feed types (Papers, Videos, Blogs)
 - User flows for browsing personalized feeds and managing sources
-- Real-time updates and responsive design
-- Dark/Light theme support
+- Responsive design with Dark/Light theme support
+- Offline-capable with local storage for auth persistence
 
 ### 🔧 .NET Backend + REST API
+
 - Central application layer (business logic, validation, orchestration)
 - JWT-based authentication with refresh tokens
 - API versioning and rate limiting
@@ -74,6 +83,7 @@ At a high level, RSL is composed of:
   - Personalized recommendations
 
 ### 📡 Data Ingestion Layer
+
 - Pulls content from user-configured sources:
   - RSS/Atom feeds (blogs, papers, news)
   - YouTube channels
@@ -82,6 +92,7 @@ At a high level, RSL is composed of:
 - Associates resources with their originating Source
 
 ### 🤖 Recommendation Engine
+
 - **Hybrid recommendation system** combining:
   - **Vector similarity search** using text embeddings (primary signal, 70% weight)
     - Resources embedded using Azure OpenAI embeddings
@@ -94,15 +105,18 @@ At a high level, RSL is composed of:
 - Filters for diversity, deduplication, and personalization
 
 ### 🧠 LLM Orchestration Layer
+
 - **Ingestion Agent**: LLM-powered content extraction from any URL
   - Automatically categorizes resources (Papers, Videos, Blogs, etc.)
   - Extracts metadata and handles duplicate detection
   - Flexible, no custom parsers needed per source
 
 ### ⏰ Background Jobs & Scheduling
+
 Jobs are implemented as **Azure Container Apps Jobs** with cron scheduling:
 
 - **Source Ingestion Job**: Runs daily at midnight UTC
+
   - Pulls new content from all active sources using LLM agent
   - Generates embeddings for new resources via Azure OpenAI
   - Indexes resources in Azure AI Search vector database
@@ -119,23 +133,28 @@ Jobs are implemented as **Azure Container Apps Jobs** with cron scheduling:
 **Benefits**: No retries on failure to prevent repeated API calls, schedule visible in Azure Portal, can be triggered manually
 
 ### ☁️ Infrastructure (Azure)
-- **Azure Container Apps**: Serverless container hosting for API and Web (auto-scaling)
+
+- **Azure Static Web Apps**: Free hosting for Blazor WebAssembly frontend (global CDN)
+- **Azure Container Apps**: Serverless container hosting for API (auto-scaling)
 - **Azure Container Apps Jobs**: Scheduled job execution with cron triggers (cost-efficient)
 - **Azure AI Search**: Vector database for semantic similarity search
-- **Azure OpenAI**: Embedding generation with text-embedding-3-small and GPT-4
+- **OpenAI API**: Embedding generation with text-embedding-3-small and GPT-5-nano
 - **Azure SQL Database**: Application data storage
 - **Azure Container Registry**: Docker image storage
 - **Azure Key Vault**: Secure secrets management
 - **Application Insights**: Monitoring and telemetry
 
 ### 🚀 Deployment & CI/CD
-- **Containerized Microservices**:
-  - 2 Container Apps (API, Web) - Always running
+
+- **Hybrid Hosting**:
+  - 1 Static Web App (Web) - Free tier with global CDN
+  - 1 Container App (API) - Auto-scaling serverless
   - 2 Container Apps Jobs (Ingestion, Feed Generation) - Scheduled execution
 - **GitHub Actions**: Automated CI/CD pipeline
   - Builds and tests on every push
   - Pushes Docker images to Azure Container Registry
-  - Deploys to Azure Container Apps and Jobs automatically
+  - Deploys API/Jobs to Container Apps
+  - Deploys Web to Static Web Apps
 - **Infrastructure as Code**: Azure Bicep templates for reproducible deployments
 - **Database Migrations**: Automated via EF Core on startup
 
@@ -152,7 +171,7 @@ recommendation-system-for-learning/
 │  ├─ Rsl.Jobs/             # Background workers (source ingestion, feed generation)
 │  ├─ Rsl.Recommendation/   # Recommendation engine (scoring, filtering, personalization)
 │  ├─ Rsl.Llm/              # LLM-based ingestion agent with function calling
-│  └─ Rsl.Web/              # Blazor Server frontend (UI, pages, components)
+│  └─ Rsl.Web/              # Blazor WebAssembly frontend (UI, pages, components)
 │
 ├─ tests/
 │  └─ Rsl.Tests/            # Unit and integration tests

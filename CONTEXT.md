@@ -7,8 +7,8 @@
 **Tech Stack**:
 
 - **Backend**: .NET 10, ASP.NET Core, Entity Framework Core
-- **Frontend**: Blazor WebAssembly (client-side, served via nginx)
-- **Cloud**: Azure Container Apps, AI Search, SQL Database
+- **Frontend**: Blazor WebAssembly (Azure Static Web Apps)
+- **Cloud**: Azure Container Apps, Static Web Apps, AI Search, SQL Database
 - **AI**: OpenAI API (GPT-5-nano, text-embedding-3-small)
 
 ## Architecture
@@ -16,7 +16,7 @@
 ### Core Services
 
 1. **Rsl.Api** - REST API with JWT authentication (Container App)
-2. **Rsl.Web** - Blazor WebAssembly web UI (Container App, nginx static hosting)
+2. **Rsl.Web** - Blazor WebAssembly web UI (Azure Static Web Apps - Free tier)
 3. **Rsl.Jobs** - Scheduled jobs (Container Apps Jobs):
    - **Ingestion Job**: Runs daily at midnight UTC
    - **Feed Generation Job**: Runs daily at 2 AM UTC
@@ -27,7 +27,8 @@
 
 ### Azure Resources
 
-- 2 Container Apps (API, Web)
+- 1 Container App (API)
+- 1 Static Web App (Web - Free tier)
 - 2 Container Apps Jobs (Ingestion, Feed Generation)
 - Azure AI Search (vector database)
 - Azure SQL Database
@@ -60,18 +61,25 @@ SQL_CONNECTION_STRING
 
 ### Registration
 
-**Toggle user registration** in `infrastructure/bicep/main-container-apps.bicep`:
+**Toggle user registration**:
+
+1. **API** - Update in `infrastructure/bicep/main-container-apps.bicep`:
 
 ```
 Registration__Enabled: 'true'  // Allow new user registrations
 Registration__Enabled: 'false' // Block new registrations
 ```
 
-**Update both API and Web apps** (two places in the file). Or via Azure CLI:
+Or via Azure CLI:
 
 ```bash
 az containerapp update --name rsl-dev-api --resource-group rsl-dev-rg --set-env-vars "Registration__Enabled=true"
-az containerapp update --name rsl-dev-web --resource-group rsl-dev-rg --set-env-vars "Registration__Enabled=true"
+```
+
+2. **Web** - Update in `src/Rsl.Web/wwwroot/appsettings.json` (requires redeploy):
+
+```json
+"Registration": { "Enabled": true }
 ```
 
 ### Files
@@ -168,9 +176,8 @@ dotnet ef database update --project src/Rsl.Infrastructure --startup-project src
 # Deploy infrastructure
 cd infrastructure/scripts && ./deploy.sh dev rsl-dev-rg westus
 
-# Logs (Container Apps)
+# Logs (API Container App)
 az containerapp logs show --name rsl-dev-api --resource-group rsl-dev-rg --tail 100 --follow
-az containerapp logs show --name rsl-dev-web --resource-group rsl-dev-rg --tail 100 --follow
 
 # Logs (Container Apps Jobs - requires execution name)
 az containerapp job logs show --name rsl-dev-ingestion-job --resource-group rsl-dev-rg --execution <execution-name>

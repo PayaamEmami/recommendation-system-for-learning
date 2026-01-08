@@ -62,16 +62,6 @@ jobs:
           ${{ env.REGISTRY_NAME }}.azurecr.io/rsl-api:latest
           ${{ env.REGISTRY_NAME }}.azurecr.io/rsl-api:${{ github.sha }}
 
-    - name: Build and push Web Docker image
-      uses: docker/build-push-action@v5
-      with:
-        context: .
-        file: ./src/Rsl.Web/Dockerfile
-        push: true
-        tags: |
-          ${{ env.REGISTRY_NAME }}.azurecr.io/rsl-web:latest
-          ${{ env.REGISTRY_NAME }}.azurecr.io/rsl-web:${{ github.sha }}
-
     - name: Build and push Jobs Docker image
       uses: docker/build-push-action@v5
       with:
@@ -81,6 +71,16 @@ jobs:
         tags: |
           ${{ env.REGISTRY_NAME }}.azurecr.io/rsl-jobs:latest
           ${{ env.REGISTRY_NAME }}.azurecr.io/rsl-jobs:${{ github.sha }}
+
+    # Build Blazor WebAssembly for Static Web Apps deployment
+    - name: Publish Blazor WebAssembly
+      run: dotnet publish src/Rsl.Web/Rsl.Web.csproj -c Release -o publish/web
+
+    - name: Upload Web artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: web-app
+        path: publish/web/wwwroot
 
   deploy:
     needs: build
@@ -93,14 +93,21 @@ jobs:
     - name: Checkout code
       uses: actions/checkout@v4
 
+    - name: Download Web artifact
+      uses: actions/download-artifact@v4
+      with:
+        name: web-app
+        path: web-app
+
     - name: Azure Login
       uses: azure/login@v2
       with:
         creds: ${{ secrets.AZURE_CREDENTIALS }}
 
     - name: Deploy Bicep Infrastructure
+      id: bicep
       run: |
-        az deployment group create \
+        OUTPUT=$(az deployment group create \
           --resource-group ${{ secrets.AZURE_RESOURCE_GROUP }} \
           --template-file infrastructure/bicep/main-container-apps.bicep \
           --parameters \
@@ -113,8 +120,23 @@ jobs:
             azureSearchApiKey=${{ secrets.AZURE_SEARCH_API_KEY }} \
             jwtSecretKey=${{ secrets.JWT_SECRET_KEY }} \
             apiImageTag=${{ github.sha }} \
-            webImageTag=${{ github.sha }} \
-            jobsImageTag=${{ github.sha }}
+            jobsImageTag=${{ github.sha }} \
+          --query 'properties.outputs' -o json)
+        
+        # Extract Static Web App deployment token
+        DEPLOYMENT_TOKEN=$(echo $OUTPUT | jq -r '.staticWebAppDeploymentToken.value')
+        echo "::add-mask::$DEPLOYMENT_TOKEN"
+        echo "swa_token=$DEPLOYMENT_TOKEN" >> $GITHUB_OUTPUT
+
+    - name: Deploy to Azure Static Web Apps
+      uses: Azure/static-web-apps-deploy@v1
+      with:
+        azure_static_web_apps_api_token: ${{ steps.bicep.outputs.swa_token }}
+        repo_token: ${{ secrets.GITHUB_TOKEN }}
+        action: 'upload'
+        app_location: 'web-app'
+        skip_app_build: true
+        skip_api_build: true
 
     - name: Run Database Migrations
       run: |
