@@ -31,17 +31,42 @@ dotnet publish src/Rsl.Web/Rsl.Web.csproj -c Release -o publish/web
 log_info "Uploading to S3..."
 aws s3 sync publish/web/wwwroot s3://$BUCKET_NAME --delete --region $REGION
 
-# Set cache headers for static assets
+# Set cache headers and content types for static assets
 log_info "Setting cache headers..."
 aws s3 cp s3://$BUCKET_NAME/ s3://$BUCKET_NAME/ \
     --recursive \
     --exclude "*" \
     --include "*.js" \
+    --metadata-directive REPLACE \
+    --cache-control "max-age=31536000" \
+    --content-type "application/javascript" \
+    --region $REGION
+
+aws s3 cp s3://$BUCKET_NAME/ s3://$BUCKET_NAME/ \
+    --recursive \
+    --exclude "*" \
     --include "*.css" \
+    --metadata-directive REPLACE \
+    --cache-control "max-age=31536000" \
+    --content-type "text/css" \
+    --region $REGION
+
+aws s3 cp s3://$BUCKET_NAME/ s3://$BUCKET_NAME/ \
+    --recursive \
+    --exclude "*" \
     --include "*.woff2" \
+    --metadata-directive REPLACE \
+    --cache-control "max-age=31536000" \
+    --content-type "font/woff2" \
+    --region $REGION
+
+aws s3 cp s3://$BUCKET_NAME/ s3://$BUCKET_NAME/ \
+    --recursive \
+    --exclude "*" \
     --include "*.wasm" \
     --metadata-directive REPLACE \
     --cache-control "max-age=31536000" \
+    --content-type "application/wasm" \
     --region $REGION
 
 # HTML files should not be cached as aggressively
