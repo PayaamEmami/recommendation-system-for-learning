@@ -16,6 +16,7 @@ RSL provides:
   - Blogs
 - **Hybrid recommendation engine** combining vector embeddings with heuristic signals for personalized content discovery.
 - **Vote on resources** (upvote/downvote) to refine recommendations based on your preferences.
+- **Connect X accounts** to show a personalized X feed above recommendations (read-only, user selects followed accounts).
 
 ## Technology Stack
 

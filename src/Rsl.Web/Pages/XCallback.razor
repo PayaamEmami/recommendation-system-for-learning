@@ -1,0 +1,50 @@
+@page "/x/callback"
+@using Microsoft.AspNetCore.Components
+@inject AuthService AuthService
+@inject XFeedService XFeedService
+@inject NavigationManager Navigation
+
+<PageTitle>Connecting X - RSL</PageTitle>
+
+<div class="page-container">
+    <div class="page-header">
+        <h1>Connecting your X account</h1>
+        <p class="subtitle">@_statusMessage</p>
+    </div>
+</div>
+
+@code {
+    [SupplyParameterFromQuery(Name = "code")]
+    public string? Code { get; set; }
+
+    [SupplyParameterFromQuery(Name = "state")]
+    public string? State { get; set; }
+
+    private string _statusMessage = "Finalizing connection...";
+
+    protected override async Task OnInitializedAsync()
+    {
+        await AuthService.InitializeAsync();
+
+        if (!AuthService.CurrentState.IsAuthenticated)
+        {
+            Navigation.NavigateTo("/login");
+            return;
+        }
+
+        if (string.IsNullOrWhiteSpace(Code) || string.IsNullOrWhiteSpace(State))
+        {
+            _statusMessage = "Missing authorization details. Please try again.";
+            return;
+        }
+
+        var success = await XFeedService.HandleCallbackAsync(Code, State);
+        _statusMessage = success ? "Connected! Redirecting to your feed..." : "Failed to connect. Please try again.";
+
+        if (success)
+        {
+            await Task.Delay(800);
+            Navigation.NavigateTo("/feeds");
+        }
+    }
+}

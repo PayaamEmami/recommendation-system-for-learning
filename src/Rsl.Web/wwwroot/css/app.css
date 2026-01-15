@@ -200,6 +200,155 @@ a:hover {
 }
 
 /* ============================================
+   X Feed
+   ============================================ */
+
+.x-feed-container {
+    background-color: var(--bg-primary);
+    border: 1px solid var(--border-color);
+    border-radius: 12px;
+    padding: 1.5rem;
+    margin-bottom: 2rem;
+    box-shadow: 0 2px 6px var(--shadow);
+}
+
+.x-feed-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 1.5rem;
+    margin-bottom: 1.5rem;
+}
+
+.x-feed-actions {
+    display: flex;
+    gap: 0.75rem;
+}
+
+.x-feed-error {
+    background-color: rgba(220, 53, 69, 0.1);
+    color: var(--error-color);
+    padding: 0.75rem 1rem;
+    border-radius: 8px;
+    margin-bottom: 1rem;
+}
+
+.x-empty-state {
+    color: var(--text-secondary);
+    margin-bottom: 1rem;
+}
+
+.x-followed-list {
+    margin-bottom: 1.5rem;
+}
+
+.x-followed-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1rem;
+}
+
+.x-followed-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+    gap: 0.75rem;
+}
+
+.x-followed-item {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    border: 1px solid var(--border-color);
+    padding: 0.5rem 0.75rem;
+    border-radius: 10px;
+    background-color: var(--bg-secondary);
+}
+
+.x-followed-item input {
+    margin-right: 0.25rem;
+}
+
+.x-followed-item img {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+}
+
+.x-followed-name {
+    font-weight: 600;
+}
+
+.x-followed-handle {
+    color: var(--text-secondary);
+    font-size: 0.85rem;
+}
+
+.x-post-carousel {
+    display: flex;
+    gap: 1rem;
+    overflow-x: auto;
+    padding-bottom: 0.5rem;
+}
+
+.x-post-card {
+    min-width: 280px;
+    max-width: 320px;
+    background-color: var(--bg-secondary);
+    border: 1px solid var(--border-color);
+    border-radius: 12px;
+    padding: 1rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+}
+
+.x-post-header {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+}
+
+.x-post-header img {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+}
+
+.x-post-author {
+    font-weight: 600;
+}
+
+.x-post-handle {
+    color: var(--text-secondary);
+    font-size: 0.85rem;
+}
+
+.x-post-text {
+    font-size: 0.95rem;
+}
+
+.x-post-media {
+    width: 100%;
+    border-radius: 10px;
+    max-height: 180px;
+    object-fit: cover;
+}
+
+.x-post-meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+    color: var(--text-secondary);
+    font-size: 0.85rem;
+}
+
+.x-post-link {
+    margin-top: auto;
+    font-weight: 600;
+}
+
+/* ============================================
    Buttons
    ============================================ */
 

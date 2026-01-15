@@ -52,6 +52,7 @@ builder.Services.AddRegistrationSettings(builder.Configuration);
 
 // Add Infrastructure layer (DbContext, repositories)
 builder.Services.AddInfrastructure(builder.Configuration);
+builder.Services.AddDataProtection();
 
 // Add Recommendation Engine
 builder.Services.AddRecommendationEngine();
@@ -66,6 +67,7 @@ builder.Services.AddScoped<Rsl.Api.Services.ISourceService, Rsl.Api.Services.Sou
 builder.Services.AddScoped<Rsl.Api.Services.IResourceService, Rsl.Api.Services.ResourceService>();
 builder.Services.AddScoped<Rsl.Api.Services.IVoteService, Rsl.Api.Services.VoteService>();
 builder.Services.AddScoped<Rsl.Api.Services.IRecommendationService, Rsl.Api.Services.RecommendationService>();
+builder.Services.AddScoped<Rsl.Api.Services.IXAccountService, Rsl.Api.Services.XAccountService>();
 
 // Add health checks
 builder.Services.AddHealthChecks()

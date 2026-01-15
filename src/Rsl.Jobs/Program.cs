@@ -12,11 +12,13 @@ var builder = Host.CreateApplicationBuilder(args);
 builder.Services.AddInfrastructure(builder.Configuration);
 builder.Services.AddLlmServices(builder.Configuration);
 builder.Services.AddRecommendationEngine();
+builder.Services.AddDataProtection();
 
 // Jobs
 builder.Services.AddScoped<SourceIngestionJob>();
 builder.Services.AddScoped<DailyFeedGenerationJob>();
 builder.Services.AddScoped<ReindexJob>();
+builder.Services.AddScoped<XIngestionJob>();
 
 var host = builder.Build();
 
@@ -48,6 +50,7 @@ if (string.IsNullOrWhiteSpace(jobName))
   Console.WriteLine("  ingestion     - Run source ingestion job");
   Console.WriteLine("  feed          - Run daily feed generation job");
   Console.WriteLine("  reindex       - Reindex all resources in vector store");
+  Console.WriteLine("  x-ingestion   - Run X post ingestion job");
   Environment.Exit(1);
 }
 
@@ -79,10 +82,16 @@ using (var scope = host.Services.CreateScope())
         logger.LogInformation("Reindex job completed successfully");
         break;
 
+      case "x-ingestion":
+        var xIngestionJob = scope.ServiceProvider.GetRequiredService<XIngestionJob>();
+        await xIngestionJob.ExecuteAsync(CancellationToken.None);
+        logger.LogInformation("X ingestion job completed successfully");
+        break;
+
       default:
         logger.LogError("Unknown job name: {JobName}", jobName);
         Console.WriteLine($"Error: Unknown job '{jobName}'");
-        Console.WriteLine("Available jobs: ingestion, feed, reindex");
+        Console.WriteLine("Available jobs: ingestion, feed, reindex, x-ingestion");
         Environment.Exit(1);
         break;
     }

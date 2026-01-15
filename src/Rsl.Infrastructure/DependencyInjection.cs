@@ -37,14 +37,20 @@ public static class DependencyInjection
     services.AddScoped<IResourceRepository, ResourceRepository>();
     services.AddScoped<IResourceVoteRepository, ResourceVoteRepository>();
     services.AddScoped<IRecommendationRepository, RecommendationRepository>();
+    services.AddScoped<IXConnectionRepository, XConnectionRepository>();
+    services.AddScoped<IXFollowedAccountRepository, XFollowedAccountRepository>();
+    services.AddScoped<IXSelectedAccountRepository, XSelectedAccountRepository>();
+    services.AddScoped<IXPostRepository, XPostRepository>();
 
     // Register configuration settings
     services.Configure<EmbeddingSettings>(configuration.GetSection(EmbeddingSettings.SectionName));
     services.Configure<OpenSearchSettings>(configuration.GetSection(OpenSearchSettings.SectionName));
+    services.Configure<XApiSettings>(configuration.GetSection(XApiSettings.SectionName));
 
     // Register embedding service (OpenAI)
     services.AddHttpClient();
     services.AddSingleton<IEmbeddingService, OpenAIEmbeddingService>();
+    services.AddHttpClient<IXApiClient, XApiClient>();
 
     // Register vector store (OpenSearch)
     services.AddSingleton<IVectorStore, OpenSearchVectorStore>();

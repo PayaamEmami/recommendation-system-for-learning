@@ -22,6 +22,10 @@ public class RslDbContext : DbContext
     public DbSet<BlogPost> BlogPosts { get; set; }
     public DbSet<ResourceVote> ResourceVotes { get; set; }
     public DbSet<Recommendation> Recommendations { get; set; }
+    public DbSet<XConnection> XConnections { get; set; }
+    public DbSet<XFollowedAccount> XFollowedAccounts { get; set; }
+    public DbSet<XSelectedAccount> XSelectedAccounts { get; set; }
+    public DbSet<XPost> XPosts { get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {

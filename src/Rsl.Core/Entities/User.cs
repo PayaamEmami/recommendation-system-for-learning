@@ -48,5 +48,25 @@ public class User
     /// Recommendations generated for this user.
     /// </summary>
     public List<Recommendation> Recommendations { get; set; } = new();
+
+    /// <summary>
+    /// Connected X accounts for this user (usually one).
+    /// </summary>
+    public List<XConnection> XConnections { get; set; } = new();
+
+    /// <summary>
+    /// X accounts the user follows.
+    /// </summary>
+    public List<XFollowedAccount> XFollowedAccounts { get; set; } = new();
+
+    /// <summary>
+    /// X accounts selected by the user for their feed.
+    /// </summary>
+    public List<XSelectedAccount> XSelectedAccounts { get; set; } = new();
+
+    /// <summary>
+    /// Posts ingested for the user's X feed.
+    /// </summary>
+    public List<XPost> XPosts { get; set; } = new();
 }
 
