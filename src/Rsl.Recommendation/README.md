@@ -15,7 +15,7 @@ The system uses a **hybrid recommendation approach** combining semantic similari
 ```
 User Embedding (from upvotes) → Vector Search → Heuristic Scoring → Filtering → Ranked Recommendations
                                       ↓
-                            Azure AI Search (Vector DB)
+                            OpenSearch (Vector DB)
 ```
 
 **Primary Signal (70% weight)**: Vector similarity using embeddings
@@ -24,6 +24,7 @@ User Embedding (from upvotes) → Vector Search → Heuristic Scoring → Filter
 ### Components
 
 #### 1. **Models**
+
 - `UserInterestProfile` - User preference representation
   - `UserEmbedding` - Aggregated embedding vector from upvoted resources (primary)
   - `TopicScores` - Source preference scores (legacy, used by heuristic scorers)
@@ -31,6 +32,7 @@ User Embedding (from upvotes) → Vector Search → Heuristic Scoring → Filter
 - `RecommendationContext` - Context for generating recommendations
 
 #### 2. **Engine**
+
 - `HybridRecommendationEngine` - Main orchestrator:
   1. **Vector Search Phase**: Get candidates via semantic similarity using user embedding
   2. **Heuristic Scoring Phase**: Apply traditional signals (recency, source, votes)
@@ -38,16 +40,19 @@ User Embedding (from upvotes) → Vector Search → Heuristic Scoring → Filter
   4. **Ranking Phase**: Combine scores (70% vector + 30% heuristic) and sort
 
 #### 3. **Scorers** (Heuristic Signals)
+
 - `SourceScorer` (50% of heuristic weight) - Matches resources to user's preferred sources
 - `RecencyScorer` (30% of heuristic weight) - Exponential decay favoring newer content
 - `VoteHistoryScorer` (20% of heuristic weight) - Scores based on voting patterns
 - `CompositeScorer` - Combines heuristic scorers into weighted score
 
 #### 4. **Filters**
+
 - `SeenResourceFilter` - Removes already-seen and recently-recommended resources
 - `DiversityFilter` - Ensures source diversity, prevents over-representation
 
 #### 5. **Services**
+
 - `UserProfileService` - Builds user profiles:
   - Generates user embedding by averaging embeddings of upvoted resources
   - Calculates source preference scores for legacy scorers
@@ -60,7 +65,7 @@ User Embedding (from upvotes) → Vector Search → Heuristic Scoring → Filter
 1. **Build User Profile**:
    - Aggregate embeddings of all upvoted resources → User embedding vector
    - Calculate source preference scores from voting history (for heuristic scorers)
-2. **Vector Search**: Query Azure AI Search for semantically similar resources
+2. **Vector Search**: Query OpenSearch for semantically similar resources
    - Uses user embedding as query vector
    - Applies filters: resource type, recency (90 days), exclude seen/recommended
    - Returns top candidates with similarity scores
@@ -122,19 +127,22 @@ var allRecommendations = await feedGenerator.GenerateAllFeedsAsync(
 ## Dependencies
 
 The recommendation engine integrates with:
-- **Azure AI Search** (via `IVectorStore`) - Semantic similarity search
-- **Azure OpenAI** (via `IEmbeddingService`) - Text embedding generation
-- **SQL Server** (via EF Core repositories) - Persistence
+
+- **OpenSearch** (via `IVectorStore`) - Semantic similarity search
+- **OpenAI** (via `IEmbeddingService`) - Text embedding generation
+- **PostgreSQL** (via EF Core repositories) - Persistence
 
 ## Future Enhancements
 
 ### Phase 2: Advanced Features
+
 - **Multi-modal embeddings**: Combine text with metadata (authors, topics, citations)
 - **Temporal dynamics**: Weight recent upvotes more heavily in user embedding
 - **Collaborative signals**: Leverage similar users' preferences
 - **Fine-tuned embeddings**: Domain-specific embedding models for academic content
 
 ### Phase 3: LLM Integration
+
 - **Explanation generation**: LLM-generated reasons for each recommendation
 - **Query refinement**: Natural language queries to adjust recommendations
 - **Study plan generation**: Personalized learning paths based on goals
@@ -150,6 +158,7 @@ The engine handles cold start gracefully:
 ## Configuration
 
 Default settings:
+
 - Feed count: 5 recommendations per feed
 - Candidate window: Last 90 days
 - Diversity limit: Max 3 resources per source
@@ -161,8 +170,9 @@ These can be adjusted in the respective scorer/filter implementations.
 ## Configuration
 
 The engine requires:
-- Azure AI Search configured with vector index (via `IVectorStore`)
-- Azure OpenAI embeddings service (via `IEmbeddingService`)
+
+- OpenSearch configured with vector index (via `IVectorStore`)
+- OpenAI embeddings service (via `IEmbeddingService`)
 - Database with user votes and resources
 
 See `Rsl.Infrastructure` for configuration details.
@@ -170,4 +180,3 @@ See `Rsl.Infrastructure` for configuration details.
 ## Testing
 
 See `Rsl.Tests` project for unit and integration tests.
-

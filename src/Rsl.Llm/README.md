@@ -11,16 +11,18 @@ This project provides an intelligent, LLM-based agent that can automatically ext
 - **Flexible URL Ingestion**: Provide any URL (YouTube channel, blog, arXiv listing, etc.) and the agent extracts resources
 - **Automatic Categorization**: LLM categorizes resources into Papers, Videos, or BlogPosts
 - **Rich Metadata Extraction**: Extracts titles, descriptions, URLs, and type-specific metadata (authors, duration, DOI, etc.)
-- **Provider Agnostic**: Abstracted `ILlmClient` allows switching between OpenAI, Azure OpenAI, or other providers
+- **Provider Agnostic**: Abstracted `ILlmClient` allows switching between OpenAI or other providers
 
 ## Architecture
 
 ### Components
 
 1. **Configuration**
+
    - `OpenAISettings`: Configuration for OpenAI API (key, model, temperature, etc.)
 
 2. **Models**
+
    - `ExtractedResource`: Represents a learning resource extracted by the agent
    - `IngestionResult`: Result object containing extracted resources and metadata
 
@@ -96,6 +98,7 @@ public class MyService
 2. **Minimal Cleaning**: Removes `<script>` and `<style>` tags to reduce token usage
 
 3. **LLM Extraction**: The cleaned HTML is sent to ChatGPT with instructions to:
+
    - Identify all learning resources in the HTML
    - Extract title, URL, description, and metadata
    - Categorize resources as Paper, Video, or BlogPost
@@ -130,9 +133,8 @@ The agent categorizes resources into these types:
 
 ## Future Enhancements
 
-- Support for Claude, Azure OpenAI, and other providers
+- Support for Claude and other providers
 - Batch processing of multiple URLs
 - Caching of already-processed pages
 - Configurable extraction strategies per source type
 - Automatic retry with backoff for rate limits
-

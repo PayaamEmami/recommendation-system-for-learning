@@ -39,9 +39,6 @@ packages/
 *.cache
 *.log
 
-# Azure Functions
-local.settings.json
-
 # Secrets and config
 appsettings.Development.json
 appsettings.Local.json

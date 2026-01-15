@@ -1,26 +1,48 @@
 version: '3.8'
 
 services:
-  # SQL Server for local development
-  sqlserver:
-    image: mcr.microsoft.com/mssql/server:2022-latest
-    container_name: rsl-sqlserver
+  # PostgreSQL for local development
+  postgres:
+    image: postgres:15-alpine
+    container_name: rsl-postgres
     environment:
-      - ACCEPT_EULA=Y
-      - SA_PASSWORD=YourStrong@Passw0rd
-      - MSSQL_PID=Developer
+      - POSTGRES_USER=rsladmin
+      - POSTGRES_PASSWORD=YourStrong@Passw0rd
+      - POSTGRES_DB=rsldb
     ports:
-      - "1433:1433"
+      - "5432:5432"
     volumes:
-      - sqlserver_data:/var/opt/mssql
+      - postgres_data:/var/lib/postgresql/data
     networks:
       - rsl-network
     healthcheck:
-      test: /opt/mssql-tools/bin/sqlcmd -S localhost -U sa -P YourStrong@Passw0rd -Q "SELECT 1" || exit 1
+      test: ["CMD-SHELL", "pg_isready -U rsladmin -d rsldb"]
       interval: 10s
-      timeout: 3s
-      retries: 10
+      timeout: 5s
+      retries: 5
       start_period: 10s
+
+  # OpenSearch for local vector search development
+  opensearch:
+    image: opensearchproject/opensearch:2.11.0
+    container_name: rsl-opensearch
+    environment:
+      - discovery.type=single-node
+      - plugins.security.disabled=true
+      - OPENSEARCH_JAVA_OPTS=-Xms512m -Xmx512m
+    ports:
+      - "9200:9200"
+      - "9600:9600"
+    volumes:
+      - opensearch_data:/usr/share/opensearch/data
+    networks:
+      - rsl-network
+    healthcheck:
+      test: ["CMD-SHELL", "curl -s http://localhost:9200/_cluster/health | grep -q 'green\\|yellow'"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 60s
 
   # RSL API
   api:
@@ -31,14 +53,13 @@ services:
     environment:
       - ASPNETCORE_ENVIRONMENT=Development
       - ASPNETCORE_URLS=http://+:8080
-      - ConnectionStrings__DefaultConnection=Server=sqlserver;Database=RslDb;User Id=sa;Password=YourStrong@Passw0rd;TrustServerCertificate=True
-      - Embedding__UseAzure=false
+      - ConnectionStrings__DefaultConnection=Host=postgres;Database=rsldb;Username=rsladmin;Password=YourStrong@Passw0rd
       - Embedding__ApiKey=${OPENAI_API_KEY}
       - Embedding__ModelName=text-embedding-3-small
       - Embedding__Dimensions=1536
-      - AzureAISearch__Endpoint=${AZURE_SEARCH_ENDPOINT}
-      - AzureAISearch__ApiKey=${AZURE_SEARCH_API_KEY}
-      - AzureAISearch__IndexName=rsl-resources
+      - OpenSearch__Endpoint=http://opensearch:9200
+      - OpenSearch__IndexName=rsl-resources
+      - OpenSearch__EmbeddingDimensions=1536
       - JwtSettings__SecretKey=${JWT_SECRET_KEY:-your-development-secret-key-change-in-production}
       - JwtSettings__Issuer=http://localhost:8080
       - JwtSettings__Audience=http://localhost:5001
@@ -46,7 +67,9 @@ services:
     ports:
       - "8080:8080"
     depends_on:
-      sqlserver:
+      postgres:
+        condition: service_healthy
+      opensearch:
         condition: service_healthy
     networks:
       - rsl-network
@@ -78,20 +101,19 @@ services:
     container_name: rsl-jobs
     environment:
       - ASPNETCORE_ENVIRONMENT=Development
-      - ConnectionStrings__DefaultConnection=Server=sqlserver;Database=RslDb;User Id=sa;Password=YourStrong@Passw0rd;TrustServerCertificate=True
-      - Embedding__UseAzure=false
+      - ConnectionStrings__DefaultConnection=Host=postgres;Database=rsldb;Username=rsladmin;Password=YourStrong@Passw0rd
       - Embedding__ApiKey=${OPENAI_API_KEY}
       - Embedding__ModelName=text-embedding-3-small
       - Embedding__Dimensions=1536
-      - OpenAI__UseAzure=false
+      - OpenSearch__Endpoint=http://opensearch:9200
+      - OpenSearch__IndexName=rsl-resources
       - OpenAI__ApiKey=${OPENAI_API_KEY}
       - OpenAI__Model=gpt-5-nano
       - OpenAI__MaxTokens=4096
-      - AzureAISearch__Endpoint=${AZURE_SEARCH_ENDPOINT}
-      - AzureAISearch__ApiKey=${AZURE_SEARCH_API_KEY}
-      - AzureAISearch__IndexName=rsl-resources
     depends_on:
-      sqlserver:
+      postgres:
+        condition: service_healthy
+      opensearch:
         condition: service_healthy
     networks:
       - rsl-network
@@ -104,4 +126,5 @@ networks:
     driver: bridge
 
 volumes:
-  sqlserver_data:
+  postgres_data:
+  opensearch_data:

@@ -1,21 +1,16 @@
 namespace Rsl.Infrastructure.Configuration;
 
 /// <summary>
-/// Configuration settings for Azure AI Search.
+/// Configuration settings for AWS OpenSearch Serverless.
 /// </summary>
-public class AzureAISearchSettings
+public class OpenSearchSettings
 {
-    public const string SectionName = "AzureAISearch";
+    public const string SectionName = "OpenSearch";
 
     /// <summary>
-    /// Azure AI Search service endpoint URL.
+    /// OpenSearch Serverless collection endpoint URL.
     /// </summary>
     public string Endpoint { get; set; } = string.Empty;
-
-    /// <summary>
-    /// Azure AI Search API key.
-    /// </summary>
-    public string ApiKey { get; set; } = string.Empty;
 
     /// <summary>
     /// Name of the index for resource vectors.
@@ -26,4 +21,9 @@ public class AzureAISearchSettings
     /// Embedding model dimensions (default for text-embedding-3-small).
     /// </summary>
     public int EmbeddingDimensions { get; set; } = 1536;
+
+    /// <summary>
+    /// AWS Region for OpenSearch Serverless.
+    /// </summary>
+    public string Region { get; set; } = "us-west-2";
 }

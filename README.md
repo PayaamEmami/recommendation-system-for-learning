@@ -26,22 +26,22 @@ RSL provides:
 - **Entity Framework Core** for data access
 - **Blazor WebAssembly** for interactive web UI
 
-### Cloud & Infrastructure (Azure)
+### Cloud & Infrastructure (AWS)
 
-- **Azure Static Web Apps** - Free hosting for Blazor WebAssembly frontend
-- **Azure Container Apps** - Serverless container hosting for API
-- **Azure Container Apps Jobs** - Scheduled cron-based job execution
-- **Azure AI Search** - Vector database for semantic similarity search
+- **Amazon S3 + CloudFront** - Static hosting for Blazor WebAssembly frontend
+- **AWS App Runner** - Serverless container hosting for API
+- **Amazon ECS Fargate + EventBridge** - Scheduled job execution
+- **AWS OpenSearch Serverless** - Vector database for semantic similarity search
 - **OpenAI API** - GPT-5-nano and text-embedding-3-small models
-- **Azure SQL Database** - Application data storage
-- **Azure Container Registry** - Container image storage
-- **Azure Key Vault** - Secure secrets management
-- **Application Insights** - Monitoring and telemetry
+- **Amazon RDS PostgreSQL** - Application data storage
+- **Amazon ECR** - Container image storage
+- **AWS Secrets Manager** - Secure secrets management
+- **Amazon CloudWatch** - Monitoring and logging
 
 ### AI & Machine Learning
 
 - **Vector Embeddings** (text-embedding-3-small via OpenAI API)
-- **Semantic Search** via Azure AI Search
+- **Semantic Search** via AWS OpenSearch Serverless
 - **LLM Agents** with function calling (GPT-5-nano via OpenAI API)
 - **Hybrid Recommendation Engine** (70% vector similarity, 30% heuristics)
 
@@ -49,7 +49,7 @@ RSL provides:
 
 - **Docker** - Containerization
 - **GitHub Actions** - CI/CD pipelines
-- **Azure Bicep** - Infrastructure as Code
+- **AWS CLI** - Infrastructure deployment
 
 ### Security & Authentication
 
@@ -64,7 +64,7 @@ At a high level, RSL is composed of:
 
 ### 🎨 Blazor WebAssembly Frontend
 
-- Client-side interactive web UI hosted on Azure Static Web Apps (Free tier)
+- Client-side interactive web UI hosted on S3 + CloudFront
 - Multiple feed types (Papers, Videos, Blogs)
 - User flows for browsing personalized feeds and managing sources
 - Responsive design with Dark/Light theme support
@@ -95,9 +95,9 @@ At a high level, RSL is composed of:
 
 - **Hybrid recommendation system** combining:
   - **Vector similarity search** using text embeddings (primary signal, 70% weight)
-    - Resources embedded using Azure OpenAI embeddings
+    - Resources embedded using OpenAI embeddings (text-embedding-3-small)
     - Preferences represented as aggregated embeddings of upvoted content
-    - Semantic similarity matching via Azure AI Search vector database
+    - Semantic similarity matching via AWS OpenSearch Serverless vector database
   - **Heuristic signals** (secondary signals, 30% weight)
     - Recency (exponential decay favoring newer content)
     - Source preferences (from configured sources and voting history)
@@ -113,13 +113,13 @@ At a high level, RSL is composed of:
 
 ### ⏰ Background Jobs & Scheduling
 
-Jobs are implemented as **Azure Container Apps Jobs** with cron scheduling:
+Jobs are implemented as **Amazon ECS Fargate tasks** with EventBridge cron scheduling:
 
 - **Source Ingestion Job**: Runs daily at midnight UTC
 
   - Pulls new content from all active sources using LLM agent
-  - Generates embeddings for new resources via Azure OpenAI
-  - Indexes resources in Azure AI Search vector database
+  - Generates embeddings for new resources via OpenAI API
+  - Indexes resources in AWS OpenSearch vector database
   - Handles duplicate detection automatically
   - Container only runs during execution (cost-efficient)
 
@@ -130,32 +130,32 @@ Jobs are implemented as **Azure Container Apps Jobs** with cron scheduling:
   - Filters out already-seen and recently-recommended content
   - Container only runs during execution (cost-efficient)
 
-**Benefits**: No retries on failure to prevent repeated API calls, schedule visible in Azure Portal, can be triggered manually
+**Benefits**: No retries on failure to prevent repeated API calls, schedule visible in AWS Console, can be triggered manually via AWS CLI
 
-### ☁️ Infrastructure (Azure)
+### ☁️ Infrastructure (AWS)
 
-- **Azure Static Web Apps**: Free hosting for Blazor WebAssembly frontend (global CDN)
-- **Azure Container Apps**: Serverless container hosting for API (auto-scaling)
-- **Azure Container Apps Jobs**: Scheduled job execution with cron triggers (cost-efficient)
-- **Azure AI Search**: Vector database for semantic similarity search
+- **Amazon S3 + CloudFront**: Static hosting for Blazor WebAssembly frontend (global CDN)
+- **AWS App Runner**: Serverless container hosting for API (auto-scaling)
+- **Amazon ECS Fargate + EventBridge**: Scheduled job execution with cron triggers (cost-efficient)
+- **AWS OpenSearch Serverless**: Vector database for semantic similarity search
 - **OpenAI API**: Embedding generation with text-embedding-3-small and GPT-5-nano
-- **Azure SQL Database**: Application data storage
-- **Azure Container Registry**: Docker image storage
-- **Azure Key Vault**: Secure secrets management
-- **Application Insights**: Monitoring and telemetry
+- **Amazon RDS PostgreSQL**: Application data storage
+- **Amazon ECR**: Docker image storage
+- **AWS Secrets Manager**: Secure secrets management
+- **Amazon CloudWatch**: Monitoring and logging
 
 ### 🚀 Deployment & CI/CD
 
-- **Hybrid Hosting**:
-  - 1 Static Web App (Web) - Free tier with global CDN
-  - 1 Container App (API) - Auto-scaling serverless
-  - 2 Container Apps Jobs (Ingestion, Feed Generation) - Scheduled execution
+- **AWS Hosting**:
+  - S3 + CloudFront (Web) - Global CDN distribution
+  - App Runner (API) - Auto-scaling serverless
+  - ECS Fargate + EventBridge (Jobs) - Scheduled execution
 - **GitHub Actions**: Automated CI/CD pipeline
   - Builds and tests on every push
-  - Pushes Docker images to Azure Container Registry
-  - Deploys API/Jobs to Container Apps
-  - Deploys Web to Static Web Apps
-- **Infrastructure as Code**: Azure Bicep templates for reproducible deployments
+  - Pushes Docker images to Amazon ECR
+  - Deploys API to App Runner
+  - Deploys Web to S3 with CloudFront invalidation
+- **Infrastructure as Code**: AWS CLI scripts for reproducible deployments
 - **Database Migrations**: Automated via EF Core on startup
 
 ## Solution / Project Layout
@@ -167,7 +167,7 @@ recommendation-system-for-learning/
 ├─ src/
 │  ├─ Rsl.Api/              # ASP.NET Core REST API (HTTP endpoints, controllers)
 │  ├─ Rsl.Core/             # Domain models, entities, interfaces, enums
-│  ├─ Rsl.Infrastructure/   # Data access (EF Core), Azure AI Search, Azure OpenAI
+│  ├─ Rsl.Infrastructure/   # Data access (EF Core), OpenSearch, OpenAI
 │  ├─ Rsl.Jobs/             # Background workers (source ingestion, feed generation)
 │  ├─ Rsl.Recommendation/   # Recommendation engine (scoring, filtering, personalization)
 │  ├─ Rsl.Llm/              # LLM-based ingestion agent with function calling
@@ -176,9 +176,8 @@ recommendation-system-for-learning/
 ├─ tests/
 │  └─ Rsl.Tests/            # Unit and integration tests
 │
-├─ infrastructure/          # Azure deployment infrastructure
-│  ├─ bicep/                # Azure Bicep IaC templates
-│  └─ scripts/              # Deployment automation scripts
+├─ infrastructure/          # AWS deployment infrastructure
+│  └─ aws/                  # AWS CLI deployment scripts
 │
 ├─ .github/
 │  └─ workflows/            # GitHub Actions CI/CD pipelines

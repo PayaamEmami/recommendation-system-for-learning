@@ -7,18 +7,16 @@
     }
   },
   "ConnectionStrings": {
-    "DefaultConnection": "Server=localhost;Database=RslDb;Trusted_Connection=True;TrustServerCertificate=True"
+    "DefaultConnection": "Host=localhost;Database=rsldb;Username=rsladmin;Password=your-password"
   },
   "Embedding": {
-    "Endpoint": "https://your-resource.openai.azure.com/",
-    "ApiKey": "your-azure-openai-api-key",
-    "DeploymentName": "text-embedding-3-small",
+    "ApiKey": "your-openai-api-key",
+    "ModelName": "text-embedding-3-small",
     "Dimensions": 1536,
     "MaxBatchSize": 100
   },
-  "AzureAISearch": {
-    "Endpoint": "https://your-search-service.search.windows.net",
-    "ApiKey": "your-azure-search-admin-key",
+  "OpenSearch": {
+    "Endpoint": "https://your-opensearch-endpoint.us-west-2.aoss.amazonaws.com",
     "IndexName": "rsl-resources",
     "EmbeddingDimensions": 1536
   },

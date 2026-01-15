@@ -7,36 +7,39 @@
 **Tech Stack**:
 
 - **Backend**: .NET 10, ASP.NET Core, Entity Framework Core
-- **Frontend**: Blazor WebAssembly (Azure Static Web Apps)
-- **Cloud**: Azure Container Apps, Static Web Apps, AI Search, SQL Database
+- **Frontend**: Blazor WebAssembly (S3 + CloudFront)
+- **Cloud**: AWS (App Runner, ECS, RDS, OpenSearch, S3)
 - **AI**: OpenAI API (GPT-5-nano, text-embedding-3-small)
 
 ## Architecture
 
 ### Core Services
 
-1. **Rsl.Api** - REST API with JWT authentication (Container App)
-2. **Rsl.Web** - Blazor WebAssembly web UI (Azure Static Web Apps - Free tier)
-3. **Rsl.Jobs** - Scheduled jobs (Container Apps Jobs):
+1. **Rsl.Api** - REST API with JWT authentication (App Runner)
+2. **Rsl.Web** - Blazor WebAssembly web UI (S3 + CloudFront)
+3. **Rsl.Jobs** - Scheduled jobs (ECS Fargate + EventBridge):
    - **Ingestion Job**: Runs daily at midnight UTC
    - **Feed Generation Job**: Runs daily at 2 AM UTC
 4. **Rsl.Core** - Domain entities, interfaces
-5. **Rsl.Infrastructure** - Data access, Azure integrations, HTML fetching
+5. **Rsl.Infrastructure** - Data access, AWS integrations, HTML fetching
 6. **Rsl.Recommendation** - Hybrid engine (70% vector, 30% heuristics)
 7. **Rsl.Llm** - Content ingestion (ChatGPT extracts from HTML)
 
-### Azure Resources
+### AWS Resources
 
-- 1 Container App (API)
-- 1 Static Web App (Web - Free tier)
-- 2 Container Apps Jobs (Ingestion, Feed Generation)
-- Azure AI Search (vector database)
-- Azure SQL Database
-- Azure Container Registry
-- Azure Key Vault (secrets)
-- OpenAI API (direct, not Azure OpenAI)
+All resources prefixed with `rsl-` for clear separation:
 
-**Default Region**: `westus`
+- 1 App Runner service (API) - `rsl-api`
+- 1 S3 bucket + CloudFront (Web) - `rsl-web-*`
+- 1 ECS Cluster with 2 scheduled tasks - `rsl-cluster`
+- AWS OpenSearch Serverless (vector database) - `rsl-search`
+- RDS PostgreSQL - `rsl-db`
+- ECR repositories - `rsl-api`, `rsl-jobs`
+- Secrets Manager - `rsl-secrets/*`
+- CloudWatch logs - `/rsl/*`
+- OpenAI API (direct, not AWS Bedrock)
+
+**Default Region**: `us-west-2`
 **Resource Types**: Paper, Video, BlogPost
 
 ## Critical Configuration
@@ -47,33 +50,29 @@
 
 ```
 # Correct
-AzureAISearch__Endpoint
+OpenSearch__Endpoint
 ConnectionStrings__DefaultConnection
-Embedding__Endpoint
+Embedding__ApiKey
 ApiBaseUrl
 
 # Wrong
-AZURE_SEARCH_ENDPOINT
+AWS_OPENSEARCH_ENDPOINT
 SQL_CONNECTION_STRING
 ```
 
-**Mapping**: `appsettings.json` section `"AzureAISearch": { "Endpoint": "..." }` → env var `AzureAISearch__Endpoint`
+**Mapping**: `appsettings.json` section `"OpenSearch": { "Endpoint": "..." }` → env var `OpenSearch__Endpoint`
 
 ### Registration
 
 **Toggle user registration**:
 
-1. **API** - Update in `infrastructure/bicep/main-container-apps.bicep`:
-
-```
-Registration__Enabled: 'true'  // Allow new user registrations
-Registration__Enabled: 'false' // Block new registrations
-```
-
-Or via Azure CLI:
+1. **API** - Update App Runner environment variables:
 
 ```bash
-az containerapp update --name rsl-dev-api --resource-group rsl-dev-rg --set-env-vars "Registration__Enabled=true"
+# Get current service ARN
+SERVICE_ARN=$(aws apprunner list-services --query "ServiceSummaryList[?ServiceName=='rsl-api'].ServiceArn" --output text --region us-west-2)
+
+# Update registration setting (requires service update)
 ```
 
 2. **Web** - Update in `src/Rsl.Web/wwwroot/appsettings.json` (requires redeploy):
@@ -84,52 +83,53 @@ az containerapp update --name rsl-dev-api --resource-group rsl-dev-rg --set-env-
 
 ### Files
 
-- `infrastructure/bicep/parameters.*.local.json` - NEVER commit (contains secrets)
+- `infrastructure/aws/secrets.env` - NEVER commit (contains secrets)
 - Push to `main` → GitHub Actions deploys automatically
 
 ## Ingestion Architecture
 
 1. **HtmlFetcherService**: Fetches HTML, removes `<script>`/`<style>` tags
 2. **IngestionAgent**: Sends HTML to ChatGPT Chat Completion API → extracts JSON
-3. **SourceIngestionJob**: Maps to entities (Paper/Video/BlogPost) → saves to DB → generates embeddings → indexes in Azure AI Search
+3. **SourceIngestionJob**: Maps to entities (Paper/Video/BlogPost) → saves to DB → generates embeddings → indexes in OpenSearch
 
 **Important**: Job exits early if no active sources (no OpenAI calls made).
 
 ## Job Scheduling
 
-Jobs are implemented as **Azure Container Apps Jobs** with cron scheduling:
+Jobs are implemented as **ECS Fargate tasks** with EventBridge cron scheduling:
 
-**Ingestion Job** (`rsl-dev-ingestion-job`):
+**Ingestion Job** (`rsl-ingestion-task`):
 
-- Schedule: Daily at midnight UTC (`0 0 * * *`)
+- Schedule: Daily at midnight UTC (`cron(0 0 * * ? *)`)
 - Timeout: 2 hours
 - Command: `dotnet Rsl.Jobs.dll ingestion`
 
-**Feed Generation Job** (`rsl-dev-feed-job`):
+**Feed Generation Job** (`rsl-feed-task`):
 
-- Schedule: Daily at 2 AM UTC (`0 2 * * *`)
+- Schedule: Daily at 2 AM UTC (`cron(0 2 * * ? *)`)
 - Timeout: 1 hour
 - Command: `dotnet Rsl.Jobs.dll feed`
 
 **Benefits**:
 
 - Containers only run during job execution (cost-efficient)
-- No retries on failure (`replicaRetryLimit: 0`)
-- Schedule visible in Azure Portal
-- Can trigger manually via CLI or API
-- Built-in job history and monitoring
+- No retries on failure
+- Schedule visible in AWS Console
+- Can trigger manually via CLI
 
 **Manual Execution**:
 
 ```bash
 # Trigger ingestion job manually
-az containerapp job start --name rsl-dev-ingestion-job --resource-group rsl-dev-rg
+aws ecs run-task \
+  --cluster rsl-cluster \
+  --task-definition rsl-ingestion-task \
+  --launch-type FARGATE \
+  --network-configuration 'awsvpcConfiguration={subnets=[SUBNET_ID],securityGroups=[SG_ID],assignPublicIp=ENABLED}' \
+  --region us-west-2
 
-# Trigger feed generation job manually
-az containerapp job start --name rsl-dev-feed-job --resource-group rsl-dev-rg
-
-# View job execution history
-az containerapp job execution list --name rsl-dev-ingestion-job --resource-group rsl-dev-rg -o table
+# View task logs
+aws logs tail /rsl/ingestion --follow --region us-west-2
 ```
 
 ## Bulk Import
@@ -152,36 +152,34 @@ az containerapp job execution list --name rsl-dev-ingestion-job --resource-group
 
 ## Development
 
-**Available Tools**: Azure CLI (`az`) and GitHub CLI (`gh`) are available for automation and deployment tasks.
+**Available Tools**: AWS CLI (`aws`) and GitHub CLI (`gh`) are available for automation and deployment tasks.
 
 ### Infrastructure Scripts
 
-Helper scripts in `infrastructure/scripts/`:
+Helper scripts in `infrastructure/aws/`:
 
-- **get-resource-names.sh** - Shows all Azure resource names (ACR, Key Vault, etc.)
-- **deploy.sh** - Deploys Bicep templates (uses `parameters.*.local.json`)
-- **build-and-push.sh** - Builds and pushes Docker images (requires ACR name, not "dev")
-- **run-migrations.sh** - Runs EF Core migrations (requires Key Vault name with suffix)
+- **deploy.sh** - Deploys all AWS infrastructure
+- **build-and-push.sh** - Builds and pushes Docker images to ECR
+- **deploy-web.sh** - Builds and deploys Blazor to S3
 
-See `infrastructure/scripts/README.md` for detailed usage.
+See `infrastructure/aws/README.md` for detailed usage.
 
 ```bash
-# Get resource names
-cd infrastructure/scripts && ./get-resource-names.sh dev
+# Deploy infrastructure
+cd infrastructure/aws && ./deploy.sh
 
-# Migrations
+# Build and push Docker images
+./build-and-push.sh
+
+# Deploy web
+./deploy-web.sh
+
+# Migrations (local development)
 dotnet ef migrations add Name --project src/Rsl.Infrastructure --startup-project src/Rsl.Api
 dotnet ef database update --project src/Rsl.Infrastructure --startup-project src/Rsl.Api
 
-# Deploy infrastructure
-cd infrastructure/scripts && ./deploy.sh dev rsl-dev-rg westus
-
-# Logs (API Container App)
-az containerapp logs show --name rsl-dev-api --resource-group rsl-dev-rg --tail 100 --follow
-
-# Logs (Container Apps Jobs - requires execution name)
-az containerapp job logs show --name rsl-dev-ingestion-job --resource-group rsl-dev-rg --execution <execution-name>
-az containerapp job logs show --name rsl-dev-feed-job --resource-group rsl-dev-rg --execution <execution-name>
+# View API logs
+aws logs tail /rsl/api --follow --region us-west-2
 ```
 
 ## Key Decisions
@@ -191,6 +189,8 @@ az containerapp job logs show --name rsl-dev-feed-job --resource-group rsl-dev-r
 - **Chat Completion API**: Standard API
 - **Clean Architecture**: Core → Infrastructure → API/Web/Jobs
 - **Repository Pattern**: All data access through interfaces
+- **PostgreSQL**: Using PostgreSQL instead of SQL Server (cost-effective)
+- **OpenSearch Serverless**: AWS-native vector search
 
 ## Important Rules
 

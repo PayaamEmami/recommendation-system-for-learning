@@ -4,11 +4,6 @@
     "Model": "gpt-5-nano",
     "MaxTokens": 16384,
     "Temperature": 0,
-    "BaseUrl": null,
-    "UseAzure": false,
-    "AzureEndpoint": "https://your-resource.openai.azure.com/",
-    "AzureDeployment": "gpt-5-nano",
-    "AzureApiVersion": "2024-02-15-preview"
+    "BaseUrl": null
   }
 }
-

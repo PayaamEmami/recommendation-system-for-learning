@@ -4,21 +4,23 @@ Background worker service for RSL. Handles scheduled data ingestion and feed gen
 
 ## Purpose
 
-Jobs runs as a continuous background process that orchestrates periodic tasks for content aggregation and recommendation generation. It's a headless .NET Worker Service with no UI or HTTP endpoints.
+Jobs runs as a scheduled container task that orchestrates periodic tasks for content aggregation and recommendation generation. It's a headless .NET Worker Service with no UI or HTTP endpoints.
 
 ## Scheduled Tasks
 
 ### Source Ingestion Job
+
 - **Schedule:** Runs every 24 hours
 - **Purpose:** Pulls new content from all active user-configured sources
 - **Steps:**
   1. Fetch active sources from database
   2. For each source, use LLM agent to extract content
   3. Generate embeddings for new resources
-  4. Index resources in Azure AI Search vector store
+  4. Index resources in OpenSearch vector store
   5. Save new resources to database
 
 ### Daily Feed Generation Job
+
 - **Schedule:** Runs daily at 2:00 AM
 - **Purpose:** Pre-generates personalized recommendation feeds for all users
 - **Steps:**
@@ -31,20 +33,21 @@ Jobs runs as a continuous background process that orchestrates periodic tasks fo
 ## Dependencies
 
 - **Rsl.Core:** Domain models and interfaces
-- **Rsl.Infrastructure:** Database access, Azure OpenAI, Azure AI Search
+- **Rsl.Infrastructure:** Database access, OpenAI, OpenSearch
 - **Rsl.Recommendation:** Hybrid recommendation engine
 - **Rsl.Llm:** LLM-based content ingestion agent
 
 ## Configuration
 
-Jobs requires the same configuration as the API (database connection, Azure OpenAI, Azure AI Search) plus job scheduling settings (cron expressions).
+Jobs requires the same configuration as the API (database connection, OpenAI, OpenSearch) plus job scheduling settings (cron expressions).
 
 See `appsettings.json.example` for required configuration values.
 
 ## Deployment
 
-Jobs is deployed as a long-running process:
-- **Local:** `dotnet run` or Docker container
-- **Azure:** Azure App Service (Linux container, always-on enabled)
+Jobs is deployed as a scheduled container task:
 
-The service runs continuously and uses Quartz.NET or similar for scheduling.
+- **Local:** `dotnet run` or Docker container
+- **AWS:** ECS Fargate task triggered by EventBridge Scheduler
+
+The service is triggered on a schedule via AWS EventBridge.

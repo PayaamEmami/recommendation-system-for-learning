@@ -26,30 +26,7 @@ public class OpenAISettings
     public double Temperature { get; set; } = 0.7;
 
     /// <summary>
-    /// Base URL for the OpenAI API (allows switching to Azure OpenAI or other providers).
+    /// Base URL for the OpenAI API (allows switching to other compatible providers).
     /// </summary>
     public string? BaseUrl { get; set; }
-
-    /// <summary>
-    /// Whether to use Azure OpenAI instead of standard OpenAI.
-    /// </summary>
-    public bool UseAzure { get; set; } = false;
-
-    /// <summary>
-    /// Azure OpenAI endpoint (e.g., "https://myresource.openai.azure.com/").
-    /// Required when UseAzure is true.
-    /// </summary>
-    public string? AzureEndpoint { get; set; }
-
-    /// <summary>
-    /// Azure OpenAI deployment name.
-    /// Required when UseAzure is true.
-    /// </summary>
-    public string? AzureDeployment { get; set; }
-
-    /// <summary>
-    /// Azure OpenAI API version.
-    /// </summary>
-    public string AzureApiVersion { get; set; } = "2024-02-15-preview";
 }
-

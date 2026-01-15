@@ -15,7 +15,7 @@ This project sits between the domain layer (`Rsl.Core`) and the database. It pro
 All database operations go through repository interfaces defined in `Rsl.Core`. This provides:
 - **Testability**: Easy to mock repositories in unit tests
 - **Flexibility**: Can swap database implementations without changing business logic
-- **Abstraction**: API layer doesn't need to know about EF Core or SQL
+- **Abstraction**: API layer doesn't need to know about EF Core or PostgreSQL
 
 ### Fluent API Over Data Annotations
 Entity configurations use Fluent API (separate configuration classes) instead of attributes on domain models. This keeps `Rsl.Core` entities clean and database-agnostic.
@@ -61,7 +61,7 @@ builder.Services.AddInfrastructure(builder.Configuration);
 ```
 
 This registers:
-- `RslDbContext` with SQL Server provider
+- `RslDbContext` with PostgreSQL provider
 - All repository implementations as scoped services
 
 ### Connection String Configuration
@@ -69,7 +69,7 @@ This registers:
 // appsettings.json
 {
   "ConnectionStrings": {
-    "DefaultConnection": "Server=...;Database=RslDb;..."
+    "DefaultConnection": "Host=localhost;Database=rsldb;Username=rsladmin;Password=..."
   }
 }
 ```
@@ -97,5 +97,4 @@ Repositories use explicit eager loading (`.Include()`) rather than lazy loading.
 All repository methods are async with `CancellationToken` support. This is non-negotiable for scalability.
 
 ### Connection Resilience
-The DbContext is configured with `EnableRetryOnFailure()` for automatic retry on transient SQL Server errors (network blips, timeouts, etc.).
-
+The DbContext is configured with `EnableRetryOnFailure()` for automatic retry on transient PostgreSQL errors (network blips, timeouts, etc.).

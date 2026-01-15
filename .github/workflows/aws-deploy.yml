@@ -1,0 +1,168 @@
+name: Build and Deploy to AWS
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+  workflow_dispatch:
+    inputs:
+      deploy_infrastructure:
+        description: 'Deploy infrastructure changes'
+        required: false
+        default: false
+        type: boolean
+
+env:
+  DOTNET_VERSION: '10.0.x'
+  AWS_REGION: us-west-2
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Setup .NET
+      uses: actions/setup-dotnet@v4
+      with:
+        dotnet-version: ${{ env.DOTNET_VERSION }}
+
+    - name: Restore dependencies
+      run: dotnet restore
+
+    - name: Build solution
+      run: dotnet build --configuration Release --no-restore
+
+    - name: Run tests
+      run: dotnet test --configuration Release --no-build --verbosity normal
+
+    - name: Configure AWS credentials
+      uses: aws-actions/configure-aws-credentials@v4
+      with:
+        aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+        aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+        aws-region: ${{ env.AWS_REGION }}
+
+    - name: Login to Amazon ECR
+      id: login-ecr
+      uses: aws-actions/amazon-ecr-login@v2
+
+    - name: Build and push API Docker image
+      env:
+        ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+      run: |
+        docker build -t rsl-api:latest -f ./src/Rsl.Api/Dockerfile .
+        docker tag rsl-api:latest $ECR_REGISTRY/rsl-api:latest
+        docker tag rsl-api:latest $ECR_REGISTRY/rsl-api:${{ github.sha }}
+        docker push $ECR_REGISTRY/rsl-api:latest
+        docker push $ECR_REGISTRY/rsl-api:${{ github.sha }}
+
+    - name: Build and push Jobs Docker image
+      env:
+        ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+      run: |
+        docker build -t rsl-jobs:latest -f ./src/Rsl.Jobs/Dockerfile .
+        docker tag rsl-jobs:latest $ECR_REGISTRY/rsl-jobs:latest
+        docker tag rsl-jobs:latest $ECR_REGISTRY/rsl-jobs:${{ github.sha }}
+        docker push $ECR_REGISTRY/rsl-jobs:latest
+        docker push $ECR_REGISTRY/rsl-jobs:${{ github.sha }}
+
+    - name: Publish Blazor WebAssembly
+      run: dotnet publish src/Rsl.Web/Rsl.Web.csproj -c Release -o publish/web
+
+    - name: Upload Web artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: web-app
+        path: publish/web/wwwroot
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push' || github.event_name == 'workflow_dispatch'
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Download Web artifact
+      uses: actions/download-artifact@v4
+      with:
+        name: web-app
+        path: web-app
+
+    - name: Configure AWS credentials
+      uses: aws-actions/configure-aws-credentials@v4
+      with:
+        aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+        aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+        aws-region: ${{ env.AWS_REGION }}
+
+    - name: Deploy to S3
+      run: |
+        ACCOUNT_ID=$(aws sts get-caller-identity --query Account --output text)
+        BUCKET_NAME="rsl-web-${ACCOUNT_ID}"
+
+        echo "Deploying to S3 bucket: $BUCKET_NAME"
+        aws s3 sync web-app s3://$BUCKET_NAME --delete
+
+        # Set cache headers for static assets
+        aws s3 cp s3://$BUCKET_NAME/ s3://$BUCKET_NAME/ \
+          --recursive \
+          --exclude "*" \
+          --include "*.js" \
+          --include "*.css" \
+          --include "*.woff2" \
+          --include "*.wasm" \
+          --metadata-directive REPLACE \
+          --cache-control "max-age=31536000"
+
+        # HTML files should have shorter cache
+        aws s3 cp s3://$BUCKET_NAME/index.html s3://$BUCKET_NAME/index.html \
+          --metadata-directive REPLACE \
+          --cache-control "max-age=300" \
+          --content-type "text/html"
+
+    - name: Update App Runner service
+      run: |
+        SERVICE_ARN=$(aws apprunner list-services --query "ServiceSummaryList[?ServiceName=='rsl-api'].ServiceArn" --output text)
+        if [ -n "$SERVICE_ARN" ] && [ "$SERVICE_ARN" != "None" ]; then
+          echo "Triggering App Runner deployment..."
+          aws apprunner start-deployment --service-arn $SERVICE_ARN
+          echo "Deployment triggered successfully"
+        else
+          echo "App Runner service not found - skipping deployment"
+        fi
+
+    - name: Invalidate CloudFront cache
+      run: |
+        ACCOUNT_ID=$(aws sts get-caller-identity --query Account --output text)
+        BUCKET_NAME="rsl-web-${ACCOUNT_ID}"
+
+        DIST_ID=$(aws cloudfront list-distributions --query "DistributionList.Items[?contains(Origins.Items[].DomainName, '${BUCKET_NAME}')].Id" --output text 2>/dev/null || echo "")
+        if [ -n "$DIST_ID" ] && [ "$DIST_ID" != "None" ]; then
+          echo "Invalidating CloudFront cache..."
+          aws cloudfront create-invalidation --distribution-id $DIST_ID --paths "/*"
+        else
+          echo "CloudFront distribution not found - skipping invalidation"
+        fi
+
+    - name: Print deployment info
+      run: |
+        ACCOUNT_ID=$(aws sts get-caller-identity --query Account --output text)
+        BUCKET_NAME="rsl-web-${ACCOUNT_ID}"
+
+        API_URL=$(aws apprunner list-services --query "ServiceSummaryList[?ServiceName=='rsl-api'].ServiceUrl" --output text 2>/dev/null || echo "not-deployed")
+        WEB_URL="http://${BUCKET_NAME}.s3-website-${{ env.AWS_REGION }}.amazonaws.com"
+
+        echo "=============================================="
+        echo "Deployment Complete!"
+        echo "=============================================="
+        echo "API URL: https://${API_URL}"
+        echo "Web URL: ${WEB_URL}"
+        echo "=============================================="

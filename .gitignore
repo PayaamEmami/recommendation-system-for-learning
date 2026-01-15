@@ -13,21 +13,16 @@ appsettings.*.local.json
 appsettings.secrets.json
 **/appsettings.Secrets.json
 
-# Azure local settings (Functions/Jobs)
-local.settings.json
-
 # User secrets (managed via dotnet user-secrets)
 secrets.json
-
-# Azure credentials and publish profiles
-*.azurepubxml
-*.azurewebsites.net.pubxml
 
 # Infrastructure secrets (never commit actual secrets!)
 infrastructure/**/*.secrets.*
 infrastructure/**/*-secrets.*
-infrastructure/bicep/parameters.*.local.json
-sp-credentials.json
+infrastructure/aws/secrets.env
+
+# Build output folders
+publish/
 
 # User-specific files
 *.rsuser
@@ -210,16 +205,8 @@ publish/
 
 # Publish Web Output
 *.[Pp]ublish.xml
-*.azurePubxml
-# Note: Comment the next line if you want to checkin your web deploy settings,
-# but database connection strings (with potential passwords) will be unencrypted
 *.pubxml
 *.publishproj
-
-# Microsoft Azure Web App publish settings. Comment the next line if you want to
-# checkin your Azure Web App publish settings, but sensitive information contained
-# in these scripts will be unencrypted
-PublishScripts/
 
 # NuGet Packages
 *.nupkg
@@ -235,13 +222,6 @@ PublishScripts/
 *.nuget.props
 *.nuget.targets
 
-# Microsoft Azure Build Output
-csx/
-*.build.csdef
-
-# Microsoft Azure Emulator
-ecf/
-rcf/
 
 # Windows Store app package directories and files
 AppPackages/
@@ -375,8 +355,6 @@ __pycache__/
 # OpenCover UI analysis results
 OpenCover/
 
-# Azure Stream Analytics local run output
-ASALocalRun/
 
 # MSBuild Binary and Structured Log
 *.binlog

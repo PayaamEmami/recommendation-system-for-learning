@@ -25,27 +25,11 @@ public class OpenAIClient : ILlmClient
         _settings = settings.Value;
         _logger = logger;
 
-        // Configure HttpClient based on provider
-        if (_settings.UseAzure)
-        {
-            // Azure OpenAI configuration
-            if (string.IsNullOrEmpty(_settings.AzureEndpoint))
-                throw new InvalidOperationException("AzureEndpoint is required when UseAzure is true");
-            if (string.IsNullOrEmpty(_settings.AzureDeployment))
-                throw new InvalidOperationException("AzureDeployment is required when UseAzure is true");
-
-            var endpoint = _settings.AzureEndpoint.TrimEnd('/');
-            _httpClient.BaseAddress = new Uri(endpoint);
-            _httpClient.DefaultRequestHeaders.Add("api-key", _settings.ApiKey);
-        }
-        else
-        {
-            // Standard OpenAI configuration
-            var baseUrl = _settings.BaseUrl ?? "https://api.openai.com/v1/";
-            _httpClient.BaseAddress = new Uri(baseUrl);
-            _httpClient.DefaultRequestHeaders.Authorization =
-                new AuthenticationHeaderValue("Bearer", _settings.ApiKey);
-        }
+        // Standard OpenAI configuration
+        var baseUrl = _settings.BaseUrl ?? "https://api.openai.com/v1/";
+        _httpClient.BaseAddress = new Uri(baseUrl);
+        _httpClient.DefaultRequestHeaders.Authorization =
+            new AuthenticationHeaderValue("Bearer", _settings.ApiKey);
     }
 
     public async Task<LlmResponse> SendMessageAsync(
@@ -94,8 +78,7 @@ public class OpenAIClient : ILlmClient
         {
             // Some OpenAI models (e.g., gpt-5-nano) only accept the default temperature (1).
             var temperature = _settings.Temperature;
-            if (!_settings.UseAzure &&
-                string.Equals(_settings.Model, "gpt-5-nano", StringComparison.OrdinalIgnoreCase))
+            if (string.Equals(_settings.Model, "gpt-5-nano", StringComparison.OrdinalIgnoreCase))
             {
                 temperature = 1;
             }
@@ -104,18 +87,9 @@ public class OpenAIClient : ILlmClient
             {
                 ["model"] = _settings.Model,
                 ["messages"] = messages,
-                ["temperature"] = temperature
+                ["temperature"] = temperature,
+                ["max_completion_tokens"] = _settings.MaxTokens
             };
-
-            // OpenAI chat API (non-Azure) uses max_completion_tokens; Azure still expects max_tokens
-            if (_settings.UseAzure)
-            {
-                requestBody["max_tokens"] = _settings.MaxTokens;
-            }
-            else
-            {
-                requestBody["max_completion_tokens"] = _settings.MaxTokens;
-            }
 
             if (tools != null && tools.Any())
             {
@@ -135,18 +109,7 @@ public class OpenAIClient : ILlmClient
 
             _logger.LogInformation("Sending request to OpenAI API with model {Model}", _settings.Model);
 
-            // Build the correct endpoint URL
-            string endpoint;
-            if (_settings.UseAzure)
-            {
-                endpoint = $"/openai/deployments/{_settings.AzureDeployment}/chat/completions?api-version={_settings.AzureApiVersion}";
-            }
-            else
-            {
-                endpoint = "chat/completions";
-            }
-
-            var response = await _httpClient.PostAsync(endpoint, content, cancellationToken);
+            var response = await _httpClient.PostAsync("chat/completions", content, cancellationToken);
             var responseContent = await response.Content.ReadAsStringAsync(cancellationToken);
 
             if (!response.IsSuccessStatusCode)
@@ -224,4 +187,3 @@ public class OpenAIClient : ILlmClient
     }
 
 }
-
