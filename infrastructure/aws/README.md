@@ -143,6 +143,10 @@ For CI/CD, add these secrets to your GitHub repository:
 |--------|-------------|
 | `AWS_ACCESS_KEY_ID` | AWS access key |
 | `AWS_SECRET_ACCESS_KEY` | AWS secret key |
+| `SQL_ADMIN_PASSWORD` | RDS master password for `rsl-db` |
+| `SQL_ADMIN_USERNAME` | RDS master username (optional, defaults to `rsladmin`) |
+| `OPENAI_API_KEY` | OpenAI API key for ingestion and embeddings |
+| `JWT_SECRET_KEY` | JWT signing secret (64+ chars) |
 
 ## Cleanup
 

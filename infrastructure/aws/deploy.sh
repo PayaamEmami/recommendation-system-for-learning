@@ -204,6 +204,7 @@ create_secrets() {
 
 # Database
 DB_PASSWORD=your-strong-password-here
+SQL_ADMIN_USERNAME=rsladmin
 
 # OpenAI API Key (get from https://platform.openai.com/api-keys)
 OPENAI_API_KEY=sk-your-openai-key
@@ -219,6 +220,8 @@ EOF
     fi
 
     source "$SECRETS_FILE"
+
+    DB_USERNAME="${SQL_ADMIN_USERNAME:-rsladmin}"
 
     if [ -z "$DB_PASSWORD" ] || [ "$DB_PASSWORD" = "your-strong-password-here" ]; then
         log_error "Please set DB_PASSWORD in $SECRETS_FILE"
@@ -250,7 +253,7 @@ EOF
         fi
     done
 
-    export DB_PASSWORD OPENAI_API_KEY JWT_SECRET
+    export DB_PASSWORD OPENAI_API_KEY JWT_SECRET DB_USERNAME
 }
 
 # Create RDS PostgreSQL
@@ -275,7 +278,7 @@ create_rds() {
             --db-instance-class db.t3.micro \
             --engine postgres \
             --engine-version 15 \
-            --master-username rsladmin \
+            --master-username "$DB_USERNAME" \
             --master-user-password "$DB_PASSWORD" \
             --allocated-storage 20 \
             --vpc-security-group-ids $RDS_SG_ID \
@@ -554,7 +557,7 @@ create_app_runner() {
 
     if [ -z "$SERVICE_ARN" ]; then
         # Build connection string
-        CONNECTION_STRING="Host=${RDS_ENDPOINT};Database=rsldb;Username=rsladmin;Password=${DB_PASSWORD}"
+        CONNECTION_STRING="Host=${RDS_ENDPOINT};Database=rsldb;Username=${DB_USERNAME};Password=${DB_PASSWORD}"
 
         # Create service
         SERVICE_ARN=$(aws apprunner create-service \
@@ -622,7 +625,7 @@ register_task_definitions() {
     log_info "Registering ECS task definitions..."
 
     # Build connection string
-    CONNECTION_STRING="Host=${RDS_ENDPOINT};Database=rsldb;Username=rsladmin;Password=${DB_PASSWORD}"
+    CONNECTION_STRING="Host=${RDS_ENDPOINT};Database=rsldb;Username=${DB_USERNAME};Password=${DB_PASSWORD}"
 
     # Register task definitions using inline JSON
     for TASK in "ingestion" "feed"; do

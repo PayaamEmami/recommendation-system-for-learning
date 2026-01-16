@@ -1,0 +1,37 @@
+name: Deploy AWS Infrastructure
+
+on:
+  workflow_dispatch:
+
+env:
+  AWS_REGION: us-west-2
+
+jobs:
+  deploy_infrastructure:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Prepare secrets.env
+        run: |
+          cat > infrastructure/aws/secrets.env << 'EOF'
+          DB_PASSWORD=${{ secrets.SQL_ADMIN_PASSWORD }}
+          SQL_ADMIN_USERNAME=${{ secrets.SQL_ADMIN_USERNAME }}
+          OPENAI_API_KEY=${{ secrets.OPENAI_API_KEY }}
+          JWT_SECRET=${{ secrets.JWT_SECRET_KEY }}
+          OPENSEARCH_ENDPOINT=
+          EOF
+
+      - name: Deploy infrastructure
+        run: |
+          chmod +x infrastructure/aws/deploy.sh
+          ./infrastructure/aws/deploy.sh
