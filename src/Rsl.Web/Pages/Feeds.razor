@@ -39,7 +39,6 @@
         else if (!_followedAccounts.Any())
         {
             <div class="x-empty-state">
-                <p>Connect your X account to sync followed accounts and build your feed.</p>
             </div>
         }
         else
@@ -269,7 +268,8 @@
         _xConnecting = true;
         _xError = null;
 
-        var url = await XFeedService.GetConnectUrlAsync();
+        var redirectUri = new Uri(new Uri(Navigation.BaseUri), "x/callback").ToString();
+        var url = await XFeedService.GetConnectUrlAsync(redirectUri);
         if (string.IsNullOrEmpty(url))
         {
             _xError = "Unable to start X connection. Please try again.";

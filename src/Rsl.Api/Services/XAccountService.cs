@@ -45,18 +45,27 @@ public class XAccountService : IXAccountService
         _logger = logger;
     }
 
-    public Task<string> CreateConnectUrlAsync(Guid userId, CancellationToken cancellationToken = default)
+    public Task<string> CreateConnectUrlAsync(Guid userId, string? redirectUri = null, CancellationToken cancellationToken = default)
     {
         CleanupExpiredStates();
 
         var state = CreateBase64Url(32);
         var codeVerifier = CreateBase64Url(64);
         var codeChallenge = CreateCodeChallenge(codeVerifier);
+        var effectiveRedirectUri = !string.IsNullOrWhiteSpace(redirectUri)
+            ? redirectUri
+            : _settings.RedirectUri;
+
+        if (string.IsNullOrWhiteSpace(effectiveRedirectUri))
+        {
+            throw new InvalidOperationException("X redirect URI is not configured");
+        }
 
         AuthStates[state] = new XAuthState
         {
             UserId = userId,
             CodeVerifier = codeVerifier,
+            RedirectUri = effectiveRedirectUri,
             ExpiresAt = DateTime.UtcNow.AddMinutes(10)
         };
 
@@ -64,7 +73,7 @@ public class XAccountService : IXAccountService
         {
             ["response_type"] = "code",
             ["client_id"] = _settings.ClientId,
-            ["redirect_uri"] = _settings.RedirectUri,
+            ["redirect_uri"] = effectiveRedirectUri,
             ["scope"] = _settings.Scopes,
             ["state"] = state,
             ["code_challenge"] = codeChallenge,
@@ -84,7 +93,7 @@ public class XAccountService : IXAccountService
             throw new InvalidOperationException("Invalid or expired X authorization state");
         }
 
-        var token = await _xApiClient.ExchangeCodeAsync(code, authState.CodeVerifier, _settings.RedirectUri, cancellationToken);
+        var token = await _xApiClient.ExchangeCodeAsync(code, authState.CodeVerifier, authState.RedirectUri, cancellationToken);
         var profile = await _xApiClient.GetCurrentUserAsync(token.AccessToken, cancellationToken);
 
         var connection = new XConnection
@@ -237,6 +246,7 @@ public class XAccountService : IXAccountService
     {
         public Guid UserId { get; set; }
         public string CodeVerifier { get; set; } = string.Empty;
+        public string RedirectUri { get; set; } = string.Empty;
         public DateTime ExpiresAt { get; set; }
     }
 

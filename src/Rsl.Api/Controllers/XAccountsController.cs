@@ -2,6 +2,7 @@ using Asp.Versioning;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.RateLimiting;
+using Microsoft.Extensions.Configuration;
 using Rsl.Api.DTOs.Requests;
 using Rsl.Api.DTOs.Responses;
 using Rsl.Api.Extensions;
@@ -21,11 +22,16 @@ public class XAccountsController : ControllerBase
 {
     private readonly IXAccountService _xAccountService;
     private readonly ILogger<XAccountsController> _logger;
+    private readonly IConfiguration _configuration;
 
-    public XAccountsController(IXAccountService xAccountService, ILogger<XAccountsController> logger)
+    public XAccountsController(
+        IXAccountService xAccountService,
+        ILogger<XAccountsController> logger,
+        IConfiguration configuration)
     {
         _xAccountService = xAccountService;
         _logger = logger;
+        _configuration = configuration;
     }
 
     /// <summary>
@@ -34,7 +40,7 @@ public class XAccountsController : ControllerBase
     [HttpGet("connect-url")]
     [ProducesResponseType(typeof(XConnectUrlResponse), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status401Unauthorized)]
-    public async Task<IActionResult> GetConnectUrl(CancellationToken cancellationToken)
+    public async Task<IActionResult> GetConnectUrl([FromQuery] string? redirectUri, CancellationToken cancellationToken)
     {
         var userId = User.GetUserId();
         if (userId == null)
@@ -42,8 +48,36 @@ public class XAccountsController : ControllerBase
             return Unauthorized();
         }
 
-        var url = await _xAccountService.CreateConnectUrlAsync(userId.Value, cancellationToken);
-        return Ok(new XConnectUrlResponse { AuthorizationUrl = url });
+        string? resolvedRedirectUri = null;
+        if (!string.IsNullOrWhiteSpace(redirectUri))
+        {
+            if (!Uri.TryCreate(redirectUri, UriKind.Absolute, out var redirectUriParsed))
+            {
+                return BadRequest("Invalid redirectUri");
+            }
+
+            var origin = redirectUriParsed.GetLeftPart(UriPartial.Authority).TrimEnd('/');
+            var allowedOrigins = _configuration.GetSection("Cors:AllowedOrigins").Get<string[]>() ?? Array.Empty<string>();
+            var isAllowed = allowedOrigins.Any(allowed =>
+                string.Equals(allowed.TrimEnd('/'), origin, StringComparison.OrdinalIgnoreCase));
+
+            if (!isAllowed)
+            {
+                return BadRequest("Redirect URI is not allowed");
+            }
+
+            resolvedRedirectUri = redirectUri;
+        }
+
+        try
+        {
+            var url = await _xAccountService.CreateConnectUrlAsync(userId.Value, resolvedRedirectUri, cancellationToken);
+            return Ok(new XConnectUrlResponse { AuthorizationUrl = url });
+        }
+        catch (InvalidOperationException ex)
+        {
+            return BadRequest(ex.Message);
+        }
     }
 
     /// <summary>

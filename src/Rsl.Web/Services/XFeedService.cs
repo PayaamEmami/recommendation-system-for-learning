@@ -35,7 +35,7 @@ public class XFeedService
         }
     }
 
-    public async Task<string?> GetConnectUrlAsync()
+    public async Task<string?> GetConnectUrlAsync(string? redirectUri = null)
     {
         try
         {
@@ -45,7 +45,10 @@ public class XFeedService
             }
 
             SetAuthHeader();
-            var response = await _httpClient.GetAsync("/api/v1/x/connect-url");
+            var requestUri = string.IsNullOrWhiteSpace(redirectUri)
+                ? "/api/v1/x/connect-url"
+                : $"/api/v1/x/connect-url?redirectUri={Uri.EscapeDataString(redirectUri)}";
+            var response = await _httpClient.GetAsync(requestUri);
             if (!response.IsSuccessStatusCode)
             {
                 _logger.LogWarning("Failed to fetch X connect URL: {StatusCode}", response.StatusCode);
