@@ -1,7 +1,9 @@
+using Amazon;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using OpenSearch.Client;
 using OpenSearch.Net;
+using OpenSearch.Net.Auth.AwsSigV4;
 using Rsl.Core.Interfaces;
 using Rsl.Core.Models;
 using Rsl.Infrastructure.Configuration;
@@ -24,10 +26,12 @@ public class OpenSearchVectorStore : IVectorStore
         _settings = settings.Value;
         _logger = logger;
 
-        // Configure OpenSearch client
+        // Configure OpenSearch client with AWS SigV4 for Serverless
         var endpoint = new Uri(_settings.Endpoint);
         var pool = new SingleNodeConnectionPool(endpoint);
-        var connectionSettings = new ConnectionSettings(pool)
+        var region = RegionEndpoint.GetBySystemName(_settings.Region);
+        var awsConnection = new AwsSigV4HttpConnection(region, service: "aoss");
+        var connectionSettings = new ConnectionSettings(pool, awsConnection)
             .DefaultIndex(_settings.IndexName)
             .RequestTimeout(TimeSpan.FromMinutes(2))
             .DisableDirectStreaming(); // Helps with debugging
@@ -82,6 +86,12 @@ public class OpenSearchVectorStore : IVectorStore
 
                 if (!createIndexResponse.IsValid)
                 {
+                    if (createIndexResponse.ServerError?.Error?.Type == "resource_already_exists_exception")
+                    {
+                        _logger.LogInformation("Index already exists: {IndexName}", _settings.IndexName);
+                        return;
+                    }
+
                     _logger.LogError("Failed to create index: {Error}", createIndexResponse.DebugInformation);
                     throw new Exception($"Failed to create OpenSearch index: {createIndexResponse.DebugInformation}");
                 }
@@ -118,10 +128,28 @@ public class OpenSearchVectorStore : IVectorStore
         try
         {
             var searchDocuments = documentsList.Select(ToSearchDocument).ToList();
+            var resourceIds = documentsList.Select(d => d.Id.ToString()).ToList();
+
+            // OpenSearch Serverless vector collections don't allow custom _id values.
+            // Remove any existing docs with matching IDs before indexing.
+            var deleteResponse = await _client.DeleteByQueryAsync<ResourceSearchDocument>(d => d
+                    .Index(_settings.IndexName)
+                    .Query(q => q
+                        .Terms(t => t
+                            .Field(f => f.Id)
+                            .Terms(resourceIds)
+                        )
+                    ),
+                cancellationToken);
+
+            if (!deleteResponse.IsValid)
+            {
+                _logger.LogWarning("Pre-delete by query failed: {Error}", deleteResponse.DebugInformation);
+            }
 
             var bulkResponse = await _client.BulkAsync(b => b
                 .Index(_settings.IndexName)
-                .IndexMany(searchDocuments, (descriptor, doc) => descriptor.Id(doc.Id)),
+                .IndexMany(searchDocuments),
                 cancellationToken
             );
 
@@ -158,11 +186,15 @@ public class OpenSearchVectorStore : IVectorStore
     {
         try
         {
-            var response = await _client.DeleteAsync<ResourceSearchDocument>(
-                resourceId.ToString(),
-                d => d.Index(_settings.IndexName),
-                cancellationToken
-            );
+            var response = await _client.DeleteByQueryAsync<ResourceSearchDocument>(d => d
+                    .Index(_settings.IndexName)
+                    .Query(q => q
+                        .Term(t => t
+                            .Field(f => f.Id)
+                            .Value(resourceId.ToString())
+                        )
+                    ),
+                cancellationToken);
 
             if (response.IsValid)
             {
