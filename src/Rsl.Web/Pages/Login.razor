@@ -55,9 +55,7 @@
 
     protected override async Task OnInitializedAsync()
     {
-        await AuthService.InitializeAsync();
-
-        if (AuthService.CurrentState.IsAuthenticated)
+        if (await AuthService.EnsureAuthenticatedAsync())
         {
             Navigation.NavigateTo("/feeds");
         }

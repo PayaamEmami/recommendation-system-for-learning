@@ -1,3 +1,4 @@
+using System.Net;
 using System.Net.Http.Headers;
 using System.Net.Http.Json;
 using System.Text.Json;
@@ -35,20 +36,44 @@ public class XFeedService
         }
     }
 
+    private async Task<HttpResponseMessage?> SendAuthorizedAsync(Func<Task<HttpResponseMessage>> requestFactory)
+    {
+        if (!await _authService.EnsureAuthenticatedAsync())
+        {
+            return null;
+        }
+
+        SetAuthHeader();
+        var response = await requestFactory();
+
+        if (response.StatusCode == HttpStatusCode.Unauthorized)
+        {
+            var refreshed = await _authService.TryRefreshAsync();
+            if (!refreshed)
+            {
+                await _authService.LogoutAsync();
+                return response;
+            }
+
+            SetAuthHeader();
+            response = await requestFactory();
+        }
+
+        return response;
+    }
+
     public async Task<string?> GetConnectUrlAsync(string? redirectUri = null)
     {
         try
         {
-            if (!_authService.CurrentState.IsAuthenticated)
-            {
-                return null;
-            }
-
-            SetAuthHeader();
             var requestUri = string.IsNullOrWhiteSpace(redirectUri)
                 ? "/api/v1/x/connect-url"
                 : $"/api/v1/x/connect-url?redirectUri={Uri.EscapeDataString(redirectUri)}";
-            var response = await _httpClient.GetAsync(requestUri);
+            var response = await SendAuthorizedAsync(() => _httpClient.GetAsync(requestUri));
+            if (response == null)
+            {
+                return null;
+            }
             if (!response.IsSuccessStatusCode)
             {
                 _logger.LogWarning("Failed to fetch X connect URL: {StatusCode}", response.StatusCode);
@@ -69,19 +94,18 @@ public class XFeedService
     {
         try
         {
-            if (!_authService.CurrentState.IsAuthenticated)
-            {
-                return false;
-            }
-
-            SetAuthHeader();
             var request = new XCallbackRequest
             {
                 Code = code,
                 State = state
             };
 
-            var response = await _httpClient.PostAsJsonAsync("/api/v1/x/callback", request, JsonOptions);
+            var response = await SendAuthorizedAsync(() =>
+                _httpClient.PostAsJsonAsync("/api/v1/x/callback", request, JsonOptions));
+            if (response == null)
+            {
+                return false;
+            }
             return response.IsSuccessStatusCode;
         }
         catch (Exception ex)
@@ -95,13 +119,12 @@ public class XFeedService
     {
         try
         {
-            if (!_authService.CurrentState.IsAuthenticated)
+            var response = await SendAuthorizedAsync(() =>
+                _httpClient.GetAsync($"/api/v1/x/followed-accounts?refresh={refresh.ToString().ToLowerInvariant()}"));
+            if (response == null)
             {
                 return new List<XFollowedAccountItem>();
             }
-
-            SetAuthHeader();
-            var response = await _httpClient.GetAsync($"/api/v1/x/followed-accounts?refresh={refresh.ToString().ToLowerInvariant()}");
             if (!response.IsSuccessStatusCode)
             {
                 _logger.LogWarning("Failed to fetch followed X accounts: {StatusCode}", response.StatusCode);
@@ -135,18 +158,17 @@ public class XFeedService
     {
         try
         {
-            if (!_authService.CurrentState.IsAuthenticated)
-            {
-                return new List<XFollowedAccountItem>();
-            }
-
-            SetAuthHeader();
             var request = new XSelectedAccountsRequest
             {
                 FollowedAccountIds = followedAccountIds
             };
 
-            var response = await _httpClient.PostAsJsonAsync("/api/v1/x/selected-accounts", request, JsonOptions);
+            var response = await SendAuthorizedAsync(() =>
+                _httpClient.PostAsJsonAsync("/api/v1/x/selected-accounts", request, JsonOptions));
+            if (response == null)
+            {
+                return new List<XFollowedAccountItem>();
+            }
             if (!response.IsSuccessStatusCode)
             {
                 _logger.LogWarning("Failed to update selected X accounts: {StatusCode}", response.StatusCode);
@@ -180,13 +202,12 @@ public class XFeedService
     {
         try
         {
-            if (!_authService.CurrentState.IsAuthenticated)
+            var response = await SendAuthorizedAsync(() =>
+                _httpClient.GetAsync($"/api/v1/x/posts?limit={limit}"));
+            if (response == null)
             {
                 return new List<XPostItem>();
             }
-
-            SetAuthHeader();
-            var response = await _httpClient.GetAsync($"/api/v1/x/posts?limit={limit}");
             if (!response.IsSuccessStatusCode)
             {
                 _logger.LogWarning("Failed to fetch X posts: {StatusCode}", response.StatusCode);

@@ -1,3 +1,4 @@
+using System.Net;
 using System.Net.Http.Headers;
 using System.Net.Http.Json;
 using System.Text.Json;
@@ -41,18 +42,42 @@ public class SourceService
         }
     }
 
+    private async Task<HttpResponseMessage?> SendAuthorizedAsync(Func<Task<HttpResponseMessage>> requestFactory)
+    {
+        if (!await _authService.EnsureAuthenticatedAsync())
+        {
+            return null;
+        }
+
+        SetAuthHeader();
+        var response = await requestFactory();
+
+        if (response.StatusCode == HttpStatusCode.Unauthorized)
+        {
+            var refreshed = await _authService.TryRefreshAsync();
+            if (!refreshed)
+            {
+                await _authService.LogoutAsync();
+                return response;
+            }
+
+            SetAuthHeader();
+            response = await requestFactory();
+        }
+
+        return response;
+    }
+
     public async Task<List<SourceItem>> GetUserSourcesAsync()
     {
         try
         {
-            if (!_authService.CurrentState.IsAuthenticated)
+            var response = await SendAuthorizedAsync(() => _httpClient.GetAsync("/api/v1/sources"));
+            if (response == null)
             {
                 _logger.LogWarning("User not authenticated, cannot fetch sources");
                 return new List<SourceItem>();
             }
-
-            SetAuthHeader();
-            var response = await _httpClient.GetAsync("/api/v1/sources");
 
             if (!response.IsSuccessStatusCode)
             {
@@ -96,12 +121,6 @@ public class SourceService
     {
         try
         {
-            if (!_authService.CurrentState.IsAuthenticated)
-            {
-                _logger.LogWarning("User not authenticated, cannot add source");
-                return false;
-            }
-
             var request = new CreateSourceRequest
             {
                 Name = name,
@@ -110,8 +129,12 @@ public class SourceService
                 Description = description
             };
 
-            SetAuthHeader();
-            var response = await _httpClient.PostAsJsonAsync("/api/v1/sources", request);
+            var response = await SendAuthorizedAsync(() => _httpClient.PostAsJsonAsync("/api/v1/sources", request));
+            if (response == null)
+            {
+                _logger.LogWarning("User not authenticated, cannot add source");
+                return false;
+            }
 
             if (!response.IsSuccessStatusCode)
             {
@@ -134,14 +157,12 @@ public class SourceService
     {
         try
         {
-            if (!_authService.CurrentState.IsAuthenticated)
+            var response = await SendAuthorizedAsync(() => _httpClient.DeleteAsync($"/api/v1/sources/{sourceId}"));
+            if (response == null)
             {
                 _logger.LogWarning("User not authenticated, cannot delete source");
                 return false;
             }
-
-            SetAuthHeader();
-            var response = await _httpClient.DeleteAsync($"/api/v1/sources/{sourceId}");
 
             if (!response.IsSuccessStatusCode)
             {
@@ -163,16 +184,13 @@ public class SourceService
     {
         try
         {
-            if (!_authService.CurrentState.IsAuthenticated)
+            // First, get the current source to determine its state
+            var getResponse = await SendAuthorizedAsync(() => _httpClient.GetAsync($"/api/v1/sources/{sourceId}"));
+            if (getResponse == null)
             {
                 _logger.LogWarning("User not authenticated, cannot toggle source");
                 return false;
             }
-
-            SetAuthHeader();
-
-            // First, get the current source to determine its state
-            var getResponse = await _httpClient.GetAsync($"/api/v1/sources/{sourceId}");
 
             if (!getResponse.IsSuccessStatusCode)
             {
@@ -196,7 +214,12 @@ public class SourceService
                 IsActive = !source.IsActive
             };
 
-            var updateResponse = await _httpClient.PutAsJsonAsync($"/api/v1/sources/{sourceId}", updateRequest);
+            var updateResponse = await SendAuthorizedAsync(() =>
+                _httpClient.PutAsJsonAsync($"/api/v1/sources/{sourceId}", updateRequest));
+            if (updateResponse == null)
+            {
+                return false;
+            }
 
             if (!updateResponse.IsSuccessStatusCode)
             {
@@ -218,16 +241,13 @@ public class SourceService
     {
         try
         {
-            if (!_authService.CurrentState.IsAuthenticated)
+            // First get the current source to preserve its IsActive state
+            var getResponse = await SendAuthorizedAsync(() => _httpClient.GetAsync($"/api/v1/sources/{sourceId}"));
+            if (getResponse == null)
             {
                 _logger.LogWarning("User not authenticated, cannot update source");
                 return false;
             }
-
-            SetAuthHeader();
-
-            // First get the current source to preserve its IsActive state
-            var getResponse = await _httpClient.GetAsync($"/api/v1/sources/{sourceId}");
 
             if (!getResponse.IsSuccessStatusCode)
             {
@@ -250,7 +270,12 @@ public class SourceService
                 IsActive = source.IsActive // Preserve existing active state
             };
 
-            var response = await _httpClient.PutAsJsonAsync($"/api/v1/sources/{sourceId}", updateRequest);
+            var response = await SendAuthorizedAsync(() =>
+                _httpClient.PutAsJsonAsync($"/api/v1/sources/{sourceId}", updateRequest));
+            if (response == null)
+            {
+                return false;
+            }
 
             if (!response.IsSuccessStatusCode)
             {
@@ -273,14 +298,12 @@ public class SourceService
     {
         try
         {
-            if (!_authService.CurrentState.IsAuthenticated)
+            var content = new StringContent(json, System.Text.Encoding.UTF8, "application/json");
+            var response = await SendAuthorizedAsync(() => _httpClient.PostAsync("/api/v1/sources/bulk-import", content));
+            if (response == null)
             {
                 throw new InvalidOperationException("User not authenticated");
             }
-
-            SetAuthHeader();
-            var content = new StringContent(json, System.Text.Encoding.UTF8, "application/json");
-            var response = await _httpClient.PostAsync("/api/v1/sources/bulk-import", content);
 
             if (!response.IsSuccessStatusCode)
             {

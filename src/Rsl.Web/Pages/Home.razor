@@ -1,5 +1,6 @@
 @page "/"
 @inject NavigationManager Navigation
+@inject AuthService AuthService
 @inject ThemeService ThemeService
 
 <PageTitle>Welcome - RSL</PageTitle>
@@ -19,6 +20,14 @@
 </div>
 
 @code {
+  protected override async Task OnInitializedAsync()
+  {
+    if (await AuthService.EnsureAuthenticatedAsync())
+    {
+      Navigation.NavigateTo("/feeds");
+    }
+  }
+
   protected override async Task OnAfterRenderAsync(bool firstRender)
   {
     if (firstRender)

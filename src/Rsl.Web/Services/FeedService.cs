@@ -1,3 +1,4 @@
+using System.Net;
 using System.Net.Http.Headers;
 using System.Net.Http.Json;
 using System.Text.Json;
@@ -41,20 +42,42 @@ public class FeedService
         }
     }
 
+    private async Task<HttpResponseMessage?> SendAuthorizedAsync(Func<Task<HttpResponseMessage>> requestFactory)
+    {
+        if (!await _authService.EnsureAuthenticatedAsync())
+        {
+            return null;
+        }
+
+        SetAuthHeader();
+        var response = await requestFactory();
+
+        if (response.StatusCode == HttpStatusCode.Unauthorized)
+        {
+            var refreshed = await _authService.TryRefreshAsync();
+            if (!refreshed)
+            {
+                await _authService.LogoutAsync();
+                return response;
+            }
+
+            SetAuthHeader();
+            response = await requestFactory();
+        }
+
+        return response;
+    }
+
     public async Task<List<ResourceItem>> GetFeedAsync(ResourceType? type = null)
     {
         try
         {
-            if (!_authService.CurrentState.IsAuthenticated)
+            var response = await SendAuthorizedAsync(() => _httpClient.GetAsync("/api/v1/recommendations"));
+            if (response == null)
             {
                 _logger.LogWarning("User not authenticated, cannot fetch feed");
                 return new List<ResourceItem>();
             }
-
-            SetAuthHeader();
-
-            // Get today's recommendations from the API
-            var response = await _httpClient.GetAsync("/api/v1/recommendations");
 
             if (!response.IsSuccessStatusCode)
             {
@@ -105,13 +128,11 @@ public class FeedService
     {
         try
         {
-            if (!_authService.CurrentState.IsAuthenticated)
+            var response = await SendAuthorizedAsync(() => _httpClient.GetAsync("/api/v1/users/me/votes"));
+            if (response == null)
             {
                 return new List<VoteItem>();
             }
-
-            SetAuthHeader();
-            var response = await _httpClient.GetAsync("/api/v1/users/me/votes");
 
             if (!response.IsSuccessStatusCode)
             {
@@ -133,14 +154,13 @@ public class FeedService
     {
         try
         {
-            if (!_authService.CurrentState.IsAuthenticated)
+            var request = new { voteType = voteType };
+            var response = await SendAuthorizedAsync(() =>
+                _httpClient.PostAsJsonAsync($"/api/v1/resources/{resourceId}/vote", request, JsonOptions));
+            if (response == null)
             {
                 return null;
             }
-
-            SetAuthHeader();
-            var request = new { voteType = voteType };
-            var response = await _httpClient.PostAsJsonAsync($"/api/v1/resources/{resourceId}/vote", request, JsonOptions);
 
             if (!response.IsSuccessStatusCode)
             {
@@ -163,13 +183,12 @@ public class FeedService
     {
         try
         {
-            if (!_authService.CurrentState.IsAuthenticated)
+            var response = await SendAuthorizedAsync(() =>
+                _httpClient.DeleteAsync($"/api/v1/resources/{resourceId}/vote"));
+            if (response == null)
             {
                 return false;
             }
-
-            SetAuthHeader();
-            var response = await _httpClient.DeleteAsync($"/api/v1/resources/{resourceId}/vote");
 
             if (!response.IsSuccessStatusCode)
             {

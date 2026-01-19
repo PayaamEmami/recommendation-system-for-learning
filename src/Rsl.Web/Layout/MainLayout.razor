@@ -22,8 +22,7 @@
     {
         _authService = AuthService;
 
-        // Initialize auth state from localStorage
-        await _authService.InitializeAsync();
+        await _authService.EnsureAuthenticatedAsync();
 
         // Subscribe to auth state changes
         _authService.OnAuthStateChanged += StateHasChanged;

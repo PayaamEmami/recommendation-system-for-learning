@@ -18,6 +18,7 @@ public class AuthService
     private readonly IConfiguration _configuration;
     private readonly ILogger<AuthService> _logger;
     private bool _isInitialized;
+    private readonly SemaphoreSlim _refreshLock = new(1, 1);
 
     public event Action? OnAuthStateChanged;
 
@@ -55,7 +56,6 @@ public class AuthService
             if (storedState?.IsAuthenticated == true && !string.IsNullOrEmpty(storedState.AccessToken))
             {
                 _currentState = storedState;
-                OnAuthStateChanged?.Invoke();
                 _logger.LogInformation("Restored auth state from storage for user {Email}", storedState.Email);
             }
         }
@@ -65,6 +65,28 @@ public class AuthService
         }
 
         _isInitialized = true;
+    }
+
+    public async Task<bool> EnsureAuthenticatedAsync()
+    {
+        await InitializeAsync();
+
+        if (!_currentState.IsAuthenticated)
+        {
+            return false;
+        }
+
+        if (!HasValidAccessToken())
+        {
+            var refreshed = await TryRefreshAsync();
+            if (!refreshed)
+            {
+                await LogoutAsync();
+                return false;
+            }
+        }
+
+        return true;
     }
 
     public async Task<AuthResult> SignUpAsync(string email, string password, string? displayName)
@@ -95,7 +117,9 @@ public class AuthService
                         UserId = result.User.Id,
                         Email = result.User.Email,
                         DisplayName = result.User.DisplayName,
-                        AccessToken = result.AccessToken
+                        AccessToken = result.AccessToken,
+                        RefreshToken = result.RefreshToken,
+                        ExpiresAt = result.ExpiresAt
                     };
 
                     await PersistAuthStateAsync();
@@ -139,7 +163,9 @@ public class AuthService
                         UserId = result.User.Id,
                         Email = result.User.Email,
                         DisplayName = result.User.DisplayName,
-                        AccessToken = result.AccessToken
+                        AccessToken = result.AccessToken,
+                        RefreshToken = result.RefreshToken,
+                        ExpiresAt = result.ExpiresAt
                     };
 
                     await PersistAuthStateAsync();
@@ -160,8 +186,73 @@ public class AuthService
     public async Task LogoutAsync()
     {
         _currentState = new AuthState();
+        _httpClient.DefaultRequestHeaders.Authorization = null;
         await _localStorage.RemoveItemAsync(AuthStateKey);
         OnAuthStateChanged?.Invoke();
+    }
+
+    public async Task<bool> TryRefreshAsync()
+    {
+        if (string.IsNullOrWhiteSpace(_currentState.RefreshToken))
+        {
+            return false;
+        }
+
+        await _refreshLock.WaitAsync();
+        try
+        {
+            if (HasValidAccessToken())
+            {
+                return true;
+            }
+
+            var request = new { refreshToken = _currentState.RefreshToken };
+            var response = await _httpClient.PostAsJsonAsync("/api/v1/auth/refresh", request);
+
+            if (!response.IsSuccessStatusCode)
+            {
+                _logger.LogWarning("Refresh token request failed: {StatusCode}", response.StatusCode);
+                return false;
+            }
+
+            var result = await response.Content.ReadFromJsonAsync<RefreshTokenResponse>();
+            if (result == null || string.IsNullOrEmpty(result.AccessToken))
+            {
+                return false;
+            }
+
+            _currentState.AccessToken = result.AccessToken;
+            _currentState.RefreshToken = result.RefreshToken;
+            _currentState.ExpiresAt = result.ExpiresAt;
+
+            await PersistAuthStateAsync();
+            OnAuthStateChanged?.Invoke();
+            return true;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Failed to refresh access token");
+            return false;
+        }
+        finally
+        {
+            _refreshLock.Release();
+        }
+    }
+
+    private bool HasValidAccessToken()
+    {
+        if (string.IsNullOrEmpty(_currentState.AccessToken))
+        {
+            return false;
+        }
+
+        if (_currentState.ExpiresAt == default)
+        {
+            return false;
+        }
+
+        return _currentState.ExpiresAt > DateTime.UtcNow.AddMinutes(1);
     }
 
     private async Task PersistAuthStateAsync()
@@ -184,6 +275,8 @@ public class AuthState
     public string? Email { get; set; }
     public string? DisplayName { get; set; }
     public string? AccessToken { get; set; }
+    public string? RefreshToken { get; set; }
+    public DateTime ExpiresAt { get; set; }
 }
 
 public class AuthResult
@@ -198,6 +291,13 @@ public class LoginResponse
     public string RefreshToken { get; set; } = string.Empty;
     public DateTime ExpiresAt { get; set; }
     public UserResponse User { get; set; } = null!;
+}
+
+public class RefreshTokenResponse
+{
+    public string AccessToken { get; set; } = string.Empty;
+    public string RefreshToken { get; set; } = string.Empty;
+    public DateTime ExpiresAt { get; set; }
 }
 
 public class UserResponse
