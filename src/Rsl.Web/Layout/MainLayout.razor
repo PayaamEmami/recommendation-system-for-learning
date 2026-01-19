@@ -2,6 +2,8 @@
 @inject AuthService AuthService
 @implements IDisposable
 
+<HeadOutlet />
+
 <CascadingValue Value="AuthService">
     @if (_authService?.CurrentState.IsAuthenticated == true)
     {

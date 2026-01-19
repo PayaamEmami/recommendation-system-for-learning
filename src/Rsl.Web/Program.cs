@@ -8,7 +8,6 @@ using Rsl.Web.Services;
 
 var builder = WebAssemblyHostBuilder.CreateDefault(args);
 builder.RootComponents.Add<App>("#app");
-builder.RootComponents.Add<HeadOutlet>("head::after");
 
 // Configure JSON serialization options
 var jsonOptions = new JsonSerializerOptions
