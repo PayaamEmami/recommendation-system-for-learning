@@ -1,5 +1,9 @@
 name: Build and Deploy to AWS
 
+concurrency:
+  group: aws-deploy-${{ github.ref }}
+  cancel-in-progress: true
+
 on:
   push:
     branches:
@@ -154,6 +158,22 @@ jobs:
         run: |
           SERVICE_ARN=$(aws apprunner list-services --query "ServiceSummaryList[?ServiceName=='rsl-api'].ServiceArn" --output text)
           if [ -n "$SERVICE_ARN" ] && [ "$SERVICE_ARN" != "None" ]; then
+            echo "Waiting for App Runner service to be RUNNING..."
+            for i in {1..30}; do
+              STATUS=$(aws apprunner describe-service --service-arn "$SERVICE_ARN" --query "Service.Status" --output text)
+              if [ "$STATUS" = "RUNNING" ]; then
+                break
+              fi
+              echo "Current status: $STATUS (attempt $i/30)"
+              sleep 10
+            done
+
+            STATUS=$(aws apprunner describe-service --service-arn "$SERVICE_ARN" --query "Service.Status" --output text)
+            if [ "$STATUS" != "RUNNING" ]; then
+              echo "App Runner service not in RUNNING state ($STATUS). Skipping deployment."
+              exit 0
+            fi
+
             echo "Triggering App Runner deployment..."
             aws apprunner start-deployment --service-arn $SERVICE_ARN
             echo "Deployment triggered successfully"
