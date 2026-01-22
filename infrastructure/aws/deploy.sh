@@ -363,7 +363,7 @@ create_s3_web() {
 create_cloudwatch_logs() {
     log_info "Creating CloudWatch Log Groups..."
 
-    for LOG_NAME in "api" "jobs" "ingestion" "feed"; do
+    for LOG_NAME in "api" "jobs" "ingestion" "feed" "x-ingestion"; do
         LOG_GROUP="/rsl/$LOG_NAME"
         EXISTING=$(aws logs describe-log-groups --log-group-name-prefix "$LOG_GROUP" --region $REGION --query "logGroups[?logGroupName=='$LOG_GROUP'].logGroupName" --output text 2>/dev/null || echo "")
         if [ -z "$EXISTING" ]; then
@@ -628,7 +628,7 @@ register_task_definitions() {
     CONNECTION_STRING="Host=${RDS_ENDPOINT};Database=rsldb;Username=${DB_USERNAME};Password=${DB_PASSWORD}"
 
     # Register task definitions using inline JSON
-    for TASK in "ingestion" "feed"; do
+    for TASK in "ingestion" "feed" "x-ingestion"; do
         aws ecs register-task-definition \
             --family "${PREFIX}-${TASK}-task" \
             --network-mode "awsvpc" \
@@ -695,8 +695,19 @@ create_eventbridge_rules() {
         log_info "Created EventBridge rule: ${PREFIX}-feed-schedule (daily at 2 AM UTC)"
     fi
 
+    # X ingestion job - daily at 1 AM UTC
+    if ! aws events describe-rule --name ${PREFIX}-x-ingestion-schedule --region $REGION &> /dev/null; then
+        aws events put-rule \
+            --name ${PREFIX}-x-ingestion-schedule \
+            --schedule-expression "cron(0 1 * * ? *)" \
+            --state ENABLED \
+            --tags Key=Project,Value=${PROJECT_TAG} \
+            --region $REGION
+        log_info "Created EventBridge rule: ${PREFIX}-x-ingestion-schedule (daily at 1 AM UTC)"
+    fi
+
     # Add ECS targets using inline JSON
-    for TASK in "ingestion" "feed"; do
+    for TASK in "ingestion" "feed" "x-ingestion"; do
         TASK_DEF_ARN=$(aws ecs describe-task-definition --task-definition ${PREFIX}-${TASK}-task --region $REGION --query 'taskDefinition.taskDefinitionArn' --output text)
 
         TARGET_JSON='[{"Id":"'${PREFIX}'-'${TASK}'-target","Arn":"arn:aws:ecs:'${REGION}':'${ACCOUNT_ID}':cluster/'${PREFIX}'-cluster","RoleArn":"arn:aws:iam::'${ACCOUNT_ID}':role/'${PREFIX}'-eventbridge-role","EcsParameters":{"TaskDefinitionArn":"'${TASK_DEF_ARN}'","TaskCount":1,"LaunchType":"FARGATE","NetworkConfiguration":{"awsvpcConfiguration":{"Subnets":["'${SUBNET_1_ID}'","'${SUBNET_2_ID}'"],"SecurityGroups":["'${API_SG_ID}'"],"AssignPublicIp":"ENABLED"}}}}]'
@@ -746,6 +757,7 @@ print_summary() {
     echo "Scheduled Jobs:"
     echo "  - Ingestion: Daily at midnight UTC"
     echo "  - Feed: Daily at 2 AM UTC"
+    echo "  - X ingestion: Daily at 1 AM UTC"
     echo ""
     echo "=============================================="
     echo "Next Steps:"
