@@ -94,6 +94,10 @@ public class XAccountService : IXAccountService
         }
 
         var token = await _xApiClient.ExchangeCodeAsync(code, authState.CodeVerifier, authState.RedirectUri, cancellationToken);
+        if (!string.IsNullOrWhiteSpace(token.Scope))
+        {
+            _logger.LogInformation("X OAuth token scopes: {Scopes}", token.Scope);
+        }
         var profile = await _xApiClient.GetCurrentUserAsync(token.AccessToken, cancellationToken);
 
         var connection = new XConnection

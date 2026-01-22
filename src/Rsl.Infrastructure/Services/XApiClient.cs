@@ -48,7 +48,12 @@ public class XApiClient : IXApiClient
         AddClientAuthHeader(request);
 
         var response = await _httpClient.SendAsync(request, cancellationToken);
-        response.EnsureSuccessStatusCode();
+        if (!response.IsSuccessStatusCode)
+        {
+            var body = await response.Content.ReadAsStringAsync(cancellationToken);
+            throw new HttpRequestException(
+                $"X API /2/users/me failed with {(int)response.StatusCode} {response.ReasonPhrase}. Body: {body}");
+        }
 
         var token = await response.Content.ReadFromJsonAsync<XTokenApiResponse>(JsonOptions, cancellationToken);
         return token == null
