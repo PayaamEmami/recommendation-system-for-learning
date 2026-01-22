@@ -52,7 +52,6 @@ builder.Services.AddRegistrationSettings(builder.Configuration);
 
 // Add Infrastructure layer (DbContext, repositories)
 builder.Services.AddInfrastructure(builder.Configuration);
-builder.Services.AddDataProtection();
 
 // Add Recommendation Engine
 builder.Services.AddRecommendationEngine();

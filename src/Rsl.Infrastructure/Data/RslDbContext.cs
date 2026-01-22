@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.DataProtection.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
 using Rsl.Core.Entities;
 
@@ -7,7 +8,7 @@ namespace Rsl.Infrastructure.Data;
 /// Entity Framework Core DbContext for the Recommendation System for Learning.
 /// Manages database connections and entity configurations.
 /// </summary>
-public class RslDbContext : DbContext
+public class RslDbContext : DbContext, IDataProtectionKeyContext
 {
     public RslDbContext(DbContextOptions<RslDbContext> options) : base(options)
     {
@@ -26,6 +27,7 @@ public class RslDbContext : DbContext
     public DbSet<XFollowedAccount> XFollowedAccounts { get; set; }
     public DbSet<XSelectedAccount> XSelectedAccounts { get; set; }
     public DbSet<XPost> XPosts { get; set; }
+    public DbSet<DataProtectionKey> DataProtectionKeys { get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {

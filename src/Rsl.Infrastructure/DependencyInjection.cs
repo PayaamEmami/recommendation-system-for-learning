@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.DataProtection;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -57,6 +58,11 @@ public static class DependencyInjection
 
     // Register content fetcher service (handles HTML and RSS/XML feeds)
     services.AddHttpClient<IContentFetcherService, ContentFetcherService>();
+
+    // Persist Data Protection keys to the shared database so API and jobs can decrypt tokens.
+    services.AddDataProtection()
+        .PersistKeysToDbContext<RslDbContext>()
+        .SetApplicationName("Rsl");
 
     return services;
   }

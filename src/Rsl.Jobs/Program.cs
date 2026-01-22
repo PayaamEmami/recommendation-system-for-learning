@@ -12,7 +12,6 @@ var builder = Host.CreateApplicationBuilder(args);
 builder.Services.AddInfrastructure(builder.Configuration);
 builder.Services.AddLlmServices(builder.Configuration);
 builder.Services.AddRecommendationEngine();
-builder.Services.AddDataProtection();
 
 // Jobs
 builder.Services.AddScoped<SourceIngestionJob>();
