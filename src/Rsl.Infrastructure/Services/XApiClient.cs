@@ -52,7 +52,8 @@ public class XApiClient : IXApiClient
         {
             var body = await response.Content.ReadAsStringAsync(cancellationToken);
             throw new HttpRequestException(
-                $"X API /2/users/me failed with {(int)response.StatusCode} {response.ReasonPhrase}. Body: {body}");
+                $"X API request failed with {(int)response.StatusCode} {response.ReasonPhrase} " +
+                $"for {request.Method} {request.RequestUri}. Body: {body}");
         }
 
         var token = await response.Content.ReadFromJsonAsync<XTokenApiResponse>(JsonOptions, cancellationToken);
@@ -85,7 +86,13 @@ public class XApiClient : IXApiClient
         AddClientAuthHeader(request);
 
         var response = await _httpClient.SendAsync(request, cancellationToken);
-        response.EnsureSuccessStatusCode();
+        if (!response.IsSuccessStatusCode)
+        {
+            var body = await response.Content.ReadAsStringAsync(cancellationToken);
+            throw new HttpRequestException(
+                $"X API request failed with {(int)response.StatusCode} {response.ReasonPhrase} " +
+                $"for {request.Method} {request.RequestUri}. Body: {body}");
+        }
 
         var token = await response.Content.ReadFromJsonAsync<XTokenApiResponse>(JsonOptions, cancellationToken);
         return token == null
@@ -106,7 +113,13 @@ public class XApiClient : IXApiClient
         request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", accessToken);
 
         var response = await _httpClient.SendAsync(request, cancellationToken);
-        response.EnsureSuccessStatusCode();
+        if (!response.IsSuccessStatusCode)
+        {
+            var body = await response.Content.ReadAsStringAsync(cancellationToken);
+            throw new HttpRequestException(
+                $"X API request failed with {(int)response.StatusCode} {response.ReasonPhrase} " +
+                $"for {request.Method} {request.RequestUri}. Body: {body}");
+        }
 
         var payload = await response.Content.ReadFromJsonAsync<XUserResponse>(JsonOptions, cancellationToken);
         if (payload?.Data == null)
@@ -140,7 +153,13 @@ public class XApiClient : IXApiClient
             request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", accessToken);
 
             var response = await _httpClient.SendAsync(request, cancellationToken);
-            response.EnsureSuccessStatusCode();
+            if (!response.IsSuccessStatusCode)
+            {
+                var body = await response.Content.ReadAsStringAsync(cancellationToken);
+                throw new HttpRequestException(
+                    $"X API request failed with {(int)response.StatusCode} {response.ReasonPhrase} " +
+                    $"for {request.Method} {request.RequestUri}. Body: {body}");
+            }
 
             var payload = await response.Content.ReadFromJsonAsync<XFollowResponse>(JsonOptions, cancellationToken);
             if (payload?.Data != null)
@@ -189,7 +208,13 @@ public class XApiClient : IXApiClient
             request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", accessToken);
 
             var response = await _httpClient.SendAsync(request, cancellationToken);
-            response.EnsureSuccessStatusCode();
+            if (!response.IsSuccessStatusCode)
+            {
+                var body = await response.Content.ReadAsStringAsync(cancellationToken);
+                throw new HttpRequestException(
+                    $"X API request failed with {(int)response.StatusCode} {response.ReasonPhrase} " +
+                    $"for {request.Method} {request.RequestUri}. Body: {body}");
+            }
 
             var payload = await response.Content.ReadFromJsonAsync<XPostResponse>(JsonOptions, cancellationToken);
             if (payload?.Data != null)
