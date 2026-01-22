@@ -174,9 +174,15 @@ jobs:
               exit 0
             fi
 
-            echo "Triggering App Runner deployment..."
-            aws apprunner start-deployment --service-arn $SERVICE_ARN
-            echo "Deployment triggered successfully"
+            ACCOUNT_ID=$(aws sts get-caller-identity --query Account --output text)
+            IMAGE_ID="${ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com/rsl-api:${GITHUB_SHA}"
+
+            echo "Updating App Runner image to $IMAGE_ID"
+            SOURCE_CONFIG=$(aws apprunner describe-service --service-arn "$SERVICE_ARN" --query "Service.SourceConfiguration" --output json)
+            UPDATED_CONFIG=$(echo "$SOURCE_CONFIG" | jq --arg image "$IMAGE_ID" '.ImageRepository.ImageIdentifier = $image')
+
+            aws apprunner update-service --service-arn "$SERVICE_ARN" --source-configuration "$UPDATED_CONFIG"
+            echo "Deployment update submitted"
           else
             echo "App Runner service not found - skipping deployment"
           fi
