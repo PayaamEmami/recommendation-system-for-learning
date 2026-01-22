@@ -265,6 +265,11 @@ a:hover {
     background-color: var(--bg-secondary);
 }
 
+.x-followed-item > div {
+    min-width: 0;
+    flex: 1;
+}
+
 .x-followed-item input {
     margin-right: 0.25rem;
 }
@@ -277,11 +282,17 @@ a:hover {
 
 .x-followed-name {
     font-weight: 600;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 
 .x-followed-handle {
     color: var(--text-secondary);
     font-size: 0.85rem;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 
 .x-post-carousel {
