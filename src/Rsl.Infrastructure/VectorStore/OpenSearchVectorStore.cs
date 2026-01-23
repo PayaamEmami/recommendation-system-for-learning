@@ -33,6 +33,7 @@ public class OpenSearchVectorStore : IVectorStore
         var awsConnection = new AwsSigV4HttpConnection(region, service: "aoss");
         var connectionSettings = new ConnectionSettings(pool, awsConnection)
             .DefaultIndex(_settings.IndexName)
+            .DefaultDisableIdInference()
             .RequestTimeout(TimeSpan.FromMinutes(2))
             .DisableDirectStreaming(); // Helps with debugging
 
