@@ -172,7 +172,8 @@ public class XApiClient : IXApiClient
 
             if (since.HasValue)
             {
-                url += $"&start_time={Uri.EscapeDataString(since.Value.ToUniversalTime().ToString("O"))}";
+                var startTime = since.Value.ToUniversalTime().ToString("yyyy-MM-dd'T'HH:mm:ss.fff'Z'");
+                url += $"&start_time={Uri.EscapeDataString(startTime)}";
             }
 
             if (!string.IsNullOrEmpty(nextToken))
