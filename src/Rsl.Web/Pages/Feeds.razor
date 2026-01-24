@@ -65,7 +65,7 @@
                                        @onchange="(e) => ToggleSelected(account.Id, e)" />
                                 <img src="@account.ProfileImageUrl" alt="@account.Handle" />
                                 <div>
-                                    <div class="x-followed-name">@account.DisplayName</div>
+                                <div class="x-followed-name">@TruncateName(account.DisplayName)</div>
                                     <div class="x-followed-handle">@($"@{account.Handle}")</div>
                                 </div>
                             </label>
@@ -308,6 +308,16 @@
         {
             _xLoading = false;
         }
+    }
+
+    private static string TruncateName(string? name)
+    {
+        if (string.IsNullOrWhiteSpace(name))
+        {
+            return string.Empty;
+        }
+
+        return name.Length > 18 ? $"{name[..18]}..." : name;
     }
 
     private async Task SaveSelectionsAsync()
