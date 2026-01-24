@@ -14,18 +14,10 @@
 <div class="page-container">
     <div class="x-feed-container">
         <div class="x-feed-header">
-            <div>
-                <h2>X Feed</h2>
-                <p class="subtitle">Latest posts from accounts you follow</p>
-            </div>
-            <div class="x-feed-actions">
-                <button class="btn-secondary" @onclick="ConnectXAsync" disabled="@_xConnecting">
-                    @_xConnectButtonLabel
-                </button>
-                <button class="btn-secondary" @onclick="RefreshXAsync" disabled="@_xLoading">
-                    Refresh
-                </button>
-            </div>
+            <h2>X Feed</h2>
+            <button class="x-feed-settings-btn" @onclick="ToggleXSettings" aria-label="X feed settings">
+                ⚙
+            </button>
         </div>
 
         @if (!string.IsNullOrEmpty(_xError))
@@ -44,35 +36,42 @@
         }
         else
         {
-            <details class="x-followed-section" open>
-                <summary class="x-followed-summary">
-                    <span>Select accounts to include</span>
-                    <span class="x-followed-summary-meta">@_selectedAccountIds.Count selected</span>
-                </summary>
-                <div class="x-followed-list">
-                    <div class="x-followed-header">
-                        <h3>Select accounts to include</h3>
-                        <button class="btn-primary" @onclick="SaveSelectionsAsync" disabled="@_xSavingSelections">
-                            Save Selection
-                        </button>
-                    </div>
-                    <div class="x-followed-grid">
-                        @foreach (var account in _followedAccounts)
-                        {
-                            <label class="x-followed-item">
-                                <input type="checkbox"
-                                       checked="@_selectedAccountIds.Contains(account.Id)"
-                                       @onchange="(e) => ToggleSelected(account.Id, e)" />
-                                <img src="@account.ProfileImageUrl" alt="@account.Handle" />
-                                <div>
-                                <div class="x-followed-name">@TruncateName(account.DisplayName)</div>
-                                    <div class="x-followed-handle">@($"@{account.Handle}")</div>
-                                </div>
-                            </label>
-                        }
+            @if (_showXSettings)
+            {
+                <div class="x-followed-section">
+                    <div class="x-followed-list">
+                        <div class="x-followed-controls">
+                            <button class="btn-tertiary" @onclick="ConnectXAsync" disabled="@_xConnecting">
+                                @_xConnectButtonLabel
+                            </button>
+                            <button class="btn-tertiary" @onclick="RefreshXAsync" disabled="@_xLoading">
+                                Refresh
+                            </button>
+                        </div>
+                        <div class="x-followed-header">
+                            <h3>Settings</h3>
+                            <button class="btn-primary" @onclick="SaveSelectionsAsync" disabled="@_xSavingSelections">
+                                Save Selection
+                            </button>
+                        </div>
+                        <div class="x-followed-grid">
+                            @foreach (var account in _followedAccounts)
+                            {
+                                <label class="x-followed-item">
+                                    <input type="checkbox"
+                                           checked="@_selectedAccountIds.Contains(account.Id)"
+                                           @onchange="(e) => ToggleSelected(account.Id, e)" />
+                                    <img src="@account.ProfileImageUrl" alt="@account.Handle" />
+                                    <div>
+                                    <div class="x-followed-name">@TruncateName(account.DisplayName)</div>
+                                        <div class="x-followed-handle">@($"@{account.Handle}")</div>
+                                    </div>
+                                </label>
+                            }
+                        </div>
                     </div>
                 </div>
-            </details>
+            }
 
             <div class="x-post-carousel">
                 @if (!_posts.Any())
@@ -218,6 +217,7 @@
     private bool _xLoading = true;
     private bool _xConnecting;
     private bool _xSavingSelections;
+    private bool _showXSettings;
     private string? _xError;
     private string _xConnectButtonLabel = "Connect X";
 
@@ -308,6 +308,11 @@
         {
             _xLoading = false;
         }
+    }
+
+    private void ToggleXSettings()
+    {
+        _showXSettings = !_showXSettings;
     }
 
     private static string TruncateName(string? name)
