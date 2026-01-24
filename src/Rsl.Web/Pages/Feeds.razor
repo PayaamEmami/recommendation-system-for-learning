@@ -50,9 +50,6 @@
                         </div>
                         <div class="x-followed-header">
                             <h3>Settings</h3>
-                            <button class="btn-primary" @onclick="SaveSelectionsAsync" disabled="@_xSavingSelections">
-                                Save Selection
-                            </button>
                         </div>
                         <div class="x-followed-grid">
                             @foreach (var account in _followedAccounts)
@@ -60,7 +57,7 @@
                                 <label class="x-followed-item">
                                     <input type="checkbox"
                                            checked="@_selectedAccountIds.Contains(account.Id)"
-                                           @onchange="(e) => ToggleSelected(account.Id, e)" />
+                                           @onchange="async (e) => await ToggleSelectedAsync(account.Id, e)" />
                                     <img src="@account.ProfileImageUrl" alt="@account.Handle" />
                                     <div>
                                     <div class="x-followed-name">@TruncateName(account.DisplayName)</div>
@@ -350,7 +347,7 @@
         }
     }
 
-    private void ToggleSelected(Guid id, ChangeEventArgs args)
+    private async Task ToggleSelectedAsync(Guid id, ChangeEventArgs args)
     {
         var isChecked = args.Value is bool value && value;
         if (isChecked)
@@ -361,6 +358,8 @@
         {
             _selectedAccountIds.Remove(id);
         }
+
+        await SaveSelectionsAsync();
     }
 
     private static string? GetPostMediaUrl(XPostItem post)

@@ -435,6 +435,7 @@ button {
 
 .btn-primary,
 .btn-secondary,
+.btn-tertiary,
 .btn-danger,
 .btn-text {
     padding: 0.5rem 1.5rem;
@@ -464,6 +465,17 @@ button {
 
 .btn-secondary:hover:not(:disabled) {
     background-color: var(--border-color);
+}
+
+.btn-tertiary {
+    background-color: transparent;
+    color: var(--text-secondary);
+    border: 1px solid var(--border-color);
+}
+
+.btn-tertiary:hover:not(:disabled) {
+    color: var(--text-primary);
+    border-color: var(--text-primary);
 }
 
 .btn-danger {
