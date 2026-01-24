@@ -44,29 +44,35 @@
         }
         else
         {
-            <div class="x-followed-list">
-                <div class="x-followed-header">
-                    <h3>Select accounts to include</h3>
-                    <button class="btn-primary" @onclick="SaveSelectionsAsync" disabled="@_xSavingSelections">
-                        Save Selection
-                    </button>
+            <details class="x-followed-section" open>
+                <summary class="x-followed-summary">
+                    <span>Select accounts to include</span>
+                    <span class="x-followed-summary-meta">@_selectedAccountIds.Count selected</span>
+                </summary>
+                <div class="x-followed-list">
+                    <div class="x-followed-header">
+                        <h3>Select accounts to include</h3>
+                        <button class="btn-primary" @onclick="SaveSelectionsAsync" disabled="@_xSavingSelections">
+                            Save Selection
+                        </button>
+                    </div>
+                    <div class="x-followed-grid">
+                        @foreach (var account in _followedAccounts)
+                        {
+                            <label class="x-followed-item">
+                                <input type="checkbox"
+                                       checked="@_selectedAccountIds.Contains(account.Id)"
+                                       @onchange="(e) => ToggleSelected(account.Id, e)" />
+                                <img src="@account.ProfileImageUrl" alt="@account.Handle" />
+                                <div>
+                                    <div class="x-followed-name">@account.DisplayName</div>
+                                    <div class="x-followed-handle">@($"@{account.Handle}")</div>
+                                </div>
+                            </label>
+                        }
+                    </div>
                 </div>
-                <div class="x-followed-grid">
-                    @foreach (var account in _followedAccounts)
-                    {
-                        <label class="x-followed-item">
-                            <input type="checkbox"
-                                   checked="@_selectedAccountIds.Contains(account.Id)"
-                                   @onchange="(e) => ToggleSelected(account.Id, e)" />
-                            <img src="@account.ProfileImageUrl" alt="@account.Handle" />
-                            <div>
-                                <div class="x-followed-name">@account.DisplayName</div>
-                                <div class="x-followed-handle">@($"@{account.Handle}")</div>
-                            </div>
-                        </label>
-                    }
-                </div>
-            </div>
+            </details>
 
             <div class="x-post-carousel">
                 @if (!_posts.Any())

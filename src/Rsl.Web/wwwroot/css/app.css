@@ -242,6 +242,45 @@ a:hover {
     margin-bottom: 1.5rem;
 }
 
+.x-followed-section {
+    border: 1px solid var(--border-color);
+    border-radius: 12px;
+    background-color: var(--bg-secondary);
+    padding: 0.25rem 0.75rem 0.75rem;
+    margin-bottom: 1.5rem;
+}
+
+.x-followed-summary {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    cursor: pointer;
+    padding: 0.75rem 0.25rem;
+    font-weight: 600;
+    list-style: none;
+}
+
+.x-followed-summary::-webkit-details-marker {
+    display: none;
+}
+
+.x-followed-summary::before {
+    content: "▸";
+    display: inline-block;
+    margin-right: 0.5rem;
+    transition: transform 0.2s ease;
+}
+
+.x-followed-section[open] .x-followed-summary::before {
+    transform: rotate(90deg);
+}
+
+.x-followed-summary-meta {
+    color: var(--text-secondary);
+    font-weight: 500;
+    font-size: 0.85rem;
+}
+
 .x-followed-header {
     display: flex;
     justify-content: space-between;
