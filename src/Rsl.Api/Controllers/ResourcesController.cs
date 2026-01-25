@@ -2,7 +2,11 @@ using Asp.Versioning;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.RateLimiting;
-using Rsl.Api.DTOs.Requests;
+using Rsl.Api.DTOs.Common;
+using Rsl.Api.DTOs.Resources.Requests;
+using Rsl.Api.DTOs.Resources.Responses;
+using Rsl.Api.DTOs.Votes.Requests;
+using Rsl.Api.DTOs.Votes.Responses;
 using Rsl.Api.Extensions;
 using Rsl.Api.Services;
 using Rsl.Core.Enums;
@@ -43,7 +47,7 @@ public class ResourcesController : ControllerBase
     /// <param name="cancellationToken">Cancellation token.</param>
     /// <returns>Paginated list of resources.</returns>
     [HttpGet]
-    [ProducesResponseType(typeof(DTOs.Responses.PagedResponse<DTOs.Responses.ResourceResponse>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(PagedResponse<ResourceResponse>), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status401Unauthorized)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     public async Task<IActionResult> GetResources(
@@ -97,7 +101,7 @@ public class ResourcesController : ControllerBase
     /// <param name="cancellationToken">Cancellation token.</param>
     /// <returns>The resource information.</returns>
     [HttpGet("{id}")]
-    [ProducesResponseType(typeof(DTOs.Responses.ResourceResponse), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ResourceResponse), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status401Unauthorized)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
     public async Task<IActionResult> GetResourceById(Guid id, CancellationToken cancellationToken)
@@ -119,7 +123,7 @@ public class ResourcesController : ControllerBase
     /// <param name="cancellationToken">Cancellation token.</param>
     /// <returns>The created resource.</returns>
     [HttpPost]
-    [ProducesResponseType(typeof(DTOs.Responses.ResourceResponse), StatusCodes.Status201Created)]
+    [ProducesResponseType(typeof(ResourceResponse), StatusCodes.Status201Created)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status401Unauthorized)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     public async Task<IActionResult> CreateResource(
@@ -138,7 +142,7 @@ public class ResourcesController : ControllerBase
     /// <param name="cancellationToken">Cancellation token.</param>
     /// <returns>The updated resource.</returns>
     [HttpPut("{id}")]
-    [ProducesResponseType(typeof(DTOs.Responses.ResourceResponse), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ResourceResponse), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status401Unauthorized)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
@@ -175,7 +179,7 @@ public class ResourcesController : ControllerBase
     /// <param name="cancellationToken">Cancellation token.</param>
     /// <returns>The vote information.</returns>
     [HttpPost("{id}/vote")]
-    [ProducesResponseType(typeof(DTOs.Responses.VoteResponse), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(VoteResponse), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status401Unauthorized)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
@@ -223,7 +227,7 @@ public class ResourcesController : ControllerBase
     /// <param name="cancellationToken">Cancellation token.</param>
     /// <returns>The vote information if exists.</returns>
     [HttpGet("{id}/vote")]
-    [ProducesResponseType(typeof(DTOs.Responses.VoteResponse), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(VoteResponse), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status401Unauthorized)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<IActionResult> GetVoteOnResource(Guid id, CancellationToken cancellationToken)

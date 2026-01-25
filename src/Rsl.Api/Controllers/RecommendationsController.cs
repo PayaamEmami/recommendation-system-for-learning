@@ -2,6 +2,7 @@ using Asp.Versioning;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.RateLimiting;
+using Rsl.Api.DTOs.Recommendations.Responses;
 using Rsl.Api.Extensions;
 using Rsl.Api.Services;
 using Rsl.Core.Enums;
@@ -35,7 +36,7 @@ public class RecommendationsController : ControllerBase
     /// <param name="cancellationToken">Cancellation token.</param>
     /// <returns>List of recommendations grouped by feed type.</returns>
     [HttpGet]
-    [ProducesResponseType(typeof(List<DTOs.Responses.FeedRecommendationsResponse>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(List<FeedRecommendationsResponse>), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status401Unauthorized)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
     public async Task<IActionResult> GetTodaysRecommendations(CancellationToken cancellationToken)
@@ -61,7 +62,7 @@ public class RecommendationsController : ControllerBase
     /// <param name="cancellationToken">Cancellation token.</param>
     /// <returns>Recommendations for the specified feed type and date.</returns>
     [HttpGet("{feedType}")]
-    [ProducesResponseType(typeof(DTOs.Responses.FeedRecommendationsResponse), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(FeedRecommendationsResponse), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status401Unauthorized)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]

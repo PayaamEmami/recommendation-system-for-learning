@@ -120,7 +120,10 @@ public class OpenSearchVectorStore : IVectorStore
         IEnumerable<ResourceDocument> documents,
         CancellationToken cancellationToken = default)
     {
-        var documentsList = documents.ToList();
+        var documentsList = documents
+            .GroupBy(d => d.Id)
+            .Select(g => g.Last())
+            .ToList();
         if (!documentsList.Any())
         {
             return;
@@ -246,7 +249,9 @@ public class OpenSearchVectorStore : IVectorStore
 
             if (request.ExcludeResourceIds != null && request.ExcludeResourceIds.Any())
             {
-                mustNotQueries.Add(q => q.Ids(ids => ids.Values(request.ExcludeResourceIds.Select(id => id.ToString()))));
+                mustNotQueries.Add(q => q.Terms(t => t
+                    .Field(f => f.Id)
+                    .Terms(request.ExcludeResourceIds.Select(id => id.ToString()))));
             }
 
             // Build the k-NN query with filters

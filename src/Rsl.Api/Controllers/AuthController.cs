@@ -2,7 +2,8 @@ using Asp.Versioning;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.RateLimiting;
 using Rsl.Api.Configuration;
-using Rsl.Api.DTOs.Requests;
+using Rsl.Api.DTOs.Auth.Requests;
+using Rsl.Api.DTOs.Auth.Responses;
 using Rsl.Api.Services;
 
 namespace Rsl.Api.Controllers;
@@ -52,7 +53,7 @@ public class AuthController : ControllerBase
     /// <param name="cancellationToken">Cancellation token.</param>
     /// <returns>Access token, refresh token, and user information.</returns>
     [HttpPost("login")]
-    [ProducesResponseType(typeof(DTOs.Responses.LoginResponse), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(LoginResponse), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status401Unauthorized)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     public async Task<IActionResult> Login(
@@ -72,7 +73,7 @@ public class AuthController : ControllerBase
     /// <param name="cancellationToken">Cancellation token.</param>
     /// <returns>Access token, refresh token, and user information.</returns>
     [HttpPost("register")]
-    [ProducesResponseType(typeof(DTOs.Responses.LoginResponse), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(LoginResponse), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status403Forbidden)]
     public async Task<IActionResult> Register(
@@ -102,7 +103,7 @@ public class AuthController : ControllerBase
     /// <param name="cancellationToken">Cancellation token.</param>
     /// <returns>New access token and refresh token.</returns>
     [HttpPost("refresh")]
-    [ProducesResponseType(typeof(DTOs.Responses.RefreshTokenResponse), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(RefreshTokenResponse), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status401Unauthorized)]
     public async Task<IActionResult> RefreshToken(
         [FromBody] RefreshTokenRequest request,

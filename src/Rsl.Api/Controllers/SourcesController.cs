@@ -1,6 +1,6 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using Rsl.Api.DTOs.Requests;
+using Rsl.Api.DTOs.Sources.Requests;
 using Rsl.Api.Extensions;
 using Rsl.Api.Services;
 using Rsl.Core.Enums;

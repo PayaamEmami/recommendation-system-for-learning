@@ -22,7 +22,7 @@ public class XPostRepository : IXPostRepository
         return await _context.XPosts
             .Include(p => p.SelectedAccount)
             .ThenInclude(s => s.FollowedAccount)
-            .Where(p => p.UserId == userId)
+            .Where(p => p.UserId == userId && p.SelectedAccount.IsActive)
             .OrderByDescending(p => p.PostCreatedAt)
             .Take(limit)
             .ToListAsync(cancellationToken);

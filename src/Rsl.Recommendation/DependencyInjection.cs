@@ -28,7 +28,7 @@ public static class DependencyInjection
 
         // Services
         services.AddScoped<IUserProfileService, UserProfileService>();
-        services.AddScoped<IRecommendationEngine, HybridRecommendationEngine>();
+        services.AddScoped<IRecommendationEngine, RecommendationEngine>();
         services.AddScoped<IFeedGenerator, FeedGenerator>();
 
         return services;

@@ -21,7 +21,7 @@ public class XSelectedAccountRepository : IXSelectedAccountRepository
     {
         return await _context.XSelectedAccounts
             .Include(x => x.FollowedAccount)
-            .Where(x => x.UserId == userId)
+            .Where(x => x.UserId == userId && x.IsActive)
             .OrderBy(x => x.FollowedAccount.Handle)
             .ToListAsync(cancellationToken);
     }
@@ -32,14 +32,33 @@ public class XSelectedAccountRepository : IXSelectedAccountRepository
             .Where(x => x.UserId == userId)
             .ToListAsync(cancellationToken);
 
-        if (existing.Any())
+        var existingByFollowedId = existing.ToDictionary(x => x.XFollowedAccountId);
+        var selectedIds = selectedAccounts
+            .Select(x => x.XFollowedAccountId)
+            .ToHashSet();
+
+        foreach (var current in existing)
         {
-            _context.XSelectedAccounts.RemoveRange(existing);
+            var shouldBeActive = selectedIds.Contains(current.XFollowedAccountId);
+            if (current.IsActive != shouldBeActive)
+            {
+                current.IsActive = shouldBeActive;
+                if (shouldBeActive)
+                {
+                    current.SelectedAt = DateTime.UtcNow;
+                }
+            }
         }
 
         foreach (var selected in selectedAccounts)
         {
+            if (existingByFollowedId.ContainsKey(selected.XFollowedAccountId))
+            {
+                continue;
+            }
+
             selected.UserId = userId;
+            selected.IsActive = true;
             if (selected.SelectedAt == default)
             {
                 selected.SelectedAt = DateTime.UtcNow;

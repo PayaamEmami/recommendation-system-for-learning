@@ -311,7 +311,12 @@ a:hover {
     display: flex;
     justify-content: flex-end;
     gap: 0.5rem;
-    margin-bottom: 0.75rem;
+}
+
+.x-followed-saving {
+    align-self: center;
+    color: var(--text-secondary);
+    font-size: 0.85rem;
 }
 
 .x-followed-grid {

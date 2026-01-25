@@ -2,7 +2,9 @@ using Asp.Versioning;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.RateLimiting;
-using Rsl.Api.DTOs.Requests;
+using Rsl.Api.DTOs.Users.Requests;
+using Rsl.Api.DTOs.Users.Responses;
+using Rsl.Api.DTOs.Votes.Responses;
 using Rsl.Api.Extensions;
 using Rsl.Api.Services;
 
@@ -38,7 +40,7 @@ public class UsersController : ControllerBase
     /// <param name="cancellationToken">Cancellation token.</param>
     /// <returns>The user's detailed profile information.</returns>
     [HttpGet("me")]
-    [ProducesResponseType(typeof(DTOs.Responses.UserDetailResponse), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(UserDetailResponse), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status401Unauthorized)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
     public async Task<IActionResult> GetCurrentUser(CancellationToken cancellationToken)
@@ -65,7 +67,7 @@ public class UsersController : ControllerBase
     /// <param name="cancellationToken">Cancellation token.</param>
     /// <returns>The user's detailed profile information.</returns>
     [HttpGet("{id}")]
-    [ProducesResponseType(typeof(DTOs.Responses.UserDetailResponse), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(UserDetailResponse), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status401Unauthorized)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
     public async Task<IActionResult> GetUserById(Guid id, CancellationToken cancellationToken)
@@ -86,7 +88,7 @@ public class UsersController : ControllerBase
     /// <param name="cancellationToken">Cancellation token.</param>
     /// <returns>The updated user information.</returns>
     [HttpPatch("me")]
-    [ProducesResponseType(typeof(DTOs.Responses.UserResponse), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(UserResponse), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status401Unauthorized)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
@@ -112,7 +114,7 @@ public class UsersController : ControllerBase
     /// <param name="cancellationToken">Cancellation token.</param>
     /// <returns>The updated user information.</returns>
     [HttpPatch("{id}")]
-    [ProducesResponseType(typeof(DTOs.Responses.UserResponse), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(UserResponse), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status401Unauthorized)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status403Forbidden)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
@@ -144,7 +146,7 @@ public class UsersController : ControllerBase
     /// <param name="cancellationToken">Cancellation token.</param>
     /// <returns>List of the user's votes.</returns>
     [HttpGet("me/votes")]
-    [ProducesResponseType(typeof(List<DTOs.Responses.VoteResponse>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(List<VoteResponse>), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status401Unauthorized)]
     public async Task<IActionResult> GetCurrentUserVotes(CancellationToken cancellationToken)
     {

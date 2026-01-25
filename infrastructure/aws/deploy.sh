@@ -673,26 +673,26 @@ register_task_definitions() {
 create_eventbridge_rules() {
     log_info "Creating EventBridge scheduled rules..."
 
-    # Ingestion job - daily at midnight UTC
+    # Ingestion job - weekly on Sunday at midnight UTC
     if ! aws events describe-rule --name ${PREFIX}-ingestion-schedule --region $REGION &> /dev/null; then
         aws events put-rule \
             --name ${PREFIX}-ingestion-schedule \
-            --schedule-expression "cron(0 0 * * ? *)" \
+            --schedule-expression "cron(0 0 ? * SUN *)" \
             --state ENABLED \
             --tags Key=Project,Value=${PROJECT_TAG} \
             --region $REGION
-        log_info "Created EventBridge rule: ${PREFIX}-ingestion-schedule (daily at midnight UTC)"
+        log_info "Created EventBridge rule: ${PREFIX}-ingestion-schedule (weekly on Sunday at midnight UTC)"
     fi
 
-    # Feed job - daily at 2 AM UTC
+    # Feed job - weekly on Sunday at 2 AM UTC
     if ! aws events describe-rule --name ${PREFIX}-feed-schedule --region $REGION &> /dev/null; then
         aws events put-rule \
             --name ${PREFIX}-feed-schedule \
-            --schedule-expression "cron(0 2 * * ? *)" \
+            --schedule-expression "cron(0 2 ? * SUN *)" \
             --state ENABLED \
             --tags Key=Project,Value=${PROJECT_TAG} \
             --region $REGION
-        log_info "Created EventBridge rule: ${PREFIX}-feed-schedule (daily at 2 AM UTC)"
+        log_info "Created EventBridge rule: ${PREFIX}-feed-schedule (weekly on Sunday at 2 AM UTC)"
     fi
 
     # X ingestion job - daily at 1 AM UTC
@@ -755,8 +755,8 @@ print_summary() {
     echo "  - Endpoint: ${OPENSEARCH_ENDPOINT}"
     echo ""
     echo "Scheduled Jobs:"
-    echo "  - Ingestion: Daily at midnight UTC"
-    echo "  - Feed: Daily at 2 AM UTC"
+    echo "  - Ingestion: Weekly on Sunday at midnight UTC"
+    echo "  - Feed: Weekly on Sunday at 2 AM UTC"
     echo "  - X ingestion: Daily at 1 AM UTC"
     echo ""
     echo "=============================================="

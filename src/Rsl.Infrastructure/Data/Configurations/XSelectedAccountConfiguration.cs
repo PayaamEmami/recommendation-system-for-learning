@@ -18,6 +18,10 @@ public class XSelectedAccountConfiguration : IEntityTypeConfiguration<XSelectedA
         builder.Property(x => x.SelectedAt)
             .IsRequired();
 
+        builder.Property(x => x.IsActive)
+            .IsRequired()
+            .HasDefaultValue(true);
+
         builder.HasIndex(x => new { x.UserId, x.XFollowedAccountId })
             .IsUnique();
 

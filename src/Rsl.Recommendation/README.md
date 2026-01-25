@@ -8,7 +8,7 @@ This project contains the core recommendation logic that generates personalized 
 
 ## Architecture
 
-### Hybrid Recommendation Engine
+### Recommendation Engine
 
 The system uses a **hybrid recommendation approach** combining semantic similarity with traditional content-based signals:
 
@@ -33,7 +33,7 @@ User Embedding (from upvotes) → Vector Search → Heuristic Scoring → Filter
 
 #### 2. **Engine**
 
-- `HybridRecommendationEngine` - Main orchestrator:
+- `RecommendationEngine` - Main orchestrator:
   1. **Vector Search Phase**: Get candidates via semantic similarity using user embedding
   2. **Heuristic Scoring Phase**: Apply traditional signals (recency, source, votes)
   3. **Filtering Phase**: Remove duplicates, ensure diversity
@@ -131,21 +131,6 @@ The recommendation engine integrates with:
 - **OpenSearch** (via `IVectorStore`) - Semantic similarity search
 - **OpenAI** (via `IEmbeddingService`) - Text embedding generation
 - **PostgreSQL** (via EF Core repositories) - Persistence
-
-## Future Enhancements
-
-### Phase 2: Advanced Features
-
-- **Multi-modal embeddings**: Combine text with metadata (authors, topics, citations)
-- **Temporal dynamics**: Weight recent upvotes more heavily in user embedding
-- **Collaborative signals**: Leverage similar users' preferences
-- **Fine-tuned embeddings**: Domain-specific embedding models for academic content
-
-### Phase 3: LLM Integration
-
-- **Explanation generation**: LLM-generated reasons for each recommendation
-- **Query refinement**: Natural language queries to adjust recommendations
-- **Study plan generation**: Personalized learning paths based on goals
 
 ## Cold Start Problem
 

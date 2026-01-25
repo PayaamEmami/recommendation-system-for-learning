@@ -40,16 +40,20 @@
             {
                 <div class="x-followed-section">
                     <div class="x-followed-list">
-                        <div class="x-followed-controls">
-                            <button class="btn-tertiary" @onclick="ConnectXAsync" disabled="@_xConnecting">
-                                @_xConnectButtonLabel
-                            </button>
-                            <button class="btn-tertiary" @onclick="RefreshXAsync" disabled="@_xLoading">
-                                Refresh
-                            </button>
-                        </div>
                         <div class="x-followed-header">
                             <h3>Settings</h3>
+                            <div class="x-followed-controls">
+                                <button class="btn-tertiary" @onclick="ConnectXAsync" disabled="@_xConnecting">
+                                    @_xConnectButtonLabel
+                                </button>
+                                <button class="btn-tertiary" @onclick="RefreshXAsync" disabled="@_xLoading">
+                                    Refresh
+                                </button>
+                                @if (_xSavingSelections)
+                                {
+                                    <span class="x-followed-saving">Saving...</span>
+                                }
+                            </div>
                         </div>
                         <div class="x-followed-grid">
                             @foreach (var account in _followedAccounts)
@@ -57,6 +61,7 @@
                                 <label class="x-followed-item">
                                     <input type="checkbox"
                                            checked="@_selectedAccountIds.Contains(account.Id)"
+                                           disabled="@_xSavingSelections"
                                            @onchange="async (e) => await ToggleSelectedAsync(account.Id, e)" />
                                     <img src="@account.ProfileImageUrl" alt="@account.Handle" />
                                     <div>

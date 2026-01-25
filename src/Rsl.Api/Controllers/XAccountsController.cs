@@ -3,8 +3,8 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.Extensions.Configuration;
-using Rsl.Api.DTOs.Requests;
-using Rsl.Api.DTOs.Responses;
+using Rsl.Api.DTOs.X.Requests;
+using Rsl.Api.DTOs.X.Responses;
 using Rsl.Api.Extensions;
 using Rsl.Api.Services;
 
