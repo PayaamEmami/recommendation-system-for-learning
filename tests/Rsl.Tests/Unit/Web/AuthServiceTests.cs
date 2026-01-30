@@ -1,0 +1,124 @@
+using System.Net;
+using System.Text.Json;
+using Blazored.LocalStorage;
+using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Logging.Abstractions;
+using Moq;
+using Rsl.Web.Services;
+
+namespace Rsl.Tests.Unit.Web;
+
+[TestClass]
+public sealed class AuthServiceTests
+{
+    [TestMethod]
+    public async Task InitializeAsync_RestoresStateFromStorage()
+    {
+        var storedState = new AuthState
+        {
+            IsAuthenticated = true,
+            Email = "user@example.com",
+            AccessToken = "access",
+            ExpiresAt = DateTime.UtcNow.AddMinutes(5)
+        };
+        var localStorage = new Mock<ILocalStorageService>(MockBehavior.Strict);
+        localStorage.Setup(store => store.GetItemAsync<AuthState>(It.IsAny<string>()))
+            .ReturnsAsync(storedState);
+
+        var authService = CreateAuthService(localStorage, new HttpTestHandler(_ => new HttpResponseMessage(HttpStatusCode.OK)));
+
+        await authService.InitializeAsync();
+
+        Assert.IsTrue(authService.CurrentState.IsAuthenticated);
+        Assert.AreEqual("user@example.com", authService.CurrentState.Email);
+    }
+
+    [TestMethod]
+    public async Task EnsureAuthenticatedAsync_WhenNoState_ReturnsFalse()
+    {
+        var localStorage = new Mock<ILocalStorageService>(MockBehavior.Strict);
+        localStorage.Setup(store => store.GetItemAsync<AuthState>(It.IsAny<string>()))
+            .ReturnsAsync((AuthState?)null);
+
+        var authService = CreateAuthService(localStorage, new HttpTestHandler(_ => new HttpResponseMessage(HttpStatusCode.OK)));
+
+        var result = await authService.EnsureAuthenticatedAsync();
+
+        Assert.IsFalse(result);
+    }
+
+    [TestMethod]
+    public async Task TryRefreshAsync_WhenMissingRefreshToken_ReturnsFalse()
+    {
+        var localStorage = new Mock<ILocalStorageService>(MockBehavior.Strict);
+        localStorage.Setup(store => store.GetItemAsync<AuthState>(It.IsAny<string>()))
+            .ReturnsAsync(new AuthState { IsAuthenticated = true, AccessToken = "access", ExpiresAt = DateTime.UtcNow.AddMinutes(-5) });
+
+        var authService = CreateAuthService(localStorage, new HttpTestHandler(_ => new HttpResponseMessage(HttpStatusCode.OK)));
+        await authService.InitializeAsync();
+
+        var result = await authService.TryRefreshAsync();
+
+        Assert.IsFalse(result);
+    }
+
+    [TestMethod]
+    public async Task TryRefreshAsync_WhenSuccess_UpdatesState()
+    {
+        var storedState = new AuthState
+        {
+            IsAuthenticated = true,
+            AccessToken = "expired",
+            RefreshToken = "refresh",
+            ExpiresAt = DateTime.UtcNow.AddMinutes(-5)
+        };
+
+        var localStorage = new Mock<ILocalStorageService>(MockBehavior.Strict);
+        localStorage.Setup(store => store.GetItemAsync<AuthState>(It.IsAny<string>()))
+            .ReturnsAsync(storedState);
+        localStorage.Setup(store => store.SetItemAsync(It.IsAny<string>(), It.IsAny<AuthState>()))
+            .Returns(ValueTask.CompletedTask);
+
+        var refreshPayload = new RefreshTokenResponse
+        {
+            AccessToken = "new-access",
+            RefreshToken = "new-refresh",
+            ExpiresAt = DateTime.UtcNow.AddMinutes(10)
+        };
+
+        var handler = new HttpTestHandler(_ =>
+        {
+            var json = JsonSerializer.Serialize(refreshPayload, new JsonSerializerOptions { PropertyNamingPolicy = JsonNamingPolicy.CamelCase });
+            return new HttpResponseMessage(HttpStatusCode.OK)
+            {
+                Content = new StringContent(json)
+            };
+        });
+
+        var authService = CreateAuthService(localStorage, handler);
+        await authService.InitializeAsync();
+
+        var result = await authService.TryRefreshAsync();
+
+        Assert.IsTrue(result);
+        Assert.AreEqual("new-access", authService.CurrentState.AccessToken);
+    }
+
+    private static AuthService CreateAuthService(Mock<ILocalStorageService> localStorage, HttpTestHandler handler)
+    {
+        var configuration = new ConfigurationBuilder()
+            .AddInMemoryCollection(new Dictionary<string, string?>
+            {
+                ["Registration:Enabled"] = "true",
+                ["Registration:DisabledMessage"] = "off"
+            })
+            .Build();
+
+        var httpClient = new HttpClient(handler)
+        {
+            BaseAddress = new Uri("https://example.com")
+        };
+
+        return new AuthService(httpClient, localStorage.Object, configuration, NullLogger<AuthService>.Instance);
+    }
+}
