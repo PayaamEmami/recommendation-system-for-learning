@@ -43,6 +43,16 @@ Jobs requires the same configuration as the API (database connection, OpenAI, Op
 
 See `appsettings.json.example` for required configuration values.
 
+## Local prerequisites (Windows)
+
+- **Docker Desktop + WSL2** running (for local OpenSearch).
+- **OpenSearch container** running (see `docker-compose.yml`):
+  - `docker compose up opensearch`
+- **Environment variables**:
+  - `OPENAI_API_KEY` for embeddings
+  - DB connection string reachable from your machine
+  - `OpenSearch__Mode=Local` and `OpenSearch__Endpoint=http://localhost:9200`
+
 ## Deployment
 
 Jobs is deployed as a scheduled container task:

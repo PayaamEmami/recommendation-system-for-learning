@@ -38,6 +38,9 @@ chmod +x deploy.sh
 ./deploy.sh
 ```
 
+Optional flags:
+- `ENABLE_OPENSEARCH=true ./deploy.sh` creates OpenSearch (default is skipped) and enables ingestion/feed schedules.
+
 This creates all AWS resources:
 - VPC and networking (`rsl-vpc`, `rsl-subnet-*`)
 - ECR repositories (`rsl-api`, `rsl-jobs`)
@@ -77,8 +80,8 @@ All resources are prefixed with `rsl-` for clear separation from other projects:
 | S3 Bucket | `rsl-web-{account-id}` |
 | App Runner | `rsl-api` |
 | ECS Cluster | `rsl-cluster` |
-| ECS Tasks | `rsl-ingestion-task`, `rsl-feed-task` |
-| EventBridge Rules | `rsl-ingestion-schedule`, `rsl-feed-schedule` |
+| ECS Tasks | `rsl-ingestion-task`, `rsl-feed-task`, `rsl-x-ingestion-task` |
+| EventBridge Rules | `rsl-ingestion-schedule`, `rsl-feed-schedule`, `rsl-x-ingestion-schedule` |
 | OpenSearch | `rsl-search` |
 | Secrets | `rsl-secrets/*` |
 | Log Groups | `/rsl/*` |
@@ -104,6 +107,14 @@ aws ecs run-task \
   --launch-type FARGATE \
   --network-configuration 'awsvpcConfiguration={subnets=[SUBNET_ID],securityGroups=[SG_ID],assignPublicIp=ENABLED}' \
   --region us-west-2
+
+# Run X ingestion job
+aws ecs run-task \
+  --cluster rsl-cluster \
+  --task-definition rsl-x-ingestion-task \
+  --launch-type FARGATE \
+  --network-configuration 'awsvpcConfiguration={subnets=[SUBNET_ID],securityGroups=[SG_ID],assignPublicIp=ENABLED}' \
+  --region us-west-2
 ```
 
 ### View logs
@@ -115,6 +126,7 @@ aws logs tail /rsl/api --follow --region us-west-2
 # Job logs
 aws logs tail /rsl/ingestion --follow --region us-west-2
 aws logs tail /rsl/feed --follow --region us-west-2
+aws logs tail /rsl/x-ingestion --follow --region us-west-2
 ```
 
 ### Update App Runner service

@@ -110,6 +110,13 @@ Jobs are implemented as **ECS Fargate tasks** with EventBridge cron scheduling:
 - Timeout: 1 hour
 - Command: `dotnet Rsl.Jobs.dll feed`
 
+**X Ingestion Job** (`rsl-x-ingestion-task`):
+
+- Schedule: Daily at 1 AM UTC (`cron(0 1 * * ? *)`)
+- Timeout: 1 hour
+- Command: `dotnet Rsl.Jobs.dll x-ingestion`
+- Notes: Ingests recent posts for selected X accounts.
+
 **Benefits**:
 
 - Containers only run during job execution (cost-efficient)

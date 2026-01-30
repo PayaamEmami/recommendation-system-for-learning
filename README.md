@@ -1,8 +1,14 @@
 # Recommendation System for Learning (RSL)
 
-**Recommendation System for Learning (RSL)** is a personalized recommendation system designed to aggregate and suggest relevant learning resources from user-defined sources.
+**Recommendation System for Learning (RSL)** aggregates learning resources from your chosen sources (papers, videos, technical blogs, newsletters, and more) and delivers a personalized daily feed. It automatically ingests new content, uses AI-driven ranking to surface what's most relevant to you, and lets you refine recommendations over time.
 
-RSL helps you stay up-to-date with the latest content from your favorite learning sources—whether that's research papers, videos, technical blogs, or newsletters. Instead of manually checking multiple websites, RSL automatically ingests new content daily and uses AI-powered recommendations to surface the most relevant resources based on your interests and preferences. The system combines semantic search with collaborative filtering to deliver personalized daily feeds across different content types.
+RSL started as a way to make it effortless to surface new learning resources (hence the name), but it grew into something broader: an **AI “buffer” between you and the internet**. It aggregates content from the sources you care about, filters out the noise, and delivers a small, intentional set of recommendations instead of an endless feed.
+
+This helps solve a few common problems:
+
+- **One place for everything**: consolidate many sources into a single daily feed, so you don't have to bounce between platforms.
+- **Explicit, user-controlled recommendations**: steer the algorithm with simple upvotes/downvotes, rather than opaque tracking and "engagement" signals.
+- **Built-in limits to prevent doom scrolling**: cap the amount of content surfaced so discovery stays focused and finite.
 
 ## Overview
 

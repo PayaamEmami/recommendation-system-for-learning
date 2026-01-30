@@ -16,6 +16,7 @@
     "MaxBatchSize": 100
   },
   "OpenSearch": {
+    "Mode": "Aws",
     "Endpoint": "https://your-opensearch-endpoint.us-west-2.aoss.amazonaws.com",
     "IndexName": "rsl-resources",
     "EmbeddingDimensions": 1536

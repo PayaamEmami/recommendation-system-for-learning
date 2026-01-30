@@ -1,14 +1,19 @@
 namespace Rsl.Infrastructure.Configuration;
 
 /// <summary>
-/// Configuration settings for AWS OpenSearch Serverless.
+/// Configuration settings for OpenSearch.
 /// </summary>
 public class OpenSearchSettings
 {
     public const string SectionName = "OpenSearch";
 
     /// <summary>
-    /// OpenSearch Serverless collection endpoint URL.
+    /// Determines which OpenSearch mode to use.
+    /// </summary>
+    public OpenSearchMode Mode { get; set; } = OpenSearchMode.Local;
+
+    /// <summary>
+    /// OpenSearch endpoint URL.
     /// </summary>
     public string Endpoint { get; set; } = string.Empty;
 
@@ -23,7 +28,13 @@ public class OpenSearchSettings
     public int EmbeddingDimensions { get; set; } = 1536;
 
     /// <summary>
-    /// AWS Region for OpenSearch Serverless.
+    /// AWS Region for OpenSearch (used when Mode is Aws).
     /// </summary>
     public string Region { get; set; } = "us-west-2";
+}
+
+public enum OpenSearchMode
+{
+    Local,
+    Aws
 }

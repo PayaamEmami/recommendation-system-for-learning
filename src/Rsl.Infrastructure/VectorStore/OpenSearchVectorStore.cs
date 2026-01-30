@@ -26,18 +26,40 @@ public class OpenSearchVectorStore : IVectorStore
         _settings = settings.Value;
         _logger = logger;
 
-        // Configure OpenSearch client with AWS SigV4 for Serverless
+        if (_settings.Mode == OpenSearchMode.Aws && string.IsNullOrWhiteSpace(_settings.Region))
+        {
+            throw new InvalidOperationException("OpenSearch region is required when Mode is Aws.");
+        }
+
         var endpoint = new Uri(_settings.Endpoint);
         var pool = new SingleNodeConnectionPool(endpoint);
-        var region = RegionEndpoint.GetBySystemName(_settings.Region);
-        var awsConnection = new AwsSigV4HttpConnection(region, service: "aoss");
-        var connectionSettings = new ConnectionSettings(pool, awsConnection)
+
+        ConnectionSettings connectionSettings;
+        if (_settings.Mode == OpenSearchMode.Aws)
+        {
+            // Configure OpenSearch client with AWS SigV4 for Serverless
+            var region = RegionEndpoint.GetBySystemName(_settings.Region);
+            var awsConnection = new AwsSigV4HttpConnection(region, service: "aoss");
+            connectionSettings = new ConnectionSettings(pool, awsConnection);
+        }
+        else
+        {
+            // Local OpenSearch uses no auth by default (Docker).
+            connectionSettings = new ConnectionSettings(pool);
+        }
+
+        connectionSettings = connectionSettings
             .DefaultIndex(_settings.IndexName)
             .DefaultDisableIdInference()
             .RequestTimeout(TimeSpan.FromMinutes(2))
             .DisableDirectStreaming(); // Helps with debugging
 
         _client = new OpenSearchClient(connectionSettings);
+
+        _logger.LogInformation(
+            "Using OpenSearch mode {Mode} at {Endpoint}",
+            _settings.Mode,
+            _settings.Endpoint);
     }
 
     public async Task InitializeAsync(CancellationToken cancellationToken = default)

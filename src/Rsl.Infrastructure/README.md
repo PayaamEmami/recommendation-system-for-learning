@@ -74,6 +74,24 @@ This registers:
 }
 ```
 
+### OpenSearch Configuration
+```json
+// appsettings.json
+{
+  "OpenSearch": {
+    "Mode": "Local",
+    "Endpoint": "http://localhost:9200",
+    "IndexName": "rsl-resources",
+    "EmbeddingDimensions": 1536,
+    "Region": "us-west-2"
+  }
+}
+```
+
+**Mode options**:
+- `Local`: No auth (Docker OpenSearch).
+- `Aws`: Uses SigV4 with the configured `Region`.
+
 ### Migrations
 ```bash
 # Create a new migration

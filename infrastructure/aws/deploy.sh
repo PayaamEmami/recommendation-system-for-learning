@@ -13,6 +13,7 @@ REGION="${AWS_REGION:-us-west-2}"
 ENVIRONMENT="${ENVIRONMENT:-dev}"
 PREFIX="rsl"
 PROJECT_TAG="RSL"
+ENABLE_OPENSEARCH="${ENABLE_OPENSEARCH:-false}"
 
 # Colors for output
 RED='\033[0;31m'
@@ -469,6 +470,15 @@ create_ecs_cluster() {
 
 # Create OpenSearch Serverless Collection
 create_opensearch() {
+    if [ "$ENABLE_OPENSEARCH" != "true" ]; then
+        log_warn "Skipping OpenSearch creation (ENABLE_OPENSEARCH is not true)"
+        if [ -z "$OPENSEARCH_ENDPOINT" ]; then
+            log_warn "OPENSEARCH_ENDPOINT is empty; ingestion/feed tasks will fail if run."
+        fi
+        export OPENSEARCH_ENDPOINT
+        return
+    fi
+
     log_info "Creating OpenSearch Serverless collection..."
 
     # Check if collection exists
@@ -628,7 +638,12 @@ register_task_definitions() {
     CONNECTION_STRING="Host=${RDS_ENDPOINT};Database=rsldb;Username=${DB_USERNAME};Password=${DB_PASSWORD}"
 
     # Register task definitions using inline JSON
-    for TASK in "ingestion" "feed" "x-ingestion"; do
+    JOB_TASKS=("x-ingestion")
+    if [ "$ENABLE_OPENSEARCH" = "true" ]; then
+        JOB_TASKS=("ingestion" "feed" "x-ingestion")
+    fi
+
+    for TASK in "${JOB_TASKS[@]}"; do
         aws ecs register-task-definition \
             --family "${PREFIX}-${TASK}-task" \
             --network-mode "awsvpc" \
@@ -673,26 +688,28 @@ register_task_definitions() {
 create_eventbridge_rules() {
     log_info "Creating EventBridge scheduled rules..."
 
-    # Ingestion job - weekly on Sunday at midnight UTC
-    if ! aws events describe-rule --name ${PREFIX}-ingestion-schedule --region $REGION &> /dev/null; then
-        aws events put-rule \
-            --name ${PREFIX}-ingestion-schedule \
-            --schedule-expression "cron(0 0 ? * SUN *)" \
-            --state ENABLED \
-            --tags Key=Project,Value=${PROJECT_TAG} \
-            --region $REGION
-        log_info "Created EventBridge rule: ${PREFIX}-ingestion-schedule (weekly on Sunday at midnight UTC)"
-    fi
+    if [ "$ENABLE_OPENSEARCH" = "true" ]; then
+        # Ingestion job - weekly on Sunday at midnight UTC
+        if ! aws events describe-rule --name ${PREFIX}-ingestion-schedule --region $REGION &> /dev/null; then
+            aws events put-rule \
+                --name ${PREFIX}-ingestion-schedule \
+                --schedule-expression "cron(0 0 ? * SUN *)" \
+                --state ENABLED \
+                --tags Key=Project,Value=${PROJECT_TAG} \
+                --region $REGION
+            log_info "Created EventBridge rule: ${PREFIX}-ingestion-schedule (weekly on Sunday at midnight UTC)"
+        fi
 
-    # Feed job - weekly on Sunday at 2 AM UTC
-    if ! aws events describe-rule --name ${PREFIX}-feed-schedule --region $REGION &> /dev/null; then
-        aws events put-rule \
-            --name ${PREFIX}-feed-schedule \
-            --schedule-expression "cron(0 2 ? * SUN *)" \
-            --state ENABLED \
-            --tags Key=Project,Value=${PROJECT_TAG} \
-            --region $REGION
-        log_info "Created EventBridge rule: ${PREFIX}-feed-schedule (weekly on Sunday at 2 AM UTC)"
+        # Feed job - weekly on Sunday at 2 AM UTC
+        if ! aws events describe-rule --name ${PREFIX}-feed-schedule --region $REGION &> /dev/null; then
+            aws events put-rule \
+                --name ${PREFIX}-feed-schedule \
+                --schedule-expression "cron(0 2 ? * SUN *)" \
+                --state ENABLED \
+                --tags Key=Project,Value=${PROJECT_TAG} \
+                --region $REGION
+            log_info "Created EventBridge rule: ${PREFIX}-feed-schedule (weekly on Sunday at 2 AM UTC)"
+        fi
     fi
 
     # X ingestion job - daily at 1 AM UTC
@@ -707,7 +724,12 @@ create_eventbridge_rules() {
     fi
 
     # Add ECS targets using inline JSON
-    for TASK in "ingestion" "feed" "x-ingestion"; do
+    JOB_TASKS=("x-ingestion")
+    if [ "$ENABLE_OPENSEARCH" = "true" ]; then
+        JOB_TASKS=("ingestion" "feed" "x-ingestion")
+    fi
+
+    for TASK in "${JOB_TASKS[@]}"; do
         TASK_DEF_ARN=$(aws ecs describe-task-definition --task-definition ${PREFIX}-${TASK}-task --region $REGION --query 'taskDefinition.taskDefinitionArn' --output text)
 
         TARGET_JSON='[{"Id":"'${PREFIX}'-'${TASK}'-target","Arn":"arn:aws:ecs:'${REGION}':'${ACCOUNT_ID}':cluster/'${PREFIX}'-cluster","RoleArn":"arn:aws:iam::'${ACCOUNT_ID}':role/'${PREFIX}'-eventbridge-role","EcsParameters":{"TaskDefinitionArn":"'${TASK_DEF_ARN}'","TaskCount":1,"LaunchType":"FARGATE","NetworkConfiguration":{"awsvpcConfiguration":{"Subnets":["'${SUBNET_1_ID}'","'${SUBNET_2_ID}'"],"SecurityGroups":["'${API_SG_ID}'"],"AssignPublicIp":"ENABLED"}}}}]'
@@ -751,13 +773,21 @@ print_summary() {
     echo "  - URL: ${WEB_URL}"
     echo ""
     echo "Vector Search:"
-    echo "  - OpenSearch: ${PREFIX}-search"
-    echo "  - Endpoint: ${OPENSEARCH_ENDPOINT}"
+    if [ "$ENABLE_OPENSEARCH" != "true" ]; then
+        echo "  - OpenSearch: skipped (ENABLE_OPENSEARCH is not true)"
+    else
+        echo "  - OpenSearch: ${PREFIX}-search"
+        echo "  - Endpoint: ${OPENSEARCH_ENDPOINT}"
+    fi
     echo ""
     echo "Scheduled Jobs:"
-    echo "  - Ingestion: Weekly on Sunday at midnight UTC"
-    echo "  - Feed: Weekly on Sunday at 2 AM UTC"
-    echo "  - X ingestion: Daily at 1 AM UTC"
+    if [ "$ENABLE_OPENSEARCH" != "true" ]; then
+        echo "  - X ingestion: Daily at 1 AM UTC"
+    else
+        echo "  - Ingestion: Weekly on Sunday at midnight UTC"
+        echo "  - Feed: Weekly on Sunday at 2 AM UTC"
+        echo "  - X ingestion: Daily at 1 AM UTC"
+    fi
     echo ""
     echo "=============================================="
     echo "Next Steps:"

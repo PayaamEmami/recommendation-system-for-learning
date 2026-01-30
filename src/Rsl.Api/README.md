@@ -74,6 +74,13 @@ dotnet run
 
 API starts at `https://localhost:7000`. OpenAPI spec available at `/openapi/v1.json`.
 
+### OpenSearch (Local)
+
+To run the API against local OpenSearch:
+- Ensure Docker Desktop + WSL2 is running.
+- Start the container: `docker compose up opensearch`
+- Set `OpenSearch:Mode` to `Local` and `OpenSearch:Endpoint` to `http://localhost:9200`
+
 ## API Endpoints
 
 ### Authentication
