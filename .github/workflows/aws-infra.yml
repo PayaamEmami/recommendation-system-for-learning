@@ -26,7 +26,7 @@ jobs:
           cat > infrastructure/aws/secrets.env << 'EOF'
           DB_PASSWORD=${{ secrets.SQL_ADMIN_PASSWORD }}
           SQL_ADMIN_USERNAME=${{ secrets.SQL_ADMIN_USERNAME }}
-          OPENAI_API_KEY=${{ secrets.OPENAI_API_KEY }}
+          OpenAI__ApiKey=${{ secrets.OPENAI__API_KEY }}
           JWT_SECRET=${{ secrets.JWT_SECRET_KEY }}
           OPENSEARCH_ENDPOINT=
           EOF

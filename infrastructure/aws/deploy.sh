@@ -208,7 +208,7 @@ DB_PASSWORD=your-strong-password-here
 SQL_ADMIN_USERNAME=rsladmin
 
 # OpenAI API Key (get from https://platform.openai.com/api-keys)
-OPENAI_API_KEY=sk-your-openai-key
+OpenAI__ApiKey=sk-your-openai-key
 
 # JWT Secret (generate a random 64+ character string)
 JWT_SECRET=your-jwt-secret-key-minimum-64-characters-long-for-security
@@ -229,8 +229,8 @@ EOF
         exit 1
     fi
 
-    if [ -z "$OPENAI_API_KEY" ] || [ "$OPENAI_API_KEY" = "sk-your-openai-key" ]; then
-        log_error "Please set OPENAI_API_KEY in $SECRETS_FILE"
+    if [ -z "$OpenAI__ApiKey" ] || [ "$OpenAI__ApiKey" = "sk-your-openai-key" ]; then
+        log_error "Please set OpenAI__ApiKey in $SECRETS_FILE"
         exit 1
     fi
 
@@ -242,7 +242,7 @@ EOF
                     aws secretsmanager create-secret --name $SECRET_NAME --secret-string "$DB_PASSWORD" --tags Key=Project,Value=${PROJECT_TAG} --region $REGION
                     ;;
                 *openai-api-key)
-                    aws secretsmanager create-secret --name $SECRET_NAME --secret-string "$OPENAI_API_KEY" --tags Key=Project,Value=${PROJECT_TAG} --region $REGION
+                    aws secretsmanager create-secret --name $SECRET_NAME --secret-string "$OpenAI__ApiKey" --tags Key=Project,Value=${PROJECT_TAG} --region $REGION
                     ;;
                 *jwt-secret)
                     aws secretsmanager create-secret --name $SECRET_NAME --secret-string "$JWT_SECRET" --tags Key=Project,Value=${PROJECT_TAG} --region $REGION
@@ -254,7 +254,7 @@ EOF
         fi
     done
 
-    export DB_PASSWORD OPENAI_API_KEY JWT_SECRET DB_USERNAME
+    export DB_PASSWORD OpenAI__ApiKey JWT_SECRET DB_USERNAME
 }
 
 # Create RDS PostgreSQL
@@ -585,7 +585,7 @@ create_app_runner() {
                         "RuntimeEnvironmentVariables": {
                             "ASPNETCORE_ENVIRONMENT": "Production",
                             "ConnectionStrings__DefaultConnection": "'"${CONNECTION_STRING}"'",
-                            "Embedding__ApiKey": "'"${OPENAI_API_KEY}"'",
+                            "OpenAI__ApiKey": "'"${OpenAI__ApiKey}"'",
                             "Embedding__ModelName": "text-embedding-3-small",
                             "Embedding__Dimensions": "1536",
                             "OpenSearch__Endpoint": "'"${OPENSEARCH_ENDPOINT}"'",
@@ -660,12 +660,11 @@ register_task_definitions() {
                 "environment": [
                     {"name": "ASPNETCORE_ENVIRONMENT", "value": "Production"},
                     {"name": "ConnectionStrings__DefaultConnection", "value": "'"${CONNECTION_STRING}"'"},
-                    {"name": "Embedding__ApiKey", "value": "'"${OPENAI_API_KEY}"'"},
                     {"name": "Embedding__ModelName", "value": "text-embedding-3-small"},
                     {"name": "Embedding__Dimensions", "value": "1536"},
                     {"name": "OpenSearch__Endpoint", "value": "'"${OPENSEARCH_ENDPOINT}"'"},
                     {"name": "OpenSearch__IndexName", "value": "rsl-resources"},
-                    {"name": "OpenAI__ApiKey", "value": "'"${OPENAI_API_KEY}"'"},
+                    {"name": "OpenAI__ApiKey", "value": "'"${OpenAI__ApiKey}"'"},
                     {"name": "OpenAI__Model", "value": "gpt-5-nano"},
                     {"name": "OpenAI__MaxTokens", "value": "16384"}
                 ],

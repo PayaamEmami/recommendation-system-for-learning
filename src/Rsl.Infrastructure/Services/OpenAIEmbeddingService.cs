@@ -1,6 +1,7 @@
 using System.Net.Http.Headers;
 using System.Text;
 using System.Text.Json;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Rsl.Core.Interfaces;
@@ -20,6 +21,7 @@ public class OpenAIEmbeddingService : IEmbeddingService
     public OpenAIEmbeddingService(
         HttpClient httpClient,
         IOptions<EmbeddingSettings> settings,
+        IConfiguration configuration,
         ILogger<OpenAIEmbeddingService> logger)
     {
         _httpClient = httpClient;
@@ -28,8 +30,17 @@ public class OpenAIEmbeddingService : IEmbeddingService
 
         // Configure HttpClient for OpenAI API
         _httpClient.BaseAddress = new Uri("https://api.openai.com/v1/");
-        _httpClient.DefaultRequestHeaders.Authorization =
-            new AuthenticationHeaderValue("Bearer", _settings.ApiKey);
+
+        var apiKey = configuration["OpenAI:ApiKey"];
+        if (string.IsNullOrWhiteSpace(apiKey))
+        {
+            _logger.LogWarning("OpenAI API key is missing for embeddings. Set OpenAI__ApiKey.");
+        }
+        else
+        {
+            _httpClient.DefaultRequestHeaders.Authorization =
+                new AuthenticationHeaderValue("Bearer", apiKey);
+        }
     }
 
     public int Dimensions => _settings.Dimensions;

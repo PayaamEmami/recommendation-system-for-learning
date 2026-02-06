@@ -52,7 +52,7 @@ services:
       - ASPNETCORE_ENVIRONMENT=Development
       - ASPNETCORE_URLS=http://+:8080
       - ConnectionStrings__DefaultConnection=Host=postgres;Database=rsldb;Username=rsladmin;Password=YourStrong@Passw0rd
-      - Embedding__ApiKey=${OPENAI_API_KEY}
+      - OpenAI__ApiKey=${OpenAI__ApiKey}
       - Embedding__ModelName=text-embedding-3-small
       - Embedding__Dimensions=1536
       - OpenSearch__Mode=Local
@@ -101,13 +101,12 @@ services:
     environment:
       - ASPNETCORE_ENVIRONMENT=Development
       - ConnectionStrings__DefaultConnection=Host=postgres;Database=rsldb;Username=rsladmin;Password=YourStrong@Passw0rd
-      - Embedding__ApiKey=${OPENAI_API_KEY}
+      - OpenAI__ApiKey=${OpenAI__ApiKey}
       - Embedding__ModelName=text-embedding-3-small
       - Embedding__Dimensions=1536
       - OpenSearch__Mode=Local
       - OpenSearch__Endpoint=http://opensearch:9200
       - OpenSearch__IndexName=rsl-resources
-      - OpenAI__ApiKey=${OPENAI_API_KEY}
       - OpenAI__Model=gpt-5-nano
       - OpenAI__MaxTokens=4096
     depends_on:

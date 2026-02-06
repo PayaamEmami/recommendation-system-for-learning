@@ -47,11 +47,34 @@ See `appsettings.json.example` for required configuration values.
 
 - **Docker Desktop + WSL2** running (for local OpenSearch).
 - **OpenSearch container** running (see `docker-compose.yml`):
-  - `docker compose up opensearch`
+  - `docker compose up -d opensearch`
 - **Environment variables**:
-  - `OPENAI_API_KEY` for embeddings
+  - `OpenAI__ApiKey` (used for both embeddings + LLM)
   - DB connection string reachable from your machine
   - `OpenSearch__Mode=Local` and `OpenSearch__Endpoint=http://localhost:9200`
+
+## Running jobs locally
+
+From the repo root:
+
+```bash
+# Source ingestion
+dotnet run --project src/Rsl.Jobs -- ingestion
+
+# Daily feed generation
+dotnet run --project src/Rsl.Jobs -- feed
+
+# X post ingestion
+dotnet run --project src/Rsl.Jobs -- x-ingestion
+```
+
+## Reindexing embeddings
+
+Rebuild vector embeddings and reindex all resources:
+
+```bash
+dotnet run --project src/Rsl.Jobs -- reindex
+```
 
 ## Deployment
 

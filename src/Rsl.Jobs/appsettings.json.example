@@ -10,7 +10,6 @@
     "DefaultConnection": "Host=localhost;Database=rsldb;Username=rsladmin;Password=your-password"
   },
   "Embedding": {
-    "ApiKey": "your-openai-api-key",
     "ModelName": "text-embedding-3-small",
     "Dimensions": 1536,
     "MaxBatchSize": 100

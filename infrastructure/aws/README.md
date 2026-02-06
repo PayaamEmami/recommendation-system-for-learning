@@ -24,7 +24,7 @@ Create `infrastructure/aws/secrets.env` with your secrets:
 DB_PASSWORD=YourStrongPassword123!
 
 # OpenAI API Key (from https://platform.openai.com/api-keys)
-OPENAI_API_KEY=sk-your-openai-key
+OpenAI__ApiKey=sk-your-openai-key
 
 # JWT Secret (64+ characters)
 JWT_SECRET=your-very-long-jwt-secret-key-at-least-64-characters-for-security
@@ -157,5 +157,5 @@ For CI/CD, add these secrets to your GitHub repository:
 | `AWS_SECRET_ACCESS_KEY` | AWS secret key |
 | `SQL_ADMIN_PASSWORD` | RDS master password for `rsl-db` |
 | `SQL_ADMIN_USERNAME` | RDS master username (optional, defaults to `rsladmin`) |
-| `OPENAI_API_KEY` | OpenAI API key for ingestion and embeddings |
+| `OpenAI__ApiKey` | OpenAI API key for ingestion and embeddings |
 | `JWT_SECRET_KEY` | JWT signing secret (64+ chars) |

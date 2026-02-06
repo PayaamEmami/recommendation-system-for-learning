@@ -8,11 +8,6 @@ public class EmbeddingSettings
     public const string SectionName = "Embedding";
 
     /// <summary>
-    /// OpenAI API key for authentication.
-    /// </summary>
-    public string ApiKey { get; set; } = string.Empty;
-
-    /// <summary>
     /// Model name for OpenAI embeddings (e.g., "text-embedding-3-small").
     /// </summary>
     public string ModelName { get; set; } = "text-embedding-3-small";

@@ -52,7 +52,7 @@ All resources prefixed with `rsl-` for clear separation:
 # Correct
 OpenSearch__Endpoint
 ConnectionStrings__DefaultConnection
-Embedding__ApiKey
+OpenAI__ApiKey
 ApiBaseUrl
 
 # Wrong
