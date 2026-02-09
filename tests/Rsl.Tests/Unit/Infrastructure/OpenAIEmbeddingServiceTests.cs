@@ -1,5 +1,6 @@
 using System.Net;
 using System.Text;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Moq;
@@ -15,6 +16,7 @@ public class OpenAIEmbeddingServiceTests
     private Mock<HttpMessageHandler> _mockHttpMessageHandler = null!;
     private HttpClient _httpClient = null!;
     private Mock<ILogger<OpenAIEmbeddingService>> _mockLogger = null!;
+    private Mock<IConfiguration> _mockConfiguration = null!;
     private EmbeddingSettings _settings = null!;
     private OpenAIEmbeddingService _service = null!;
 
@@ -24,17 +26,20 @@ public class OpenAIEmbeddingServiceTests
         _mockHttpMessageHandler = new Mock<HttpMessageHandler>();
         _httpClient = new HttpClient(_mockHttpMessageHandler.Object);
         _mockLogger = new Mock<ILogger<OpenAIEmbeddingService>>();
+        _mockConfiguration = new Mock<IConfiguration>();
+
+        // Mock the OpenAI API key from configuration
+        _mockConfiguration.Setup(c => c["OpenAI:ApiKey"]).Returns("test-api-key");
 
         _settings = new EmbeddingSettings
         {
-            ApiKey = "test-api-key",
             ModelName = "text-embedding-3-small",
             Dimensions = 1536,
             MaxBatchSize = 100
         };
 
         var options = Options.Create(_settings);
-        _service = new OpenAIEmbeddingService(_httpClient, options, _mockLogger.Object);
+        _service = new OpenAIEmbeddingService(_httpClient, options, _mockConfiguration.Object, _mockLogger.Object);
     }
 
     [TestCleanup]
@@ -232,7 +237,7 @@ public class OpenAIEmbeddingServiceTests
         var batchSize = 2;
         _settings.MaxBatchSize = batchSize;
         var options = Options.Create(_settings);
-        _service = new OpenAIEmbeddingService(_httpClient, options, _mockLogger.Object);
+        _service = new OpenAIEmbeddingService(_httpClient, options, _mockConfiguration.Object, _mockLogger.Object);
 
         var texts = new List<string> { "Text 1", "Text 2", "Text 3", "Text 4", "Text 5" };
 
