@@ -139,6 +139,28 @@ aws ecs run-task \
 aws logs tail /rsl/ingestion --follow --region us-west-2
 ```
 
+### Local Scheduling (Windows Task Scheduler)
+
+Jobs run locally via Windows Task Scheduler, using `run-job.ps1` as a wrapper script that automatically starts Docker Desktop and the OpenSearch container if they aren't running.
+
+- **RSL - Ingestion**: Daily at 8:00 AM Pacific
+- **RSL - X Ingestion**: Daily at 8:30 AM Pacific
+- **RSL - Feed Generation**: Daily at 9:00 AM Pacific
+
+Tasks run hidden (no terminal window). Manage via PowerShell:
+
+```powershell
+# View task status
+Get-ScheduledTask -TaskName "RSL*" | Get-ScheduledTaskInfo
+
+# Disable/enable a task
+Disable-ScheduledTask -TaskName "RSL - Ingestion"
+Enable-ScheduledTask -TaskName "RSL - Ingestion"
+
+# Remove a task
+Unregister-ScheduledTask -TaskName "RSL - Ingestion" -Confirm:$false
+```
+
 ## Bulk Import
 
 **API**: `POST /api/v1/sources/bulk-import`
