@@ -54,7 +54,7 @@ public static class ResourceUrlPolicy
             return false;
         }
 
-        if (NonContentPathSegments.Contains(segments[0]))
+        if (segments.Any(NonContentPathSegments.Contains))
         {
             return false;
         }
