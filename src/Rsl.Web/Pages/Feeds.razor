@@ -167,13 +167,13 @@
                                         <div class="resource-vote-controls">
                                             <button class="vote-btn vote-up @(GetVoteState(resource.Id) == VoteType.Upvote ? "active" : "")"
                                                     @onclick="() => HandleVote(resource.Id, VoteType.Upvote)"
-                                                    disabled="@_votingResourceId.HasValue"
+                                                    disabled="@_votingResourceIds.Contains(resource.Id)"
                                                     title="Upvote">
                                                 <span class="vote-icon">▲</span>
                                             </button>
                                             <button class="vote-btn vote-down @(GetVoteState(resource.Id) == VoteType.Downvote ? "active" : "")"
                                                     @onclick="() => HandleVote(resource.Id, VoteType.Downvote)"
-                                                    disabled="@_votingResourceId.HasValue"
+                                                    disabled="@_votingResourceIds.Contains(resource.Id)"
                                                     title="Downvote">
                                                 <span class="vote-icon">▼</span>
                                             </button>
@@ -212,7 +212,9 @@
     private List<SourceItem>? _sources;
     private Dictionary<ResourceType, List<ResourceItem>> _resourcesByType = new();
     private Dictionary<Guid, VoteType> _userVotes = new();
-    private Guid? _votingResourceId;
+    private readonly HashSet<Guid> _votingResourceIds = new();
+    private readonly Dictionary<Guid, DateTime> _lastVoteActionAt = new();
+    private static readonly TimeSpan VoteActionDebounceWindow = TimeSpan.FromMilliseconds(400);
     private List<XFollowedAccountItem> _followedAccounts = new();
     private HashSet<Guid> _selectedAccountIds = new();
     private List<XPostItem> _posts = new();
@@ -429,9 +431,19 @@
 
     private async Task HandleVote(Guid resourceId, VoteType voteType)
     {
-        if (_votingResourceId.HasValue) return;
+        if (_votingResourceIds.Contains(resourceId))
+        {
+            return;
+        }
 
-        _votingResourceId = resourceId;
+        if (_lastVoteActionAt.TryGetValue(resourceId, out var lastActionAt) &&
+            DateTime.UtcNow - lastActionAt < VoteActionDebounceWindow)
+        {
+            return;
+        }
+
+        _votingResourceIds.Add(resourceId);
+        _lastVoteActionAt[resourceId] = DateTime.UtcNow;
         StateHasChanged();
 
         try
@@ -459,7 +471,7 @@
         }
         finally
         {
-            _votingResourceId = null;
+            _votingResourceIds.Remove(resourceId);
             StateHasChanged();
         }
     }

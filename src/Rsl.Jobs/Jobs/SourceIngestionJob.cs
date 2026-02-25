@@ -7,6 +7,7 @@ using Rsl.Core.Entities;
 using Rsl.Core.Interfaces;
 using Rsl.Core.Models;
 using Rsl.Llm.Services;
+using Rsl.Jobs.Validation;
 
 namespace Rsl.Jobs.Jobs;
 
@@ -123,6 +124,14 @@ public class SourceIngestionJob
                                 {
                                     errorCount++;
                                     _logger.LogWarning("Skipping resource with empty URL: {Title}", extractedResource.Title);
+                                    continue;
+                                }
+
+                                if (!ResourceUrlPolicy.IsLikelyResourceUrl(extractedResource.Url, extractedResource.Type, source.Url))
+                                {
+                                    _logger.LogInformation("Skipping non-content URL: {Title} (URL: {Url})",
+                                        extractedResource.Title,
+                                        extractedResource.Url);
                                     continue;
                                 }
 
