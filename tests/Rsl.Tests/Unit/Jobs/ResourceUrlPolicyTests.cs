@@ -6,7 +6,7 @@ namespace Rsl.Tests.Unit.Jobs;
 [TestClass]
 public sealed class ResourceUrlPolicyTests
 {
-    [DataTestMethod]
+    [TestMethod]
     [DataRow("https://www.deeplearning.ai/the-batch/tag/jan-30-2026/")]
     [DataRow("https://example.com/category/machine-learning/")]
     [DataRow("https://example.com/2026/01/30/")]
@@ -18,7 +18,7 @@ public sealed class ResourceUrlPolicyTests
         Assert.IsFalse(result);
     }
 
-    [DataTestMethod]
+    [TestMethod]
     [DataRow("https://www.deeplearning.ai/the-batch/some-actual-post/")]
     [DataRow("https://example.com/posts/how-transformers-work")]
     [DataRow("https://example.com/2026/01/30/post-title")]
