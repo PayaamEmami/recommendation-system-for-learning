@@ -683,6 +683,60 @@ register_task_definitions() {
     done
 }
 
+# Create CloudFront invalidation schedule (runs daily at 10 AM Pacific, after the 9 AM feed job)
+create_cloudfront_invalidation_schedule() {
+    log_info "Creating CloudFront cache invalidation schedule..."
+
+    BUCKET_NAME="${PREFIX}-web-${ACCOUNT_ID}"
+    DIST_ID=$(aws cloudfront list-distributions --query "DistributionList.Items[?contains(Origins.Items[].DomainName, '${BUCKET_NAME}')].Id" --output text 2>/dev/null || echo "")
+
+    if [ -z "$DIST_ID" ] || [ "$DIST_ID" = "None" ]; then
+        log_warn "No CloudFront distribution found for ${BUCKET_NAME} - skipping invalidation schedule"
+        return
+    fi
+
+    log_info "CloudFront distribution: $DIST_ID"
+
+    # Create scheduler IAM role
+    if ! aws iam get-role --role-name ${PREFIX}-scheduler-role &> /dev/null; then
+        aws iam create-role \
+            --role-name ${PREFIX}-scheduler-role \
+            --assume-role-policy-document "$(cat iam/scheduler-trust-policy.json)" \
+            --tags Key=Project,Value=${PROJECT_TAG}
+
+        aws iam put-role-policy \
+            --role-name ${PREFIX}-scheduler-role \
+            --policy-name ${PREFIX}-scheduler-cloudfront-policy \
+            --policy-document "$(cat iam/scheduler-cloudfront-policy.json)"
+
+        log_info "Created Scheduler role: ${PREFIX}-scheduler-role"
+        sleep 10
+    fi
+
+    SCHEDULER_ROLE_ARN="arn:aws:iam::${ACCOUNT_ID}:role/${PREFIX}-scheduler-role"
+
+    SCHEDULE_ARGS=(
+        --schedule-expression "cron(0 10 * * ? *)"
+        --schedule-expression-timezone "America/Los_Angeles"
+        --target "{
+            \"Arn\": \"arn:aws:scheduler:::aws-sdk:cloudfront:createInvalidation\",
+            \"RoleArn\": \"${SCHEDULER_ROLE_ARN}\",
+            \"Input\": \"{\\\"DistributionId\\\": \\\"${DIST_ID}\\\", \\\"InvalidationBatch\\\": {\\\"Paths\\\": {\\\"Quantity\\\": 1, \\\"Items\\\": [\\\"/*\\\"]}, \\\"CallerReference\\\": \\\"scheduled-<aws.scheduler.execution-id>\\\"}}\"
+        }"
+        --flexible-time-window '{"Mode": "OFF"}'
+        --state ENABLED
+        --region $REGION
+    )
+
+    if aws scheduler get-schedule --name ${PREFIX}-cloudfront-invalidation --region $REGION &> /dev/null; then
+        aws scheduler update-schedule --name ${PREFIX}-cloudfront-invalidation "${SCHEDULE_ARGS[@]}"
+        log_info "Updated CloudFront invalidation schedule"
+    else
+        aws scheduler create-schedule --name ${PREFIX}-cloudfront-invalidation "${SCHEDULE_ARGS[@]}"
+        log_info "Created CloudFront invalidation schedule: daily at 10 AM Pacific"
+    fi
+}
+
 # Create EventBridge rules for scheduled jobs
 create_eventbridge_rules() {
     log_info "Creating EventBridge scheduled rules..."
@@ -787,6 +841,7 @@ print_summary() {
         echo "  - Feed: Weekly on Sunday at 2 AM UTC"
         echo "  - X ingestion: Daily at 1 AM UTC"
     fi
+    echo "  - CloudFront invalidation: Daily at 10 AM Pacific"
     echo ""
     echo "=============================================="
     echo "Next Steps:"
@@ -822,6 +877,7 @@ main() {
     create_app_runner
     register_task_definitions
     create_eventbridge_rules
+    create_cloudfront_invalidation_schedule
     print_summary
 }
 

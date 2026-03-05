@@ -35,6 +35,7 @@ All resources prefixed with `rsl-` for clear separation:
 - AWS OpenSearch Serverless (vector database) - `rsl-search`
 - RDS PostgreSQL - `rsl-db`
 - ECR repositories - `rsl-api`, `rsl-jobs`
+- EventBridge Scheduler - `rsl-cloudfront-invalidation` (daily CloudFront cache invalidation)
 - Secrets Manager - `rsl-secrets/*`
 - CloudWatch logs - `/rsl/*`
 - OpenAI API (direct, not AWS Bedrock)
@@ -146,6 +147,7 @@ Jobs run locally via Windows Task Scheduler, using `run-job.ps1` as a wrapper sc
 - **RSL - Ingestion**: Daily at 8:00 AM Pacific
 - **RSL - X Ingestion**: Daily at 8:30 AM Pacific
 - **RSL - Feed Generation**: Daily at 9:00 AM Pacific
+- **CloudFront Cache Invalidation**: Daily at 10:00 AM Pacific (EventBridge Scheduler, `rsl-cloudfront-invalidation`)
 
 Tasks run hidden (no terminal window). Manage via PowerShell:
 
