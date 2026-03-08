@@ -357,7 +357,17 @@ create_s3_web() {
     fi
 
     WEB_URL="http://${BUCKET_NAME}.s3-website-${REGION}.amazonaws.com"
-    export BUCKET_NAME WEB_URL
+
+    # Get CloudFront URL if distribution exists
+    CF_DOMAIN=$(aws cloudfront list-distributions --query "DistributionList.Items[?contains(Origins.Items[].DomainName, '${BUCKET_NAME}')].DomainName" --output text --region $REGION 2>/dev/null || echo "")
+    if [ -n "$CF_DOMAIN" ] && [ "$CF_DOMAIN" != "None" ]; then
+        CF_URL="https://${CF_DOMAIN}"
+        log_info "CloudFront URL: $CF_URL"
+    else
+        CF_URL=""
+    fi
+
+    export BUCKET_NAME WEB_URL CF_URL
 }
 
 # Create CloudWatch Log Groups
@@ -594,6 +604,7 @@ create_app_runner() {
                             "JwtSettings__SecretKey": "'"${JWT_SECRET}"'",
                             "JwtSettings__ExpirationMinutes": "60",
                             "Cors__AllowedOrigins__0": "'"${WEB_URL}"'",
+                            "Cors__AllowedOrigins__1": "'"${CF_URL:-$WEB_URL}"'",
                             "Registration__Enabled": "true"
                         }
                     }
