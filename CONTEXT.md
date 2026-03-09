@@ -144,10 +144,10 @@ aws logs tail /rsl/ingestion --follow --region us-west-2
 
 Jobs run locally via Windows Task Scheduler, using `run-job.ps1` as a wrapper script that automatically starts Docker Desktop and the OpenSearch container if they aren't running.
 
-- **RSL - Ingestion**: Daily at 8:00 AM Pacific
-- **RSL - X Ingestion**: Daily at 8:30 AM Pacific
-- **RSL - Feed Generation**: Daily at 9:00 AM Pacific
-- **CloudFront Cache Invalidation**: Daily at 10:00 AM Pacific (EventBridge Scheduler, `rsl-cloudfront-invalidation`)
+- **RSL - Ingestion**: Daily at 11:00 AM Pacific
+- **RSL - X Ingestion**: Daily at 11:30 AM Pacific
+- **RSL - Feed Generation**: Daily at 12:00 PM Pacific
+- **CloudFront Cache Invalidation**: Daily at 1:00 PM Pacific (EventBridge Scheduler, `rsl-cloudfront-invalidation`)
 
 Tasks run hidden (no terminal window). Manage via PowerShell:
 

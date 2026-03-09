@@ -694,7 +694,7 @@ register_task_definitions() {
     done
 }
 
-# Create CloudFront invalidation schedule (runs daily at 10 AM Pacific, after the 9 AM feed job)
+# Create CloudFront invalidation schedule (runs daily at 1 PM Pacific, after the 12 PM feed job)
 create_cloudfront_invalidation_schedule() {
     log_info "Creating CloudFront cache invalidation schedule..."
 
@@ -727,7 +727,7 @@ create_cloudfront_invalidation_schedule() {
     SCHEDULER_ROLE_ARN="arn:aws:iam::${ACCOUNT_ID}:role/${PREFIX}-scheduler-role"
 
     SCHEDULE_ARGS=(
-        --schedule-expression "cron(0 10 * * ? *)"
+        --schedule-expression "cron(0 13 * * ? *)"
         --schedule-expression-timezone "America/Los_Angeles"
         --target "{
             \"Arn\": \"arn:aws:scheduler:::aws-sdk:cloudfront:createInvalidation\",
@@ -744,7 +744,7 @@ create_cloudfront_invalidation_schedule() {
         log_info "Updated CloudFront invalidation schedule"
     else
         aws scheduler create-schedule --name ${PREFIX}-cloudfront-invalidation "${SCHEDULE_ARGS[@]}"
-        log_info "Created CloudFront invalidation schedule: daily at 10 AM Pacific"
+        log_info "Created CloudFront invalidation schedule: daily at 1 PM Pacific"
     fi
 }
 
