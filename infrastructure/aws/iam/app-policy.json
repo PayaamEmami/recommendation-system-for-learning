@@ -8,7 +8,7 @@
                 "secretsmanager:GetSecretValue",
                 "secretsmanager:DescribeSecret"
             ],
-            "Resource": "arn:aws:secretsmanager:*:*:secret:rsl-secrets/*"
+            "Resource": "arn:aws:secretsmanager:*:*:secret:crs-secrets/*"
         },
         {
             "Sid": "OpenSearchServerlessAccess",
@@ -26,7 +26,7 @@
                 "logs:PutLogEvents",
                 "logs:DescribeLogStreams"
             ],
-            "Resource": "arn:aws:logs:*:*:log-group:/rsl/*"
+            "Resource": "arn:aws:logs:*:*:log-group:/crs/*"
         },
         {
             "Sid": "XRayAccess",

@@ -2,19 +2,19 @@ services:
   # PostgreSQL for local development
   postgres:
     image: postgres:15-alpine
-    container_name: rsl-postgres
+    container_name: crs-postgres
     environment:
-      - POSTGRES_USER=rsladmin
+      - POSTGRES_USER=crsadmin
       - POSTGRES_PASSWORD=YourStrong@Passw0rd
-      - POSTGRES_DB=rsldb
+      - POSTGRES_DB=crsdb
     ports:
       - "5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
     networks:
-      - rsl-network
+      - crs-network
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U rsladmin -d rsldb"]
+      test: ["CMD-SHELL", "pg_isready -U crsadmin -d crsdb"]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -23,7 +23,7 @@ services:
   # OpenSearch for local vector search development
   opensearch:
     image: opensearchproject/opensearch:2.11.0
-    container_name: rsl-opensearch
+    container_name: crs-opensearch
     environment:
       - discovery.type=single-node
       - plugins.security.disabled=true
@@ -34,7 +34,7 @@ services:
     volumes:
       - opensearch_data:/usr/share/opensearch/data
     networks:
-      - rsl-network
+      - crs-network
     healthcheck:
       test: ["CMD-SHELL", "curl -s http://localhost:9200/_cluster/health | grep -q 'green\\|yellow'"]
       interval: 30s
@@ -42,22 +42,22 @@ services:
       retries: 5
       start_period: 60s
 
-  # RSL API
+  # CRS API
   api:
     build:
       context: .
-      dockerfile: src/Rsl.Api/Dockerfile
-    container_name: rsl-api
+      dockerfile: src/Crs.Api/Dockerfile
+    container_name: crs-api
     environment:
       - ASPNETCORE_ENVIRONMENT=Development
       - ASPNETCORE_URLS=http://+:8080
-      - ConnectionStrings__DefaultConnection=Host=postgres;Database=rsldb;Username=rsladmin;Password=YourStrong@Passw0rd
+      - ConnectionStrings__DefaultConnection=Host=postgres;Database=crsdb;Username=crsadmin;Password=YourStrong@Passw0rd
       - OpenAI__ApiKey=${OpenAI__ApiKey}
       - Embedding__ModelName=text-embedding-3-small
       - Embedding__Dimensions=1536
       - OpenSearch__Mode=Local
       - OpenSearch__Endpoint=http://opensearch:9200
-      - OpenSearch__IndexName=rsl-resources
+      - OpenSearch__IndexName=crs-resources
       - OpenSearch__EmbeddingDimensions=1536
       - JwtSettings__SecretKey=${JWT_SECRET_KEY:-your-development-secret-key-change-in-production}
       - JwtSettings__Issuer=http://localhost:8080
@@ -71,14 +71,14 @@ services:
       opensearch:
         condition: service_healthy
     networks:
-      - rsl-network
+      - crs-network
 
-  # RSL Web (Blazor)
+  # CRS Web (Blazor)
   web:
     build:
       context: .
-      dockerfile: src/Rsl.Web/Dockerfile
-    container_name: rsl-web
+      dockerfile: src/Crs.Web/Dockerfile
+    container_name: crs-web
     environment:
       - ASPNETCORE_ENVIRONMENT=Development
       - ASPNETCORE_URLS=http://+:8080
@@ -88,25 +88,25 @@ services:
     depends_on:
       - api
     networks:
-      - rsl-network
+      - crs-network
 
-  # RSL Jobs (Run manually with docker compose exec)
-  # To run ingestion: docker compose exec jobs dotnet Rsl.Jobs.dll ingestion
-  # To run feed generation: docker compose exec jobs dotnet Rsl.Jobs.dll feed
+  # CRS Jobs (Run manually with docker compose exec)
+  # To run ingestion: docker compose exec jobs dotnet Crs.Jobs.dll ingestion
+  # To run feed generation: docker compose exec jobs dotnet Crs.Jobs.dll feed
   jobs:
     build:
       context: .
-      dockerfile: src/Rsl.Jobs/Dockerfile
-    container_name: rsl-jobs
+      dockerfile: src/Crs.Jobs/Dockerfile
+    container_name: crs-jobs
     environment:
       - ASPNETCORE_ENVIRONMENT=Development
-      - ConnectionStrings__DefaultConnection=Host=postgres;Database=rsldb;Username=rsladmin;Password=YourStrong@Passw0rd
+      - ConnectionStrings__DefaultConnection=Host=postgres;Database=crsdb;Username=crsadmin;Password=YourStrong@Passw0rd
       - OpenAI__ApiKey=${OpenAI__ApiKey}
       - Embedding__ModelName=text-embedding-3-small
       - Embedding__Dimensions=1536
       - OpenSearch__Mode=Local
       - OpenSearch__Endpoint=http://opensearch:9200
-      - OpenSearch__IndexName=rsl-resources
+      - OpenSearch__IndexName=crs-resources
       - OpenAI__Model=gpt-5-nano
       - OpenAI__MaxTokens=4096
     depends_on:
@@ -115,13 +115,13 @@ services:
       opensearch:
         condition: service_healthy
     networks:
-      - rsl-network
+      - crs-network
     # Override entrypoint to keep container running for manual job execution
     entrypoint: ["/bin/sh", "-c"]
     command: ["tail -f /dev/null"]
 
 networks:
-  rsl-network:
+  crs-network:
     driver: bridge
 
 volumes:

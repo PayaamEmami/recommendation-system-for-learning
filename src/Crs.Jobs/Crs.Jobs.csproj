@@ -1,0 +1,22 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net10.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <UserSecretsId>dotnet-Crs.Jobs-5f847c0a-d283-4461-9448-f764a550aaa8</UserSecretsId>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.Extensions.Hosting" Version="10.0.0" />
+    <PackageReference Include="Microsoft.AspNetCore.DataProtection" Version="10.0.0" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Crs.Core\Crs.Core.csproj" />
+    <ProjectReference Include="..\Crs.Infrastructure\Crs.Infrastructure.csproj" />
+    <ProjectReference Include="..\Crs.Recommendation\Crs.Recommendation.csproj" />
+    <ProjectReference Include="..\Crs.Llm\Crs.Llm.csproj" />
+  </ItemGroup>
+</Project>

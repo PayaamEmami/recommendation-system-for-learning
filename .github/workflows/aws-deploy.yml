@@ -60,24 +60,24 @@ jobs:
         env:
           ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
         run: |
-          docker build -t rsl-api:latest -f ./src/Rsl.Api/Dockerfile .
-          docker tag rsl-api:latest $ECR_REGISTRY/rsl-api:latest
-          docker tag rsl-api:latest $ECR_REGISTRY/rsl-api:${{ github.sha }}
-          docker push $ECR_REGISTRY/rsl-api:latest
-          docker push $ECR_REGISTRY/rsl-api:${{ github.sha }}
+          docker build -t crs-api:latest -f ./src/Crs.Api/Dockerfile .
+          docker tag crs-api:latest $ECR_REGISTRY/crs-api:latest
+          docker tag crs-api:latest $ECR_REGISTRY/crs-api:${{ github.sha }}
+          docker push $ECR_REGISTRY/crs-api:latest
+          docker push $ECR_REGISTRY/crs-api:${{ github.sha }}
 
       - name: Build and push Jobs Docker image
         env:
           ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
         run: |
-          docker build -t rsl-jobs:latest -f ./src/Rsl.Jobs/Dockerfile .
-          docker tag rsl-jobs:latest $ECR_REGISTRY/rsl-jobs:latest
-          docker tag rsl-jobs:latest $ECR_REGISTRY/rsl-jobs:${{ github.sha }}
-          docker push $ECR_REGISTRY/rsl-jobs:latest
-          docker push $ECR_REGISTRY/rsl-jobs:${{ github.sha }}
+          docker build -t crs-jobs:latest -f ./src/Crs.Jobs/Dockerfile .
+          docker tag crs-jobs:latest $ECR_REGISTRY/crs-jobs:latest
+          docker tag crs-jobs:latest $ECR_REGISTRY/crs-jobs:${{ github.sha }}
+          docker push $ECR_REGISTRY/crs-jobs:latest
+          docker push $ECR_REGISTRY/crs-jobs:${{ github.sha }}
 
       - name: Publish Blazor WebAssembly
-        run: dotnet publish src/Rsl.Web/Rsl.Web.csproj -c Release -o publish/web
+        run: dotnet publish src/Crs.Web/Crs.Web.csproj -c Release -o publish/web
 
       - name: Upload Web artifact
         uses: actions/upload-artifact@v4
@@ -110,7 +110,7 @@ jobs:
       - name: Deploy to S3
         run: |
           ACCOUNT_ID=$(aws sts get-caller-identity --query Account --output text)
-          BUCKET_NAME="rsl-web-${ACCOUNT_ID}"
+          BUCKET_NAME="crs-web-${ACCOUNT_ID}"
 
           echo "Deploying to S3 bucket: $BUCKET_NAME"
           aws s3 sync web-app s3://$BUCKET_NAME --delete
@@ -156,7 +156,7 @@ jobs:
 
       - name: Update App Runner service
         run: |
-          SERVICE_ARN=$(aws apprunner list-services --query "ServiceSummaryList[?ServiceName=='rsl-api'].ServiceArn" --output text)
+          SERVICE_ARN=$(aws apprunner list-services --query "ServiceSummaryList[?ServiceName=='crs-api'].ServiceArn" --output text)
           if [ -n "$SERVICE_ARN" ] && [ "$SERVICE_ARN" != "None" ]; then
             echo "Waiting for App Runner service to be RUNNING..."
             for i in {1..30}; do
@@ -175,7 +175,7 @@ jobs:
             fi
 
             ACCOUNT_ID=$(aws sts get-caller-identity --query Account --output text)
-            IMAGE_ID="${ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com/rsl-api:${GITHUB_SHA}"
+            IMAGE_ID="${ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com/crs-api:${GITHUB_SHA}"
 
             echo "Updating App Runner image to $IMAGE_ID"
             SOURCE_CONFIG=$(aws apprunner describe-service --service-arn "$SERVICE_ARN" --query "Service.SourceConfiguration" --output json)
@@ -190,7 +190,7 @@ jobs:
       - name: Invalidate CloudFront cache
         run: |
           ACCOUNT_ID=$(aws sts get-caller-identity --query Account --output text)
-          BUCKET_NAME="rsl-web-${ACCOUNT_ID}"
+          BUCKET_NAME="crs-web-${ACCOUNT_ID}"
 
           DIST_ID=$(aws cloudfront list-distributions --query "DistributionList.Items[?contains(Origins.Items[].DomainName, '${BUCKET_NAME}')].Id" --output text 2>/dev/null || echo "")
           if [ -n "$DIST_ID" ] && [ "$DIST_ID" != "None" ]; then
@@ -203,9 +203,9 @@ jobs:
       - name: Print deployment info
         run: |
           ACCOUNT_ID=$(aws sts get-caller-identity --query Account --output text)
-          BUCKET_NAME="rsl-web-${ACCOUNT_ID}"
+          BUCKET_NAME="crs-web-${ACCOUNT_ID}"
 
-          API_URL=$(aws apprunner list-services --query "ServiceSummaryList[?ServiceName=='rsl-api'].ServiceUrl" --output text 2>/dev/null || echo "not-deployed")
+          API_URL=$(aws apprunner list-services --query "ServiceSummaryList[?ServiceName=='crs-api'].ServiceUrl" --output text 2>/dev/null || echo "not-deployed")
           WEB_URL="http://${BUCKET_NAME}.s3-website-${{ env.AWS_REGION }}.amazonaws.com"
 
           echo "=============================================="

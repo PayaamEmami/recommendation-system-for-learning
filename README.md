@@ -1,8 +1,8 @@
-# Recommendation System for Learning (RSL)
+# Content Recommendation System (CRS)
 
-**Recommendation System for Learning (RSL)** aggregates learning resources from your chosen sources (papers, videos, technical blogs, newsletters, and more) and delivers a personalized daily feed. It automatically ingests new content, uses AI-driven ranking to surface what's most relevant to you, and lets you refine recommendations over time.
+**Content Recommendation System (CRS)** aggregates learning resources from your chosen sources (papers, videos, technical blogs, newsletters, and more) and delivers a personalized daily feed. It automatically ingests new content, uses AI-driven ranking to surface what's most relevant to you, and lets you refine recommendations over time.
 
-RSL started as a way to make it effortless to surface new learning resources (hence the name), but it grew into something broader: an **AI “buffer” between you and the internet**. It aggregates content from the sources you care about, filters out the noise, and delivers a small, intentional set of recommendations instead of an endless feed.
+CRS started as a way to make it effortless to surface new learning resources (hence the name), but it grew into something broader: an **AI “buffer” between you and the internet**. It aggregates content from the sources you care about, filters out the noise, and delivers a small, intentional set of recommendations instead of an endless feed.
 
 This helps solve a few common problems:
 
@@ -12,7 +12,7 @@ This helps solve a few common problems:
 
 ## Overview
 
-RSL provides:
+CRS provides:
 
 - **Add and manage URL-based sources** (RSS feeds, video sources, blogs, newsletters, etc.) organized by content category.
 - **Automatically ingest and aggregate** learning resources from these sources using LLM-powered agents.
@@ -67,7 +67,7 @@ RSL provides:
 
 ## High-Level Architecture
 
-At a high level, RSL is composed of:
+At a high level, CRS is composed of:
 
 ### 🎨 Blazor WebAssembly Frontend
 
@@ -170,18 +170,18 @@ Jobs are implemented as **Amazon ECS Fargate tasks** with EventBridge cron sched
 The solution is organized as multiple projects following a modular, layered approach:
 
 ```text
-recommendation-system-for-learning/
+content-recommendation-system/
 ├─ src/
-│  ├─ Rsl.Api/              # ASP.NET Core REST API (HTTP endpoints, controllers)
-│  ├─ Rsl.Core/             # Domain models, entities, interfaces, enums
-│  ├─ Rsl.Infrastructure/   # Data access (EF Core), OpenSearch, OpenAI
-│  ├─ Rsl.Jobs/             # Background workers (source ingestion, feed generation)
-│  ├─ Rsl.Recommendation/   # Recommendation engine (scoring, filtering, personalization)
-│  ├─ Rsl.Llm/              # LLM-based ingestion agent with function calling
-│  └─ Rsl.Web/              # Blazor WebAssembly frontend (UI, pages, components)
+│  ├─ Crs.Api/              # ASP.NET Core REST API (HTTP endpoints, controllers)
+│  ├─ Crs.Core/             # Domain models, entities, interfaces, enums
+│  ├─ Crs.Infrastructure/   # Data access (EF Core), OpenSearch, OpenAI
+│  ├─ Crs.Jobs/             # Background workers (source ingestion, feed generation)
+│  ├─ Crs.Recommendation/   # Recommendation engine (scoring, filtering, personalization)
+│  ├─ Crs.Llm/              # LLM-based ingestion agent with function calling
+│  └─ Crs.Web/              # Blazor WebAssembly frontend (UI, pages, components)
 │
 ├─ tests/
-│  └─ Rsl.Tests/            # Unit and integration tests
+│  └─ Crs.Tests/            # Unit and integration tests
 │
 ├─ infrastructure/          # AWS deployment infrastructure
 │  └─ aws/                  # AWS CLI deployment scripts

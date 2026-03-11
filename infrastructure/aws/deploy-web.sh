@@ -1,7 +1,7 @@
 #!/bin/bash
 set -e
 
-# RSL Web Deployment Script
+# CRS Web Deployment Script
 # Builds Blazor WebAssembly and deploys to S3
 
 REGION="${AWS_REGION:-us-west-2}"
@@ -16,7 +16,7 @@ log_error() { echo -e "${RED}[ERROR]${NC} $1"; }
 
 # Get AWS account ID
 ACCOUNT_ID=$(aws sts get-caller-identity --query Account --output text)
-BUCKET_NAME="rsl-web-${ACCOUNT_ID}"
+BUCKET_NAME="crs-web-${ACCOUNT_ID}"
 
 log_info "Deploying to S3 bucket: $BUCKET_NAME"
 
@@ -25,7 +25,7 @@ cd "$(dirname "$0")/../.."
 
 # Build Blazor WebAssembly
 log_info "Building Blazor WebAssembly..."
-dotnet publish src/Rsl.Web/Rsl.Web.csproj -c Release -o publish/web
+dotnet publish src/Crs.Web/Crs.Web.csproj -c Release -o publish/web
 
 # Sync to S3
 log_info "Uploading to S3..."

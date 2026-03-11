@@ -1,6 +1,6 @@
-# RSL AWS Infrastructure
+# CRS AWS Infrastructure
 
-This directory contains all AWS infrastructure and deployment scripts for the RSL project.
+This directory contains all AWS infrastructure and deployment scripts for the CRS project.
 
 ## Prerequisites
 
@@ -42,15 +42,15 @@ Optional flags:
 - `ENABLE_OPENSEARCH=true ./deploy.sh` creates OpenSearch (default is skipped) and enables ingestion/feed schedules.
 
 This creates all AWS resources:
-- VPC and networking (`rsl-vpc`, `rsl-subnet-*`)
-- ECR repositories (`rsl-api`, `rsl-jobs`)
-- RDS PostgreSQL (`rsl-db`)
-- S3 bucket for web hosting (`rsl-web-*`)
-- OpenSearch Serverless (`rsl-search`)
-- App Runner service (`rsl-api`)
-- ECS cluster and scheduled tasks (`rsl-cluster`)
-- IAM roles and policies (`rsl-*-role`)
-- CloudWatch log groups (`/rsl/*`)
+- VPC and networking (`crs-vpc`, `crs-subnet-*`)
+- ECR repositories (`crs-api`, `crs-jobs`)
+- RDS PostgreSQL (`crs-db`)
+- S3 bucket for web hosting (`crs-web-*`)
+- OpenSearch Serverless (`crs-search`)
+- App Runner service (`crs-api`)
+- ECS cluster and scheduled tasks (`crs-cluster`)
+- IAM roles and policies (`crs-*-role`)
+- CloudWatch log groups (`/crs/*`)
 
 ### 3. Build and push Docker images
 
@@ -68,24 +68,24 @@ chmod +x deploy-web.sh
 
 ## Resource Naming
 
-All resources are prefixed with `rsl-` for clear separation from other projects:
+All resources are prefixed with `crs-` for clear separation from other projects:
 
 | Resource Type | Name Pattern |
 |--------------|--------------|
-| VPC | `rsl-vpc` |
-| Subnets | `rsl-subnet-1`, `rsl-subnet-2` |
-| Security Groups | `rsl-api-sg`, `rsl-rds-sg` |
-| ECR Repositories | `rsl-api`, `rsl-jobs` |
-| RDS Instance | `rsl-db` |
-| S3 Bucket | `rsl-web-{account-id}` |
-| App Runner | `rsl-api` |
-| ECS Cluster | `rsl-cluster` |
-| ECS Tasks | `rsl-ingestion-task`, `rsl-feed-task`, `rsl-x-ingestion-task` |
-| EventBridge Rules | `rsl-ingestion-schedule`, `rsl-feed-schedule`, `rsl-x-ingestion-schedule` |
-| OpenSearch | `rsl-search` |
-| Secrets | `rsl-secrets/*` |
-| Log Groups | `/rsl/*` |
-| IAM Roles | `rsl-*-role` |
+| VPC | `crs-vpc` |
+| Subnets | `crs-subnet-1`, `crs-subnet-2` |
+| Security Groups | `crs-api-sg`, `crs-rds-sg` |
+| ECR Repositories | `crs-api`, `crs-jobs` |
+| RDS Instance | `crs-db` |
+| S3 Bucket | `crs-web-{account-id}` |
+| App Runner | `crs-api` |
+| ECS Cluster | `crs-cluster` |
+| ECS Tasks | `crs-ingestion-task`, `crs-feed-task`, `crs-x-ingestion-task` |
+| EventBridge Rules | `crs-ingestion-schedule`, `crs-feed-schedule`, `crs-x-ingestion-schedule` |
+| OpenSearch | `crs-search` |
+| Secrets | `crs-secrets/*` |
+| Log Groups | `/crs/*` |
+| IAM Roles | `crs-*-role` |
 
 ## Manual Operations
 
@@ -94,24 +94,24 @@ All resources are prefixed with `rsl-` for clear separation from other projects:
 ```bash
 # Run ingestion job
 aws ecs run-task \
-  --cluster rsl-cluster \
-  --task-definition rsl-ingestion-task \
+  --cluster crs-cluster \
+  --task-definition crs-ingestion-task \
   --launch-type FARGATE \
   --network-configuration 'awsvpcConfiguration={subnets=[SUBNET_ID],securityGroups=[SG_ID],assignPublicIp=ENABLED}' \
   --region us-west-2
 
 # Run feed generation job
 aws ecs run-task \
-  --cluster rsl-cluster \
-  --task-definition rsl-feed-task \
+  --cluster crs-cluster \
+  --task-definition crs-feed-task \
   --launch-type FARGATE \
   --network-configuration 'awsvpcConfiguration={subnets=[SUBNET_ID],securityGroups=[SG_ID],assignPublicIp=ENABLED}' \
   --region us-west-2
 
 # Run X ingestion job
 aws ecs run-task \
-  --cluster rsl-cluster \
-  --task-definition rsl-x-ingestion-task \
+  --cluster crs-cluster \
+  --task-definition crs-x-ingestion-task \
   --launch-type FARGATE \
   --network-configuration 'awsvpcConfiguration={subnets=[SUBNET_ID],securityGroups=[SG_ID],assignPublicIp=ENABLED}' \
   --region us-west-2
@@ -121,19 +121,19 @@ aws ecs run-task \
 
 ```bash
 # API logs
-aws logs tail /rsl/api --follow --region us-west-2
+aws logs tail /crs/api --follow --region us-west-2
 
 # Job logs
-aws logs tail /rsl/ingestion --follow --region us-west-2
-aws logs tail /rsl/feed --follow --region us-west-2
-aws logs tail /rsl/x-ingestion --follow --region us-west-2
+aws logs tail /crs/ingestion --follow --region us-west-2
+aws logs tail /crs/feed --follow --region us-west-2
+aws logs tail /crs/x-ingestion --follow --region us-west-2
 ```
 
 ### Update App Runner service
 
 ```bash
 # Trigger new deployment
-SERVICE_ARN=$(aws apprunner list-services --query "ServiceSummaryList[?ServiceName=='rsl-api'].ServiceArn" --output text --region us-west-2)
+SERVICE_ARN=$(aws apprunner list-services --query "ServiceSummaryList[?ServiceName=='crs-api'].ServiceArn" --output text --region us-west-2)
 aws apprunner start-deployment --service-arn $SERVICE_ARN --region us-west-2
 ```
 
@@ -141,10 +141,10 @@ aws apprunner start-deployment --service-arn $SERVICE_ARN --region us-west-2
 
 ```bash
 # Get RDS endpoint
-aws rds describe-db-instances --db-instance-identifier rsl-db --query 'DBInstances[0].Endpoint.Address' --output text --region us-west-2
+aws rds describe-db-instances --db-instance-identifier crs-db --query 'DBInstances[0].Endpoint.Address' --output text --region us-west-2
 
 # Connect with psql
-psql -h <endpoint> -U rsladmin -d rsldb
+psql -h <endpoint> -U crsadmin -d crsdb
 ```
 
 ## GitHub Actions Secrets
@@ -155,7 +155,7 @@ For CI/CD, add these secrets to your GitHub repository:
 |--------|-------------|
 | `AWS_ACCESS_KEY_ID` | AWS access key |
 | `AWS_SECRET_ACCESS_KEY` | AWS secret key |
-| `SQL_ADMIN_PASSWORD` | RDS master password for `rsl-db` |
-| `SQL_ADMIN_USERNAME` | RDS master username (optional, defaults to `rsladmin`) |
+| `SQL_ADMIN_PASSWORD` | RDS master password for `crs-db` |
+| `SQL_ADMIN_USERNAME` | RDS master username (optional, defaults to `crsadmin`) |
 | `OpenAI__ApiKey` | OpenAI API key for ingestion and embeddings |
 | `JWT_SECRET_KEY` | JWT signing secret (64+ chars) |

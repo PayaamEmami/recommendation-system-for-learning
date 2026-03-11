@@ -1,4 +1,4 @@
-# RSL - AI Assistant Context
+# CRS - AI Assistant Context
 
 ## Project Overview
 
@@ -15,29 +15,29 @@
 
 ### Core Services
 
-1. **Rsl.Api** - REST API with JWT authentication (App Runner)
-2. **Rsl.Web** - Blazor WebAssembly web UI (S3 + CloudFront)
-3. **Rsl.Jobs** - Scheduled jobs (ECS Fargate + EventBridge):
+1. **Crs.Api** - REST API with JWT authentication (App Runner)
+2. **Crs.Web** - Blazor WebAssembly web UI (S3 + CloudFront)
+3. **Crs.Jobs** - Scheduled jobs (ECS Fargate + EventBridge):
    - **Ingestion Job**: Runs daily at midnight UTC
    - **Feed Generation Job**: Runs daily at 2 AM UTC
-4. **Rsl.Core** - Domain entities, interfaces
-5. **Rsl.Infrastructure** - Data access, AWS integrations, HTML fetching
-6. **Rsl.Recommendation** - Hybrid engine (70% vector, 30% heuristics)
-7. **Rsl.Llm** - Content ingestion (ChatGPT extracts from HTML)
+4. **Crs.Core** - Domain entities, interfaces
+5. **Crs.Infrastructure** - Data access, AWS integrations, HTML fetching
+6. **Crs.Recommendation** - Hybrid engine (70% vector, 30% heuristics)
+7. **Crs.Llm** - Content ingestion (ChatGPT extracts from HTML)
 
 ### AWS Resources
 
-All resources prefixed with `rsl-` for clear separation:
+All resources prefixed with `crs-` for clear separation:
 
-- 1 App Runner service (API) - `rsl-api`
-- 1 S3 bucket + CloudFront (Web) - `rsl-web-*`
-- 1 ECS Cluster with 2 scheduled tasks - `rsl-cluster`
-- AWS OpenSearch Serverless (vector database) - `rsl-search`
-- RDS PostgreSQL - `rsl-db`
-- ECR repositories - `rsl-api`, `rsl-jobs`
-- EventBridge Scheduler - `rsl-cloudfront-invalidation` (daily CloudFront cache invalidation)
-- Secrets Manager - `rsl-secrets/*`
-- CloudWatch logs - `/rsl/*`
+- 1 App Runner service (API) - `crs-api`
+- 1 S3 bucket + CloudFront (Web) - `crs-web-*`
+- 1 ECS Cluster with 2 scheduled tasks - `crs-cluster`
+- AWS OpenSearch Serverless (vector database) - `crs-search`
+- RDS PostgreSQL - `crs-db`
+- ECR repositories - `crs-api`, `crs-jobs`
+- EventBridge Scheduler - `crs-cloudfront-invalidation` (daily CloudFront cache invalidation)
+- Secrets Manager - `crs-secrets/*`
+- CloudWatch logs - `/crs/*`
 - OpenAI API (direct, not AWS Bedrock)
 
 **Default Region**: `us-west-2`
@@ -71,12 +71,12 @@ SQL_CONNECTION_STRING
 
 ```bash
 # Get current service ARN
-SERVICE_ARN=$(aws apprunner list-services --query "ServiceSummaryList[?ServiceName=='rsl-api'].ServiceArn" --output text --region us-west-2)
+SERVICE_ARN=$(aws apprunner list-services --query "ServiceSummaryList[?ServiceName=='crs-api'].ServiceArn" --output text --region us-west-2)
 
 # Update registration setting (requires service update)
 ```
 
-2. **Web** - Update in `src/Rsl.Web/wwwroot/appsettings.json` (requires redeploy):
+2. **Web** - Update in `src/Crs.Web/wwwroot/appsettings.json` (requires redeploy):
 
 ```json
 "Registration": { "Enabled": true }
@@ -99,23 +99,23 @@ SERVICE_ARN=$(aws apprunner list-services --query "ServiceSummaryList[?ServiceNa
 
 Jobs are implemented as **ECS Fargate tasks** with EventBridge cron scheduling:
 
-**Ingestion Job** (`rsl-ingestion-task`):
+**Ingestion Job** (`crs-ingestion-task`):
 
 - Schedule: Daily at midnight UTC (`cron(0 0 * * ? *)`)
 - Timeout: 2 hours
-- Command: `dotnet Rsl.Jobs.dll ingestion`
+- Command: `dotnet Crs.Jobs.dll ingestion`
 
-**Feed Generation Job** (`rsl-feed-task`):
+**Feed Generation Job** (`crs-feed-task`):
 
 - Schedule: Daily at 2 AM UTC (`cron(0 2 * * ? *)`)
 - Timeout: 1 hour
-- Command: `dotnet Rsl.Jobs.dll feed`
+- Command: `dotnet Crs.Jobs.dll feed`
 
-**X Ingestion Job** (`rsl-x-ingestion-task`):
+**X Ingestion Job** (`crs-x-ingestion-task`):
 
 - Schedule: Daily at 1 AM UTC (`cron(0 1 * * ? *)`)
 - Timeout: 1 hour
-- Command: `dotnet Rsl.Jobs.dll x-ingestion`
+- Command: `dotnet Crs.Jobs.dll x-ingestion`
 - Notes: Ingests recent posts for selected X accounts.
 
 **Benefits**:
@@ -130,37 +130,37 @@ Jobs are implemented as **ECS Fargate tasks** with EventBridge cron scheduling:
 ```bash
 # Trigger ingestion job manually
 aws ecs run-task \
-  --cluster rsl-cluster \
-  --task-definition rsl-ingestion-task \
+  --cluster crs-cluster \
+  --task-definition crs-ingestion-task \
   --launch-type FARGATE \
   --network-configuration 'awsvpcConfiguration={subnets=[SUBNET_ID],securityGroups=[SG_ID],assignPublicIp=ENABLED}' \
   --region us-west-2
 
 # View task logs
-aws logs tail /rsl/ingestion --follow --region us-west-2
+aws logs tail /crs/ingestion --follow --region us-west-2
 ```
 
 ### Local Scheduling (Windows Task Scheduler)
 
 Jobs run locally via Windows Task Scheduler, using `run-job.ps1` as a wrapper script that automatically starts Docker Desktop and the OpenSearch container if they aren't running.
 
-- **RSL - Ingestion**: Daily at 11:00 AM Pacific
-- **RSL - X Ingestion**: Daily at 11:30 AM Pacific
-- **RSL - Feed Generation**: Daily at 12:00 PM Pacific
-- **CloudFront Cache Invalidation**: Daily at 1:00 PM Pacific (EventBridge Scheduler, `rsl-cloudfront-invalidation`)
+- **CRS - Ingestion**: Daily at 11:00 AM Pacific
+- **CRS - X Ingestion**: Daily at 11:30 AM Pacific
+- **CRS - Feed Generation**: Daily at 12:00 PM Pacific
+- **CloudFront Cache Invalidation**: Daily at 1:00 PM Pacific (EventBridge Scheduler, `crs-cloudfront-invalidation`)
 
 Tasks run hidden (no terminal window). Manage via PowerShell:
 
 ```powershell
 # View task status
-Get-ScheduledTask -TaskName "RSL*" | Get-ScheduledTaskInfo
+Get-ScheduledTask -TaskName "CRS*" | Get-ScheduledTaskInfo
 
 # Disable/enable a task
-Disable-ScheduledTask -TaskName "RSL - Ingestion"
-Enable-ScheduledTask -TaskName "RSL - Ingestion"
+Disable-ScheduledTask -TaskName "CRS - Ingestion"
+Enable-ScheduledTask -TaskName "CRS - Ingestion"
 
 # Remove a task
-Unregister-ScheduledTask -TaskName "RSL - Ingestion" -Confirm:$false
+Unregister-ScheduledTask -TaskName "CRS - Ingestion" -Confirm:$false
 ```
 
 ## Bulk Import
@@ -206,11 +206,11 @@ cd infrastructure/aws && ./deploy.sh
 ./deploy-web.sh
 
 # Migrations (local development)
-dotnet ef migrations add Name --project src/Rsl.Infrastructure --startup-project src/Rsl.Api
-dotnet ef database update --project src/Rsl.Infrastructure --startup-project src/Rsl.Api
+dotnet ef migrations add Name --project src/Crs.Infrastructure --startup-project src/Crs.Api
+dotnet ef database update --project src/Crs.Infrastructure --startup-project src/Crs.Api
 
 # View API logs
-aws logs tail /rsl/api --follow --region us-west-2
+aws logs tail /crs/api --follow --region us-west-2
 ```
 
 ## Key Decisions

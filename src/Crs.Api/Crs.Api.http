@@ -1,0 +1,212 @@
+### CRS API Testing
+### This file contains example HTTP requests for testing the API endpoints
+
+@hostname = https://localhost:7000
+@apiVersion = v1
+@baseUrl = {{hostname}}/api/{{apiVersion}}
+
+### Variables (set these after login)
+@accessToken = YOUR_ACCESS_TOKEN_HERE
+@userId = YOUR_USER_ID_HERE
+@topicId = YOUR_TOPIC_ID_HERE
+@resourceId = YOUR_RESOURCE_ID_HERE
+
+###############################################################################
+# Health Check
+###############################################################################
+
+### Health Check
+GET {{hostname}}/health
+
+###############################################################################
+# Authentication
+###############################################################################
+
+### Register a new user
+POST {{baseUrl}}/auth/register
+Content-Type: application/json
+
+{
+  "email": "user@example.com",
+  "password": "password123",
+  "displayName": "Test User"
+}
+
+### Login
+POST {{baseUrl}}/auth/login
+Content-Type: application/json
+
+{
+  "email": "user@example.com",
+  "password": "password123"
+}
+
+### Refresh Token
+POST {{baseUrl}}/auth/refresh
+Content-Type: application/json
+
+{
+  "refreshToken": "YOUR_REFRESH_TOKEN_HERE"
+}
+
+###############################################################################
+# Users
+###############################################################################
+
+### Get current user profile
+GET {{baseUrl}}/users/me
+Authorization: Bearer {{accessToken}}
+
+### Get user by ID
+GET {{baseUrl}}/users/{{userId}}
+Authorization: Bearer {{accessToken}}
+
+### Update current user profile
+PATCH {{baseUrl}}/users/me
+Authorization: Bearer {{accessToken}}
+Content-Type: application/json
+
+{
+  "displayName": "Updated Display Name"
+}
+
+### Get current user's topics
+GET {{baseUrl}}/users/me/topics
+Authorization: Bearer {{accessToken}}
+
+### Update current user's topics
+PUT {{baseUrl}}/users/me/topics
+Authorization: Bearer {{accessToken}}
+Content-Type: application/json
+
+{
+  "topicIds": [
+    "{{topicId}}"
+  ]
+}
+
+###############################################################################
+# Topics
+###############################################################################
+
+### Get all topics
+GET {{baseUrl}}/topics
+Authorization: Bearer {{accessToken}}
+
+### Get topic by ID
+GET {{baseUrl}}/topics/{{topicId}}
+Authorization: Bearer {{accessToken}}
+
+###############################################################################
+# Resources
+###############################################################################
+
+### Get all resources (paginated)
+GET {{baseUrl}}/resources?pageNumber=1&pageSize=20
+Authorization: Bearer {{accessToken}}
+
+### Get resources filtered by type
+GET {{baseUrl}}/resources?pageNumber=1&pageSize=20&type=Paper
+Authorization: Bearer {{accessToken}}
+
+### Get resources filtered by topics
+GET {{baseUrl}}/resources?pageNumber=1&pageSize=20&topicIds={{topicId}}
+Authorization: Bearer {{accessToken}}
+
+### Get resource by ID
+GET {{baseUrl}}/resources/{{resourceId}}
+Authorization: Bearer {{accessToken}}
+
+### Create a resource (Paper)
+POST {{baseUrl}}/resources
+Authorization: Bearer {{accessToken}}
+Content-Type: application/json
+
+{
+  "title": "Example Research Paper on Machine Learning",
+  "description": "A comprehensive study on neural networks",
+  "url": "https://arxiv.org/abs/1234.5678",
+  "publishedDate": "2025-01-01T00:00:00Z",
+  "source": "arXiv",
+  "topicIds": ["{{topicId}}"],
+  "resourceType": 0
+}
+
+### Create a resource (Video)
+POST {{baseUrl}}/resources
+Authorization: Bearer {{accessToken}}
+Content-Type: application/json
+
+{
+  "title": "Introduction to Deep Learning",
+  "description": "Video tutorial series",
+  "url": "https://youtube.com/watch?v=example",
+  "publishedDate": "2025-01-15T00:00:00Z",
+  "source": "YouTube",
+  "topicIds": ["{{topicId}}"],
+  "resourceType": 1
+}
+
+### Update a resource
+PUT {{baseUrl}}/resources/{{resourceId}}
+Authorization: Bearer {{accessToken}}
+Content-Type: application/json
+
+{
+  "title": "Updated Title",
+  "description": "Updated description"
+}
+
+### Delete a resource
+DELETE {{baseUrl}}/resources/{{resourceId}}
+Authorization: Bearer {{accessToken}}
+
+###############################################################################
+# Voting
+###############################################################################
+
+### Upvote a resource
+POST {{baseUrl}}/resources/{{resourceId}}/vote
+Authorization: Bearer {{accessToken}}
+Content-Type: application/json
+
+{
+  "voteType": 1
+}
+
+### Downvote a resource
+POST {{baseUrl}}/resources/{{resourceId}}/vote
+Authorization: Bearer {{accessToken}}
+Content-Type: application/json
+
+{
+  "voteType": -1
+}
+
+### Get your vote on a resource
+GET {{baseUrl}}/resources/{{resourceId}}/vote
+Authorization: Bearer {{accessToken}}
+
+### Remove vote from resource
+DELETE {{baseUrl}}/resources/{{resourceId}}/vote
+Authorization: Bearer {{accessToken}}
+
+###############################################################################
+# Recommendations
+###############################################################################
+
+### Get today's recommendations (all feeds)
+GET {{baseUrl}}/recommendations
+Authorization: Bearer {{accessToken}}
+
+### Get recommendations for Papers feed
+GET {{baseUrl}}/recommendations/Paper
+Authorization: Bearer {{accessToken}}
+
+### Get recommendations for Videos feed
+GET {{baseUrl}}/recommendations/Video
+Authorization: Bearer {{accessToken}}
+
+### Get recommendations for specific date
+GET {{baseUrl}}/recommendations/Paper?date=2025-11-30
+Authorization: Bearer {{accessToken}}

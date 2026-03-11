@@ -48,7 +48,7 @@ if (-not $dockerRunning) {
 
 # 2. Ensure OpenSearch container is running
 Write-Log "Checking OpenSearch container..."
-$containerStatus = docker ps --filter "name=rsl-opensearch" --format "{{.Status}}" 2>&1
+$containerStatus = docker ps --filter "name=crs-opensearch" --format "{{.Status}}" 2>&1
 if (-not $containerStatus -or $containerStatus -notlike "Up*") {
     Write-Log "OpenSearch container is not running. Starting it..."
     docker compose -f "$repoRoot\docker-compose.yml" up -d opensearch
@@ -87,7 +87,7 @@ if (-not $healthy) {
 # 4. Run the job
 Write-Log "Running job: $JobName"
 Set-Location $repoRoot
-dotnet run --project src/Rsl.Jobs -- $JobName
+dotnet run --project src/Crs.Jobs -- $JobName
 $exitCode = $LASTEXITCODE
 Write-Log "Job '$JobName' finished with exit code: $exitCode"
 exit $exitCode

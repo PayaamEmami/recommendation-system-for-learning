@@ -1,0 +1,16 @@
+{
+  "ConnectionStrings": {
+    "DefaultConnection": "Host=localhost;Database=crsdb;Username=crsadmin;Password=your-password"
+  },
+  "Embedding": {
+    "ModelName": "text-embedding-3-small",
+    "Dimensions": 1536,
+    "MaxBatchSize": 100
+  },
+  "OpenSearch": {
+    "Mode": "Aws",
+    "Endpoint": "https://your-opensearch-endpoint.us-west-2.aoss.amazonaws.com",
+    "IndexName": "crs-resources",
+    "EmbeddingDimensions": 1536
+  }
+}

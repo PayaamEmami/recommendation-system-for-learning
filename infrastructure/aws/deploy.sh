@@ -1,9 +1,9 @@
 #!/bin/bash
 set -e
 
-# RSL AWS Deployment Script
-# This script deploys all RSL infrastructure to AWS
-# All resources are prefixed with 'rsl-' for clear separation
+# CRS AWS Deployment Script
+# This script deploys all CRS infrastructure to AWS
+# All resources are prefixed with 'crs-' for clear separation
 
 # Prevent Git Bash on Windows from converting paths
 export MSYS_NO_PATHCONV=1
@@ -11,8 +11,8 @@ export MSYS_NO_PATHCONV=1
 # Configuration
 REGION="${AWS_REGION:-us-west-2}"
 ENVIRONMENT="${ENVIRONMENT:-dev}"
-PREFIX="rsl"
-PROJECT_TAG="RSL"
+PREFIX="crs"
+PROJECT_TAG="CRS"
 ENABLE_OPENSEARCH="${ENABLE_OPENSEARCH:-false}"
 
 # Colors for output
@@ -133,7 +133,7 @@ create_security_groups() {
     if [ "$API_SG_ID" = "None" ] || [ -z "$API_SG_ID" ]; then
         API_SG_ID=$(aws ec2 create-security-group \
             --group-name "${PREFIX}-api-sg" \
-            --description "Security group for RSL API" \
+            --description "Security group for CRS API" \
             --vpc-id $VPC_ID \
             --tag-specifications "ResourceType=security-group,Tags=[{Key=Name,Value=${PREFIX}-api-sg},{Key=Project,Value=${PROJECT_TAG}}]" \
             --query 'GroupId' \
@@ -150,7 +150,7 @@ create_security_groups() {
     if [ "$RDS_SG_ID" = "None" ] || [ -z "$RDS_SG_ID" ]; then
         RDS_SG_ID=$(aws ec2 create-security-group \
             --group-name "${PREFIX}-rds-sg" \
-            --description "Security group for RSL RDS" \
+            --description "Security group for CRS RDS" \
             --vpc-id $VPC_ID \
             --tag-specifications "ResourceType=security-group,Tags=[{Key=Name,Value=${PREFIX}-rds-sg},{Key=Project,Value=${PROJECT_TAG}}]" \
             --query 'GroupId' \
@@ -170,7 +170,7 @@ create_security_groups() {
 create_ecr() {
     log_info "Creating ECR Repositories..."
 
-    for REPO in "rsl-api" "rsl-jobs"; do
+    for REPO in "crs-api" "crs-jobs"; do
         if ! aws ecr describe-repositories --repository-names $REPO --region $REGION &> /dev/null; then
             aws ecr create-repository \
                 --repository-name $REPO \
@@ -200,12 +200,12 @@ create_secrets() {
         log_warn "Secrets file not found. Creating template at secrets.env"
         SECRETS_FILE="secrets.env"
         cat > "$SECRETS_FILE" << 'EOF'
-# RSL Secrets Configuration
+# CRS Secrets Configuration
 # Fill in these values and re-run the deploy script
 
 # Database
 DB_PASSWORD=your-strong-password-here
-SQL_ADMIN_USERNAME=rsladmin
+SQL_ADMIN_USERNAME=crsadmin
 
 # OpenAI API Key (get from https://platform.openai.com/api-keys)
 OpenAI__ApiKey=sk-your-openai-key
@@ -222,7 +222,7 @@ EOF
 
     source "$SECRETS_FILE"
 
-    DB_USERNAME="${SQL_ADMIN_USERNAME:-rsladmin}"
+    DB_USERNAME="${SQL_ADMIN_USERNAME:-crsadmin}"
 
     if [ -z "$DB_PASSWORD" ] || [ "$DB_PASSWORD" = "your-strong-password-here" ]; then
         log_error "Please set DB_PASSWORD in $SECRETS_FILE"
@@ -265,7 +265,7 @@ create_rds() {
     if ! aws rds describe-db-subnet-groups --db-subnet-group-name ${PREFIX}-db-subnet --region $REGION &> /dev/null; then
         aws rds create-db-subnet-group \
             --db-subnet-group-name ${PREFIX}-db-subnet \
-            --db-subnet-group-description "RSL Database Subnet Group" \
+            --db-subnet-group-description "CRS Database Subnet Group" \
             --subnet-ids $SUBNET_1_ID $SUBNET_2_ID \
             --tags Key=Project,Value=${PROJECT_TAG} \
             --region $REGION
@@ -284,7 +284,7 @@ create_rds() {
             --allocated-storage 20 \
             --vpc-security-group-ids $RDS_SG_ID \
             --db-subnet-group-name ${PREFIX}-db-subnet \
-            --db-name rsldb \
+            --db-name crsdb \
             --publicly-accessible \
             --backup-retention-period 7 \
             --storage-encrypted \
@@ -375,7 +375,7 @@ create_cloudwatch_logs() {
     log_info "Creating CloudWatch Log Groups..."
 
     for LOG_NAME in "api" "jobs" "ingestion" "feed" "x-ingestion"; do
-        LOG_GROUP="/rsl/$LOG_NAME"
+        LOG_GROUP="/crs/$LOG_NAME"
         EXISTING=$(aws logs describe-log-groups --log-group-name-prefix "$LOG_GROUP" --region $REGION --query "logGroups[?logGroupName=='$LOG_GROUP'].logGroupName" --output text 2>/dev/null || echo "")
         if [ -z "$EXISTING" ]; then
             aws logs create-log-group --log-group-name "$LOG_GROUP" --tags Project=${PROJECT_TAG} --region $REGION
@@ -577,7 +577,7 @@ create_app_runner() {
 
     if [ -z "$SERVICE_ARN" ]; then
         # Build connection string
-        CONNECTION_STRING="Host=${RDS_ENDPOINT};Database=rsldb;Username=${DB_USERNAME};Password=${DB_PASSWORD}"
+        CONNECTION_STRING="Host=${RDS_ENDPOINT};Database=crsdb;Username=${DB_USERNAME};Password=${DB_PASSWORD}"
 
         # Create service
         SERVICE_ARN=$(aws apprunner create-service \
@@ -588,7 +588,7 @@ create_app_runner() {
                 },
                 "AutoDeploymentsEnabled": false,
                 "ImageRepository": {
-                    "ImageIdentifier": "'${ECR_URI}'/rsl-api:latest",
+                    "ImageIdentifier": "'${ECR_URI}'/crs-api:latest",
                     "ImageRepositoryType": "ECR",
                     "ImageConfiguration": {
                         "Port": "8080",
@@ -599,7 +599,7 @@ create_app_runner() {
                             "Embedding__ModelName": "text-embedding-3-small",
                             "Embedding__Dimensions": "1536",
                             "OpenSearch__Endpoint": "'"${OPENSEARCH_ENDPOINT}"'",
-                            "OpenSearch__IndexName": "rsl-resources",
+                            "OpenSearch__IndexName": "crs-resources",
                             "OpenSearch__EmbeddingDimensions": "1536",
                             "JwtSettings__SecretKey": "'"${JWT_SECRET}"'",
                             "JwtSettings__ExpirationMinutes": "60",
@@ -646,7 +646,7 @@ register_task_definitions() {
     log_info "Registering ECS task definitions..."
 
     # Build connection string
-    CONNECTION_STRING="Host=${RDS_ENDPOINT};Database=rsldb;Username=${DB_USERNAME};Password=${DB_PASSWORD}"
+    CONNECTION_STRING="Host=${RDS_ENDPOINT};Database=crsdb;Username=${DB_USERNAME};Password=${DB_PASSWORD}"
 
     # Register task definitions using inline JSON
     JOB_TASKS=("x-ingestion")
@@ -665,7 +665,7 @@ register_task_definitions() {
             --task-role-arn "arn:aws:iam::${ACCOUNT_ID}:role/${PREFIX}-ecs-task-role" \
             --container-definitions '[{
                 "name": "'${PREFIX}'-'${TASK}'",
-                "image": "'${ECR_URI}'/rsl-jobs:latest",
+                "image": "'${ECR_URI}'/crs-jobs:latest",
                 "essential": true,
                 "command": ["'${TASK}'"],
                 "environment": [
@@ -674,7 +674,7 @@ register_task_definitions() {
                     {"name": "Embedding__ModelName", "value": "text-embedding-3-small"},
                     {"name": "Embedding__Dimensions", "value": "1536"},
                     {"name": "OpenSearch__Endpoint", "value": "'"${OPENSEARCH_ENDPOINT}"'"},
-                    {"name": "OpenSearch__IndexName", "value": "rsl-resources"},
+                    {"name": "OpenSearch__IndexName", "value": "crs-resources"},
                     {"name": "OpenAI__ApiKey", "value": "'"${OpenAI__ApiKey}"'"},
                     {"name": "OpenAI__Model", "value": "gpt-5-nano"},
                     {"name": "OpenAI__MaxTokens", "value": "16384"}
@@ -682,7 +682,7 @@ register_task_definitions() {
                 "logConfiguration": {
                     "logDriver": "awslogs",
                     "options": {
-                        "awslogs-group": "/rsl/'${TASK}'",
+                        "awslogs-group": "/crs/'${TASK}'",
                         "awslogs-region": "'${REGION}'",
                         "awslogs-stream-prefix": "ecs"
                     }
@@ -811,18 +811,18 @@ create_eventbridge_rules() {
 print_summary() {
     echo ""
     echo "=============================================="
-    echo -e "${GREEN}RSL AWS Deployment Complete!${NC}"
+    echo -e "${GREEN}CRS AWS Deployment Complete!${NC}"
     echo "=============================================="
     echo ""
-    echo "Resources created (all prefixed with 'rsl-'):"
+    echo "Resources created (all prefixed with 'crs-'):"
     echo ""
     echo "Networking:"
     echo "  - VPC: ${PREFIX}-vpc ($VPC_ID)"
     echo "  - Subnets: ${PREFIX}-subnet-1, ${PREFIX}-subnet-2"
     echo ""
     echo "Container Registry:"
-    echo "  - ECR: ${ECR_URI}/rsl-api"
-    echo "  - ECR: ${ECR_URI}/rsl-jobs"
+    echo "  - ECR: ${ECR_URI}/crs-api"
+    echo "  - ECR: ${ECR_URI}/crs-jobs"
     echo ""
     echo "Database:"
     echo "  - RDS PostgreSQL: ${PREFIX}-db"
@@ -862,14 +862,14 @@ print_summary() {
     echo "2. Deploy web frontend:"
     echo "   aws s3 sync publish/web/wwwroot s3://${BUCKET_NAME}"
     echo ""
-    echo "3. Update Blazor config (src/Rsl.Web/wwwroot/appsettings.json):"
+    echo "3. Update Blazor config (src/Crs.Web/wwwroot/appsettings.json):"
     echo "   Set ApiBaseUrl to: https://${API_URL}"
     echo "=============================================="
 }
 
 # Main execution
 main() {
-    log_info "Starting RSL AWS deployment..."
+    log_info "Starting CRS AWS deployment..."
     log_info "Region: $REGION"
     log_info "Environment: $ENVIRONMENT"
     echo ""

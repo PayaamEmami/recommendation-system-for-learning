@@ -7,7 +7,7 @@
             "Action": [
                 "ecs:RunTask"
             ],
-            "Resource": "arn:aws:ecs:*:*:task-definition/rsl-*"
+            "Resource": "arn:aws:ecs:*:*:task-definition/crs-*"
         },
         {
             "Sid": "PassRole",
@@ -16,8 +16,8 @@
                 "iam:PassRole"
             ],
             "Resource": [
-                "arn:aws:iam::*:role/rsl-ecs-execution-role",
-                "arn:aws:iam::*:role/rsl-ecs-task-role"
+                "arn:aws:iam::*:role/crs-ecs-execution-role",
+                "arn:aws:iam::*:role/crs-ecs-task-role"
             ]
         }
     ]
