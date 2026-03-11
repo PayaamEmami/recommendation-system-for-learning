@@ -167,13 +167,15 @@
                                         <div class="resource-vote-controls">
                                             <button class="vote-btn vote-up @(GetVoteState(resource.Id) == VoteType.Upvote ? "active" : "")"
                                                     @onclick="() => HandleVote(resource.Id, VoteType.Upvote)"
-                                                    disabled="@_votingResourceIds.Contains(resource.Id)"
+                                                    aria-label="Upvote resource"
+                                                    aria-busy="@_syncingVoteResourceIds.Contains(resource.Id)"
                                                     title="Upvote">
                                                 <span class="vote-icon">▲</span>
                                             </button>
                                             <button class="vote-btn vote-down @(GetVoteState(resource.Id) == VoteType.Downvote ? "active" : "")"
                                                     @onclick="() => HandleVote(resource.Id, VoteType.Downvote)"
-                                                    disabled="@_votingResourceIds.Contains(resource.Id)"
+                                                    aria-label="Downvote resource"
+                                                    aria-busy="@_syncingVoteResourceIds.Contains(resource.Id)"
                                                     title="Downvote">
                                                 <span class="vote-icon">▼</span>
                                             </button>
@@ -212,7 +214,9 @@
     private List<SourceItem>? _sources;
     private Dictionary<ResourceType, List<ResourceItem>> _resourcesByType = new();
     private Dictionary<Guid, VoteType> _userVotes = new();
-    private readonly HashSet<Guid> _votingResourceIds = new();
+    private readonly Dictionary<Guid, VoteType> _serverVotes = new();
+    private readonly HashSet<Guid> _syncingVoteResourceIds = new();
+    private readonly Dictionary<Guid, VoteType?> _desiredVoteStates = new();
     private readonly Dictionary<Guid, DateTime> _lastVoteActionAt = new();
     private static readonly TimeSpan VoteActionDebounceWindow = TimeSpan.FromMilliseconds(400);
     private List<XFollowedAccountItem> _followedAccounts = new();
@@ -422,6 +426,11 @@
 
         var votes = await FeedService.GetUserVotesAsync();
         _userVotes = votes.ToDictionary(v => v.ResourceId, v => v.VoteType);
+        _serverVotes.Clear();
+        foreach (var vote in votes)
+        {
+            _serverVotes[vote.ResourceId] = vote.VoteType;
+        }
     }
 
     private VoteType? GetVoteState(Guid resourceId)
@@ -429,51 +438,115 @@
         return _userVotes.TryGetValue(resourceId, out var voteType) ? voteType : null;
     }
 
-    private async Task HandleVote(Guid resourceId, VoteType voteType)
+    private Task HandleVote(Guid resourceId, VoteType voteType)
     {
-        if (_votingResourceIds.Contains(resourceId))
-        {
-            return;
-        }
-
         if (_lastVoteActionAt.TryGetValue(resourceId, out var lastActionAt) &&
             DateTime.UtcNow - lastActionAt < VoteActionDebounceWindow)
         {
-            return;
+            return Task.CompletedTask;
         }
 
-        _votingResourceIds.Add(resourceId);
         _lastVoteActionAt[resourceId] = DateTime.UtcNow;
+
+        var currentVote = GetVoteState(resourceId);
+        VoteType? nextVote = currentVote == voteType ? null : voteType;
+
+        if (nextVote is { } newVote)
+        {
+            _userVotes[resourceId] = newVote;
+        }
+        else
+        {
+            _userVotes.Remove(resourceId);
+        }
+
+        _desiredVoteStates[resourceId] = nextVote;
+
+        if (!_syncingVoteResourceIds.Contains(resourceId))
+        {
+            _ = SyncVoteStateAsync(resourceId);
+        }
+
         StateHasChanged();
+        return Task.CompletedTask;
+    }
+
+    private async Task SyncVoteStateAsync(Guid resourceId)
+    {
+        _syncingVoteResourceIds.Add(resourceId);
 
         try
         {
-            var currentVote = GetVoteState(resourceId);
+            while (_desiredVoteStates.TryGetValue(resourceId, out var desiredVoteState))
+            {
+                var previousServerVoteState = _serverVotes.TryGetValue(resourceId, out var serverVote)
+                    ? serverVote
+                    : (VoteType?)null;
 
-            if (currentVote == voteType)
-            {
-                // Remove vote if clicking the same button
-                var success = await FeedService.RemoveVoteAsync(resourceId);
-                if (success)
+                var succeeded = await PersistVoteStateAsync(resourceId, desiredVoteState);
+                if (!succeeded)
                 {
-                    _userVotes.Remove(resourceId);
+                    ApplyServerVoteState(resourceId, previousServerVoteState);
+                    _desiredVoteStates[resourceId] = previousServerVoteState;
+                    break;
                 }
-            }
-            else
-            {
-                // Cast or update vote
-                var result = await FeedService.VoteAsync(resourceId, voteType);
-                if (result != null)
+
+                if (desiredVoteState is { } persistedVote)
                 {
-                    _userVotes[resourceId] = result.VoteType;
+                    _serverVotes[resourceId] = persistedVote;
+                }
+                else
+                {
+                    _serverVotes.Remove(resourceId);
+                }
+
+                if (_desiredVoteStates.TryGetValue(resourceId, out var latestDesiredState) &&
+                    latestDesiredState == desiredVoteState)
+                {
+                    _desiredVoteStates.Remove(resourceId);
                 }
             }
         }
         finally
         {
-            _votingResourceIds.Remove(resourceId);
+            _syncingVoteResourceIds.Remove(resourceId);
             StateHasChanged();
         }
+    }
+
+    private async Task<bool> PersistVoteStateAsync(Guid resourceId, VoteType? desiredVoteState)
+    {
+        if (desiredVoteState is null)
+        {
+            return await FeedService.RemoveVoteAsync(resourceId);
+        }
+
+        var result = await FeedService.VoteAsync(resourceId, desiredVoteState.Value);
+        if (result is null)
+        {
+            return false;
+        }
+
+        _serverVotes[resourceId] = result.VoteType;
+        if (_desiredVoteStates.TryGetValue(resourceId, out var latestDesiredState) && latestDesiredState == desiredVoteState)
+        {
+            _userVotes[resourceId] = result.VoteType;
+        }
+
+        return true;
+    }
+
+    private void ApplyServerVoteState(Guid resourceId, VoteType? voteState)
+    {
+        if (voteState is { } persistedVote)
+        {
+            _userVotes[resourceId] = persistedVote;
+            _serverVotes[resourceId] = persistedVote;
+            return;
+        }
+
+        _userVotes.Remove(resourceId);
+        _serverVotes.Remove(resourceId);
     }
 
     private void HandleAuthStateChanged()
