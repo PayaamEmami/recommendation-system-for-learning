@@ -31,14 +31,15 @@ All resources prefixed with `crs-` for clear separation:
 
 - 1 App Runner service (API) - `crs-api`
 - 1 S3 bucket + CloudFront (Web) - `crs-web-*`
-- 1 ECS Cluster with 2 scheduled tasks - `crs-cluster`
-- AWS OpenSearch Serverless (vector database) - `crs-search`
+- 1 ECS Cluster - `crs-cluster` (task: `crs-x-ingestion-task`)
 - RDS PostgreSQL - `crs-db`
 - ECR repositories - `crs-api`, `crs-jobs`
-- EventBridge Scheduler - `crs-cloudfront-invalidation` (daily CloudFront cache invalidation)
+- EventBridge Scheduler - `crs-cloudfront-invalidation` (daily CloudFront cache invalidation at 1 PM Pacific)
+- EventBridge Rule - `crs-x-ingestion-schedule` (daily at 1 AM UTC)
 - Secrets Manager - `crs-secrets/*`
 - CloudWatch logs - `/crs/*`
 - OpenAI API (direct, not AWS Bedrock)
+- AWS OpenSearch Serverless - **not currently deployed** (enable with `ENABLE_OPENSEARCH=true` in `deploy.sh`)
 
 **Default Region**: `us-west-2`
 **Resource Types**: Paper, Video, BlogPost
@@ -97,57 +98,18 @@ SERVICE_ARN=$(aws apprunner list-services --query "ServiceSummaryList[?ServiceNa
 
 ## Job Scheduling
 
-Jobs are implemented as **ECS Fargate tasks** with EventBridge cron scheduling:
+Jobs run locally via **Windows Task Scheduler**, using `run-job.ps1` as a wrapper script that automatically starts Docker Desktop and the OpenSearch container if they aren't running.
 
-**Ingestion Job** (`crs-ingestion-task`):
-
-- Schedule: Daily at midnight UTC (`cron(0 0 * * ? *)`)
-- Timeout: 2 hours
-- Command: `dotnet Crs.Jobs.dll ingestion`
-
-**Feed Generation Job** (`crs-feed-task`):
-
-- Schedule: Daily at 2 AM UTC (`cron(0 2 * * ? *)`)
-- Timeout: 1 hour
-- Command: `dotnet Crs.Jobs.dll feed`
-
-**X Ingestion Job** (`crs-x-ingestion-task`):
-
-- Schedule: Daily at 1 AM UTC (`cron(0 1 * * ? *)`)
-- Timeout: 1 hour
-- Command: `dotnet Crs.Jobs.dll x-ingestion`
-- Notes: Ingests recent posts for selected X accounts.
-
-**Benefits**:
-
-- Containers only run during job execution (cost-efficient)
-- No retries on failure
-- Schedule visible in AWS Console
-- Can trigger manually via CLI
-
-**Manual Execution**:
-
-```bash
-# Trigger ingestion job manually
-aws ecs run-task \
-  --cluster crs-cluster \
-  --task-definition crs-ingestion-task \
-  --launch-type FARGATE \
-  --network-configuration 'awsvpcConfiguration={subnets=[SUBNET_ID],securityGroups=[SG_ID],assignPublicIp=ENABLED}' \
-  --region us-west-2
-
-# View task logs
-aws logs tail /crs/ingestion --follow --region us-west-2
-```
-
-### Local Scheduling (Windows Task Scheduler)
-
-Jobs run locally via Windows Task Scheduler, using `run-job.ps1` as a wrapper script that automatically starts Docker Desktop and the OpenSearch container if they aren't running.
-
-- **CRS - Ingestion**: Daily at 11:00 AM Pacific
-- **CRS - X Ingestion**: Daily at 11:30 AM Pacific
-- **CRS - Feed Generation**: Daily at 12:00 PM Pacific
+- **CRS - Ingestion**: Daily at 11:00 AM Pacific (`dotnet Crs.Jobs.dll ingestion`)
+- **CRS - X Ingestion**: Daily at 11:30 AM Pacific (`dotnet Crs.Jobs.dll x-ingestion`)
+- **CRS - Feed Generation**: Daily at 12:00 PM Pacific (`dotnet Crs.Jobs.dll feed`)
 - **CloudFront Cache Invalidation**: Daily at 1:00 PM Pacific (EventBridge Scheduler, `crs-cloudfront-invalidation`)
+
+The CloudFront invalidation runs as an AWS EventBridge Scheduler (`crs-cloudfront-invalidation`) since it only needs AWS access, not the local environment.
+
+### ECS Fargate (available but not primary)
+
+ECS task definitions and EventBridge rules exist for running jobs in AWS (e.g. `crs-x-ingestion-task` with `crs-x-ingestion-schedule`). The ingestion and feed ECS tasks require OpenSearch to be enabled (`ENABLE_OPENSEARCH=true` in `deploy.sh`). Currently OpenSearch Serverless is not deployed.
 
 Tasks run hidden (no terminal window). Manage via PowerShell:
 
