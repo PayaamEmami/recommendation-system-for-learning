@@ -6,7 +6,7 @@ This helps solve a few common problems:
 
 - **One place for everything**: consolidate many sources into a single daily feed, so you don't have to bounce between platforms.
 - **Explicit user-controlled feedback**: steer the algorithm with simple upvotes/downvotes, rather than opaque tracking and "engagement" signals used in other platforms.
-- **Built-in limits**: to prevent endless scrolling by capping the amount of content surfaced so discovery stays focused and finite.
+- **Built-in limits**: cap the amount of content surfaced so discovery stays focused and finite to prevent endless scrolling.
 
 ## Overview
 
