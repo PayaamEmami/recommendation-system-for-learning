@@ -1,14 +1,12 @@
 # Content Recommendation System (CRS)
 
-**Content Recommendation System (CRS)** aggregates learning resources from your chosen sources (papers, videos, technical blogs, newsletters, and more) and delivers a personalized daily feed. It automatically ingests new content, uses AI-driven ranking to surface what's most relevant to you, and lets you refine recommendations over time.
-
-CRS started as a way to make it effortless to surface new learning resources (hence the name), but it grew into something broader: an **AI “buffer” between you and the internet**. It aggregates content from the sources you care about, filters out the noise, and delivers a small, intentional set of recommendations instead of an endless feed.
+**Content Recommendation System (CRS)** aggregates content from your chosen sources (e.g. papers, videos, blogs) and delivers a personalized daily feed. CRS automatically ingests new content, uses AI-driven ranking to surface what's most relevant to you, and lets you refine recommendations over time. It aggregates content from the sources you care about, filters out the noise, and delivers a small, intentional set of recommendations instead of an endless feed.
 
 This helps solve a few common problems:
 
 - **One place for everything**: consolidate many sources into a single daily feed, so you don't have to bounce between platforms.
-- **Explicit, user-controlled recommendations**: steer the algorithm with simple upvotes/downvotes, rather than opaque tracking and "engagement" signals.
-- **Built-in limits to prevent doom scrolling**: cap the amount of content surfaced so discovery stays focused and finite.
+- **Explicit user-controlled feedback**: steer the algorithm with simple upvotes/downvotes, rather than opaque tracking and "engagement" signals used in other platforms.
+- **Built-in limits**: to prevent endless scrolling by capping the amount of content surfaced so discovery stays focused and finite.
 
 ## Overview
 
