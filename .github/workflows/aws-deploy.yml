@@ -192,10 +192,11 @@ jobs:
           ACCOUNT_ID=$(aws sts get-caller-identity --query Account --output text)
           BUCKET_NAME="crs-web-${ACCOUNT_ID}"
 
-          DIST_ID=$(aws cloudfront list-distributions --query "DistributionList.Items[?contains(Origins.Items[].DomainName, '${BUCKET_NAME}')].Id" --output text 2>/dev/null || echo "")
+          # Match distributions whose origin domain contains the bucket name
+          DIST_ID=$(aws cloudfront list-distributions --query "DistributionList.Items[?Origins.Items[?contains(DomainName, '${BUCKET_NAME}')]].Id | [0]" --output text 2>/dev/null || echo "")
           if [ -n "$DIST_ID" ] && [ "$DIST_ID" != "None" ]; then
-            echo "Invalidating CloudFront cache..."
-            aws cloudfront create-invalidation --distribution-id $DIST_ID --paths "/*"
+            echo "Invalidating CloudFront cache for distribution $DIST_ID..."
+            aws cloudfront create-invalidation --distribution-id "$DIST_ID" --paths "/*"
           else
             echo "CloudFront distribution not found - skipping invalidation"
           fi
