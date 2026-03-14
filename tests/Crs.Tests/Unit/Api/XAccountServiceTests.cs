@@ -19,9 +19,11 @@ public sealed class XAccountServiceTests
         out Mock<IXFollowedAccountRepository> followedAccountRepository,
         out Mock<IXSelectedAccountRepository> selectedAccountRepository,
         out Mock<IXPostRepository> postRepository,
-        out Mock<IXApiClient> xApiClient)
+        out Mock<IXApiClient> xApiClient,
+        Mock<IXAuthStateRepository>? authStateRepository = null)
     {
         connectionRepository = new Mock<IXConnectionRepository>(MockBehavior.Strict);
+        var authState = authStateRepository ?? new Mock<IXAuthStateRepository>(MockBehavior.Strict);
         followedAccountRepository = new Mock<IXFollowedAccountRepository>(MockBehavior.Strict);
         selectedAccountRepository = new Mock<IXSelectedAccountRepository>(MockBehavior.Strict);
         postRepository = new Mock<IXPostRepository>(MockBehavior.Strict);
@@ -30,6 +32,7 @@ public sealed class XAccountServiceTests
         var protector = DataProtectionProvider.Create("crs-tests");
         return new XAccountService(
             connectionRepository.Object,
+            authState.Object,
             followedAccountRepository.Object,
             selectedAccountRepository.Object,
             postRepository.Object,
@@ -39,10 +42,26 @@ public sealed class XAccountServiceTests
             NullLogger<XAccountService>.Instance);
     }
 
+    private static Mock<IXAuthStateRepository> CreateAuthStateRepo(
+        XAuthState? stateToReturn = null,
+        Action<XAuthState>? captureAdd = null)
+    {
+        var mock = new Mock<IXAuthStateRepository>(MockBehavior.Strict);
+        mock.Setup(x => x.RemoveExpiredAsync(It.IsAny<CancellationToken>())).Returns(Task.CompletedTask);
+        mock.Setup(x => x.AddAsync(It.IsAny<XAuthState>(), It.IsAny<CancellationToken>()))
+            .Callback<XAuthState, CancellationToken>((s, _) => captureAdd?.Invoke(s))
+            .Returns(Task.CompletedTask);
+        mock.Setup(x => x.GetAndRemoveAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync((string state, CancellationToken _) =>
+                stateToReturn != null && stateToReturn.State == state ? stateToReturn : null);
+        return mock;
+    }
+
     [TestMethod]
     public async Task CreateConnectUrlAsync_WhenRedirectMissing_Throws()
     {
-        var service = CreateService(new XApiSettings { ClientId = "client", RedirectUri = string.Empty }, out _, out _, out _, out _, out _);
+        var authState = CreateAuthStateRepo();
+        var service = CreateService(new XApiSettings { ClientId = "client", RedirectUri = string.Empty }, out _, out _, out _, out _, out _, authState);
 
         await TestAssert.ThrowsAsync<InvalidOperationException>(() =>
             service.CreateConnectUrlAsync(Guid.NewGuid(), null, CancellationToken.None));
@@ -51,12 +70,13 @@ public sealed class XAccountServiceTests
     [TestMethod]
     public async Task CreateConnectUrlAsync_WhenConfigured_ReturnsAuthorizationUrl()
     {
+        var authState = CreateAuthStateRepo();
         var service = CreateService(new XApiSettings
         {
             ClientId = "client",
             RedirectUri = "https://app.example.com/callback",
             AuthorizationUrl = "https://x.com/oauth2"
-        }, out _, out _, out _, out _, out _);
+        }, out _, out _, out _, out _, out _, authState);
 
         var url = await service.CreateConnectUrlAsync(Guid.NewGuid(), null, CancellationToken.None);
 
@@ -68,8 +88,9 @@ public sealed class XAccountServiceTests
     [TestMethod]
     public async Task HandleCallbackAsync_WhenStateInvalid_Throws()
     {
+        var authState = CreateAuthStateRepo();
         var service = CreateService(new XApiSettings { ClientId = "client", RedirectUri = "https://app.example.com/callback" },
-            out _, out _, out _, out _, out _);
+            out _, out _, out _, out _, out _, authState);
 
         await TestAssert.ThrowsAsync<InvalidOperationException>(() =>
             service.HandleCallbackAsync(Guid.NewGuid(), "code", "missing", CancellationToken.None));
@@ -85,7 +106,17 @@ public sealed class XAccountServiceTests
             AuthorizationUrl = "https://x.com/oauth2"
         };
 
-        var service = CreateService(settings, out var connectionRepository, out var followedAccountRepository, out _, out _, out var xApiClient);
+        XAuthState? capturedState = null;
+        var authStateRepo = new Mock<IXAuthStateRepository>(MockBehavior.Strict);
+        authStateRepo.Setup(x => x.RemoveExpiredAsync(It.IsAny<CancellationToken>())).Returns(Task.CompletedTask);
+        authStateRepo.Setup(x => x.AddAsync(It.IsAny<XAuthState>(), It.IsAny<CancellationToken>()))
+            .Callback<XAuthState, CancellationToken>((s, _) => capturedState = s)
+            .Returns(Task.CompletedTask);
+        authStateRepo.Setup(x => x.GetAndRemoveAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync((string state, CancellationToken _) =>
+                capturedState != null && capturedState.State == state ? capturedState : null);
+
+        var service = CreateService(settings, out var connectionRepository, out var followedAccountRepository, out _, out _, out var xApiClient, authStateRepo);
         var userId = Guid.NewGuid();
 
         var url = await service.CreateConnectUrlAsync(userId, null, CancellationToken.None);

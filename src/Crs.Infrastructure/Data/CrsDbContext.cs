@@ -27,6 +27,7 @@ public class CrsDbContext : DbContext, IDataProtectionKeyContext
     public DbSet<XFollowedAccount> XFollowedAccounts { get; set; }
     public DbSet<XSelectedAccount> XSelectedAccounts { get; set; }
     public DbSet<XPost> XPosts { get; set; }
+    public DbSet<XAuthState> XAuthStates { get; set; }
     public DbSet<DataProtectionKey> DataProtectionKeys { get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)

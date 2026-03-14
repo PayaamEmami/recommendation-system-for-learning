@@ -1,4 +1,3 @@
-using System.Collections.Concurrent;
 using System.Security.Cryptography;
 using System.Text;
 using Microsoft.AspNetCore.DataProtection;
@@ -14,9 +13,8 @@ namespace Crs.Api.Services;
 /// </summary>
 public class XAccountService : IXAccountService
 {
-    private static readonly ConcurrentDictionary<string, XAuthState> AuthStates = new();
-
     private readonly IXConnectionRepository _connectionRepository;
+    private readonly IXAuthStateRepository _authStateRepository;
     private readonly IXFollowedAccountRepository _followedAccountRepository;
     private readonly IXSelectedAccountRepository _selectedAccountRepository;
     private readonly IXPostRepository _postRepository;
@@ -27,6 +25,7 @@ public class XAccountService : IXAccountService
 
     public XAccountService(
         IXConnectionRepository connectionRepository,
+        IXAuthStateRepository authStateRepository,
         IXFollowedAccountRepository followedAccountRepository,
         IXSelectedAccountRepository selectedAccountRepository,
         IXPostRepository postRepository,
@@ -36,6 +35,7 @@ public class XAccountService : IXAccountService
         ILogger<XAccountService> logger)
     {
         _connectionRepository = connectionRepository;
+        _authStateRepository = authStateRepository;
         _followedAccountRepository = followedAccountRepository;
         _selectedAccountRepository = selectedAccountRepository;
         _postRepository = postRepository;
@@ -45,9 +45,9 @@ public class XAccountService : IXAccountService
         _logger = logger;
     }
 
-    public Task<string> CreateConnectUrlAsync(Guid userId, string? redirectUri = null, CancellationToken cancellationToken = default)
+    public async Task<string> CreateConnectUrlAsync(Guid userId, string? redirectUri = null, CancellationToken cancellationToken = default)
     {
-        CleanupExpiredStates();
+        await _authStateRepository.RemoveExpiredAsync(cancellationToken);
 
         var state = CreateBase64Url(32);
         var codeVerifier = CreateBase64Url(64);
@@ -61,13 +61,14 @@ public class XAccountService : IXAccountService
             throw new InvalidOperationException("X redirect URI is not configured");
         }
 
-        AuthStates[state] = new XAuthState
+        await _authStateRepository.AddAsync(new XAuthState
         {
+            State = state,
             UserId = userId,
             CodeVerifier = codeVerifier,
             RedirectUri = effectiveRedirectUri,
             ExpiresAt = DateTime.UtcNow.AddMinutes(10)
-        };
+        }, cancellationToken);
 
         var query = new Dictionary<string, string>
         {
@@ -81,14 +82,15 @@ public class XAccountService : IXAccountService
         };
 
         var url = $"{_settings.AuthorizationUrl}?{ToQueryString(query)}";
-        return Task.FromResult(url);
+        return url;
     }
 
     public async Task HandleCallbackAsync(Guid userId, string code, string state, CancellationToken cancellationToken = default)
     {
-        CleanupExpiredStates();
+        await _authStateRepository.RemoveExpiredAsync(cancellationToken);
 
-        if (!AuthStates.TryRemove(state, out var authState) || authState.UserId != userId)
+        var authState = await _authStateRepository.GetAndRemoveAsync(state, cancellationToken);
+        if (authState == null || authState.UserId != userId)
         {
             throw new InvalidOperationException("Invalid or expired X authorization state");
         }
@@ -241,26 +243,6 @@ public class XAccountService : IXAccountService
     {
         return string.Join("&", parameters.Select(kvp =>
             $"{Uri.EscapeDataString(kvp.Key)}={Uri.EscapeDataString(kvp.Value)}"));
-    }
-
-    private static void CleanupExpiredStates()
-    {
-        var now = DateTime.UtcNow;
-        foreach (var entry in AuthStates)
-        {
-            if (entry.Value.ExpiresAt <= now)
-            {
-                AuthStates.TryRemove(entry.Key, out _);
-            }
-        }
-    }
-
-    private class XAuthState
-    {
-        public Guid UserId { get; set; }
-        public string CodeVerifier { get; set; } = string.Empty;
-        public string RedirectUri { get; set; } = string.Empty;
-        public DateTime ExpiresAt { get; set; }
     }
 
     private class ValidConnection

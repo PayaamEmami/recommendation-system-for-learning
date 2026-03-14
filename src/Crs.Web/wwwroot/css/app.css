@@ -257,6 +257,19 @@ a:hover {
     margin-bottom: 1rem;
 }
 
+.x-connect-prompt {
+    text-align: center;
+    padding: 2rem 1.5rem;
+}
+
+.x-connect-prompt p {
+    color: var(--text-secondary);
+    margin-bottom: 1.25rem;
+    max-width: 320px;
+    margin-left: auto;
+    margin-right: auto;
+}
+
 .x-followed-list {
     margin-bottom: 1.5rem;
 }

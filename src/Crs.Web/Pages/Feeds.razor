@@ -15,9 +15,12 @@
     <div class="x-feed-container">
         <div class="x-feed-header">
             <h2>X Feed</h2>
-            <button class="x-feed-settings-btn" @onclick="ToggleXSettings" aria-label="X feed settings">
-                ⚙
-            </button>
+            @if (_followedAccounts.Any())
+            {
+                <button class="x-feed-settings-btn" @onclick="ToggleXSettings" aria-label="X feed settings">
+                    ⚙
+                </button>
+            }
         </div>
 
         @if (!string.IsNullOrEmpty(_xError))
@@ -29,6 +32,15 @@
         {
             <p>Loading X feed...</p>
         }
+        else if (!_followedAccounts.Any())
+        {
+            <div class="x-connect-prompt">
+                <p>Connect your X account to see tweets from people you follow in your feed.</p>
+                <button class="btn-primary" @onclick="ConnectXAsync" disabled="@_xConnecting">
+                    @(_xConnecting ? "Connecting..." : "Connect X")
+                </button>
+            </div>
+        }
         else
         {
             @if (_showXSettings)
@@ -39,42 +51,36 @@
                             <h3>Settings</h3>
                             <div class="x-followed-controls">
                                 <button class="btn-tertiary" @onclick="ConnectXAsync" disabled="@_xConnecting">
-                                    @_xConnectButtonLabel
+                                    Reconnect X
                                 </button>
-                                @if (_followedAccounts.Any())
-                                {
-                                    <button class="btn-tertiary" @onclick="RefreshXAsync" disabled="@_xLoading">
-                                        Refresh
-                                    </button>
-                                    <button class="btn-tertiary btn-danger-text" @onclick="DisconnectXAsync" disabled="@_xDisconnecting">
-                                        @(_xDisconnecting ? "Disconnecting..." : "Disconnect X")
-                                    </button>
-                                }
+                                <button class="btn-tertiary" @onclick="RefreshXAsync" disabled="@_xLoading">
+                                    Refresh
+                                </button>
+                                <button class="btn-tertiary btn-danger-text" @onclick="DisconnectXAsync" disabled="@_xDisconnecting">
+                                    @(_xDisconnecting ? "Disconnecting..." : "Disconnect X")
+                                </button>
                                 @if (_xSavingSelections)
                                 {
                                     <span class="x-followed-saving">Saving...</span>
                                 }
                             </div>
                         </div>
-                        @if (_followedAccounts.Any())
-                        {
-                            <div class="x-followed-grid">
-                                @foreach (var account in _followedAccounts)
-                                {
-                                    <label class="x-followed-item">
-                                        <input type="checkbox"
-                                               checked="@_selectedAccountIds.Contains(account.Id)"
-                                               disabled="@_xSavingSelections"
-                                               @onchange="async (e) => await ToggleSelectedAsync(account.Id, e)" />
-                                        <img src="@account.ProfileImageUrl" alt="@account.Handle" />
-                                        <div>
-                                        <div class="x-followed-name">@TruncateName(account.DisplayName)</div>
-                                            <div class="x-followed-handle">@($"@{account.Handle}")</div>
-                                        </div>
-                                    </label>
-                                }
-                            </div>
-                        }
+                        <div class="x-followed-grid">
+                            @foreach (var account in _followedAccounts)
+                            {
+                                <label class="x-followed-item">
+                                    <input type="checkbox"
+                                           checked="@_selectedAccountIds.Contains(account.Id)"
+                                           disabled="@_xSavingSelections"
+                                           @onchange="async (e) => await ToggleSelectedAsync(account.Id, e)" />
+                                    <img src="@account.ProfileImageUrl" alt="@account.Handle" />
+                                    <div>
+                                    <div class="x-followed-name">@TruncateName(account.DisplayName)</div>
+                                        <div class="x-followed-handle">@($"@{account.Handle}")</div>
+                                    </div>
+                                </label>
+                            }
+                        </div>
                     </div>
                 </div>
             }
@@ -107,6 +113,10 @@
                         </div>
                     }
                 </div>
+            }
+            else
+            {
+                <p class="x-empty-state">No posts available yet. Try refreshing after the next ingest.</p>
             }
         }
     </div>

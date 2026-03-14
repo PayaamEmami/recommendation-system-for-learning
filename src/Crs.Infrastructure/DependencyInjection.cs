@@ -41,6 +41,7 @@ public static class DependencyInjection
     services.AddScoped<IResourceVoteRepository, ResourceVoteRepository>();
     services.AddScoped<IRecommendationRepository, RecommendationRepository>();
     services.AddScoped<IXConnectionRepository, XConnectionRepository>();
+    services.AddScoped<IXAuthStateRepository, XAuthStateRepository>();
     services.AddScoped<IXFollowedAccountRepository, XFollowedAccountRepository>();
     services.AddScoped<IXSelectedAccountRepository, XSelectedAccountRepository>();
     services.AddScoped<IXPostRepository, XPostRepository>();
