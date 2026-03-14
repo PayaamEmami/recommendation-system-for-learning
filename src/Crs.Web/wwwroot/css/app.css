@@ -492,6 +492,16 @@ button {
     background-color: #c82333;
 }
 
+.btn-danger-text {
+    color: var(--error-color);
+    border-color: var(--error-color);
+}
+
+.btn-danger-text:hover:not(:disabled) {
+    background-color: var(--error-color);
+    color: white;
+}
+
 .btn-text {
     background: transparent;
     color: var(--text-secondary);

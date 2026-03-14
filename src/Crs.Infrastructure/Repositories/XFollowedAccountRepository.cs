@@ -60,4 +60,11 @@ public class XFollowedAccountRepository : IXFollowedAccountRepository
 
         await _context.SaveChangesAsync(cancellationToken);
     }
+
+    public async Task DeleteByUserIdAsync(Guid userId, CancellationToken cancellationToken = default)
+    {
+        await _context.XFollowedAccounts
+            .Where(x => x.UserId == userId)
+            .ExecuteDeleteAsync(cancellationToken);
+    }
 }

@@ -115,6 +115,21 @@ public class XFeedService
         }
     }
 
+    public async Task<bool> DisconnectAsync()
+    {
+        try
+        {
+            var response = await SendAuthorizedAsync(() =>
+                _httpClient.DeleteAsync("/api/v1/x/connection"));
+            return response?.IsSuccessStatusCode ?? false;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error disconnecting X account");
+            return false;
+        }
+    }
+
     public async Task<List<XFollowedAccountItem>> GetFollowedAccountsAsync(bool refresh = false)
     {
         try

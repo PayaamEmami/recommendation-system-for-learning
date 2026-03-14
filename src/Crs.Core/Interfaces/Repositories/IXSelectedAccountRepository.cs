@@ -9,5 +9,6 @@ public interface IXSelectedAccountRepository
 {
     Task<List<XSelectedAccount>> GetByUserIdAsync(Guid userId, CancellationToken cancellationToken = default);
     Task ReplaceForUserAsync(Guid userId, List<XSelectedAccount> selectedAccounts, CancellationToken cancellationToken = default);
+    Task DeleteByUserIdAsync(Guid userId, CancellationToken cancellationToken = default);
 }
 

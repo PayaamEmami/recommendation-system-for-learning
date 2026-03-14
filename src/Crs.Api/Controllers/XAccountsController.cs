@@ -104,6 +104,24 @@ public class XAccountsController : ControllerBase
     }
 
     /// <summary>
+    /// Disconnects the user's X account and removes all related data.
+    /// </summary>
+    [HttpDelete("connection")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status401Unauthorized)]
+    public async Task<IActionResult> Disconnect(CancellationToken cancellationToken)
+    {
+        var userId = User.GetUserId();
+        if (userId == null)
+        {
+            return Unauthorized();
+        }
+
+        await _xAccountService.DisconnectAsync(userId.Value, cancellationToken);
+        return NoContent();
+    }
+
+    /// <summary>
     /// Gets followed X accounts, optionally refreshing from X.
     /// </summary>
     [HttpGet("followed-accounts")]

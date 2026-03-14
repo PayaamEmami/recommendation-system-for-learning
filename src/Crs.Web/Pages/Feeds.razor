@@ -49,6 +49,9 @@
                                 <button class="btn-tertiary" @onclick="RefreshXAsync" disabled="@_xLoading">
                                     Refresh
                                 </button>
+                                <button class="btn-tertiary btn-danger-text" @onclick="DisconnectXAsync" disabled="@_xDisconnecting">
+                                    @(_xDisconnecting ? "Disconnecting..." : "Disconnect X")
+                                </button>
                                 @if (_xSavingSelections)
                                 {
                                     <span class="x-followed-saving">Saving...</span>
@@ -225,6 +228,7 @@
     private bool _xLoading = true;
     private bool _xConnecting;
     private bool _xSavingSelections;
+    private bool _xDisconnecting;
     private bool _showXSettings;
     private string? _xError;
     private string _xConnectButtonLabel = "Connect X";
@@ -315,6 +319,37 @@
         finally
         {
             _xLoading = false;
+        }
+    }
+
+    private async Task DisconnectXAsync()
+    {
+        _xDisconnecting = true;
+        _xError = null;
+
+        try
+        {
+            var success = await XFeedService.DisconnectAsync();
+            if (success)
+            {
+                _followedAccounts = new();
+                _selectedAccountIds = new();
+                _posts = new();
+                _xConnectButtonLabel = "Connect X";
+                _showXSettings = false;
+            }
+            else
+            {
+                _xError = "Failed to disconnect X account. Please try again.";
+            }
+        }
+        catch (Exception ex)
+        {
+            _xError = $"Failed to disconnect: {ex.Message}";
+        }
+        finally
+        {
+            _xDisconnecting = false;
         }
     }
 

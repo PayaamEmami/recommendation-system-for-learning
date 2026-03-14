@@ -117,6 +117,15 @@ public class XAccountService : IXAccountService
         await RefreshFollowedAccountsAsync(userId, cancellationToken);
     }
 
+    public async Task DisconnectAsync(Guid userId, CancellationToken cancellationToken = default)
+    {
+        await _postRepository.DeleteByUserIdAsync(userId, cancellationToken);
+        await _selectedAccountRepository.DeleteByUserIdAsync(userId, cancellationToken);
+        await _followedAccountRepository.DeleteByUserIdAsync(userId, cancellationToken);
+        await _connectionRepository.DeleteByUserIdAsync(userId, cancellationToken);
+        _logger.LogInformation("Disconnected X account for user {UserId}", userId);
+    }
+
     public Task<List<XFollowedAccount>> GetFollowedAccountsAsync(Guid userId, CancellationToken cancellationToken = default)
     {
         return _followedAccountRepository.GetByUserIdAsync(userId, cancellationToken);

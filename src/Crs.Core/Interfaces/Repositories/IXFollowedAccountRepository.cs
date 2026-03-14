@@ -9,5 +9,6 @@ public interface IXFollowedAccountRepository
 {
     Task<List<XFollowedAccount>> GetByUserIdAsync(Guid userId, CancellationToken cancellationToken = default);
     Task ReplaceForUserAsync(Guid userId, List<XFollowedAccount> accounts, CancellationToken cancellationToken = default);
+    Task DeleteByUserIdAsync(Guid userId, CancellationToken cancellationToken = default);
 }
 

@@ -9,6 +9,7 @@ public interface IXAccountService
 {
     Task<string> CreateConnectUrlAsync(Guid userId, string? redirectUri = null, CancellationToken cancellationToken = default);
     Task HandleCallbackAsync(Guid userId, string code, string state, CancellationToken cancellationToken = default);
+    Task DisconnectAsync(Guid userId, CancellationToken cancellationToken = default);
     Task<List<XFollowedAccount>> GetFollowedAccountsAsync(Guid userId, CancellationToken cancellationToken = default);
     Task<List<XSelectedAccount>> GetSelectedAccountsAsync(Guid userId, CancellationToken cancellationToken = default);
     Task<List<XFollowedAccount>> RefreshFollowedAccountsAsync(Guid userId, CancellationToken cancellationToken = default);
