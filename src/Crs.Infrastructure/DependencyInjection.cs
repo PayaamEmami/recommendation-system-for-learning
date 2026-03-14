@@ -1,4 +1,6 @@
+using System.Security.Cryptography;
 using Microsoft.AspNetCore.DataProtection;
+using Microsoft.AspNetCore.DataProtection.AuthenticatedEncryption.ConfigurationModel;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -60,9 +62,16 @@ public static class DependencyInjection
     services.AddHttpClient<IContentFetcherService, ContentFetcherService>();
 
     // Persist Data Protection keys to the shared database so API and jobs can decrypt tokens.
+    // Force managed algorithms so payloads are cross-platform compatible (Linux API + Windows Jobs).
     services.AddDataProtection()
         .PersistKeysToDbContext<CrsDbContext>()
-        .SetApplicationName("Crs");
+        .SetApplicationName("Crs")
+        .UseCustomCryptographicAlgorithms(new ManagedAuthenticatedEncryptorConfiguration
+        {
+            EncryptionAlgorithmType = typeof(Aes),
+            EncryptionAlgorithmKeySize = 256,
+            ValidationAlgorithmType = typeof(HMACSHA256)
+        });
 
     return services;
   }

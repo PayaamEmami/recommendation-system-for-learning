@@ -1,7 +1,9 @@
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Crs.Infrastructure;
+using Crs.Infrastructure.Data;
 using Crs.Jobs.Jobs;
 using Crs.Llm;
 using Crs.Recommendation;
@@ -50,6 +52,7 @@ if (string.IsNullOrWhiteSpace(jobName))
   Console.WriteLine("  feed          - Run daily feed generation job");
   Console.WriteLine("  reindex       - Reindex all resources in vector store");
   Console.WriteLine("  x-ingestion   - Run X post ingestion job");
+  Console.WriteLine("  reset-dp-keys - Clear Data Protection keys (requires X reconnection)");
   Environment.Exit(1);
 }
 
@@ -87,10 +90,16 @@ using (var scope = host.Services.CreateScope())
         logger.LogInformation("X ingestion job completed successfully");
         break;
 
+      case "reset-dp-keys":
+        var db = scope.ServiceProvider.GetRequiredService<CrsDbContext>();
+        var deleted = await db.DataProtectionKeys.ExecuteDeleteAsync();
+        logger.LogInformation("Deleted {Count} Data Protection keys. X accounts must be reconnected.", deleted);
+        break;
+
       default:
         logger.LogError("Unknown job name: {JobName}", jobName);
         Console.WriteLine($"Error: Unknown job '{jobName}'");
-        Console.WriteLine("Available jobs: ingestion, feed, reindex, x-ingestion");
+        Console.WriteLine("Available jobs: ingestion, feed, reindex, x-ingestion, reset-dp-keys");
         Environment.Exit(1);
         break;
     }
