@@ -107,6 +107,8 @@ if (app.Environment.IsDevelopment() || app.Environment.EnvironmentName == "Produ
 }
 
 // Configure the HTTP request pipeline
+app.UseCors("DefaultCorsPolicy");
+
 app.UseMiddleware<ExceptionHandlingMiddleware>();
 
 if (app.Environment.IsDevelopment())
@@ -115,8 +117,6 @@ if (app.Environment.IsDevelopment())
 }
 
 app.UseHttpsRedirection();
-
-app.UseCors("DefaultCorsPolicy");
 
 app.UseRateLimiter();
 
