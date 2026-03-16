@@ -7,6 +7,7 @@ using Crs.Api.DTOs.X.Requests;
 using Crs.Api.DTOs.X.Responses;
 using Crs.Api.Extensions;
 using Crs.Api.Services;
+using System.Net;
 
 namespace Crs.Api.Controllers;
 
@@ -112,6 +113,15 @@ public class XAccountsController : ControllerBase
         catch (HttpRequestException ex)
         {
             _logger.LogError(ex, "X callback upstream request failed for user {UserId}", userId.Value);
+
+            if (ex.StatusCode == HttpStatusCode.Forbidden)
+            {
+                return Problem(
+                    title: "X denied profile access",
+                    detail: "X authorized the app, but denied access to the authenticated user's profile endpoint. Verify the X app, project, and user-auth access for this client.",
+                    statusCode: StatusCodes.Status403Forbidden);
+            }
+
             return Problem(
                 title: "X connection failed",
                 detail: "X authorized the app, but rejected a follow-up API request. Check the API logs for the X response body and verify the app's access tier and user auth permissions.",

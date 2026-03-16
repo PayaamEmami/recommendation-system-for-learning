@@ -20,6 +20,7 @@ public class UserRepository : IUserRepository
     public async Task<User?> GetByIdAsync(Guid id, CancellationToken cancellationToken = default)
     {
         return await _context.Users
+            .AsSplitQuery()
             .Include(u => u.Sources)
             .Include(u => u.Votes)
             .Include(u => u.Recommendations)

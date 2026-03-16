@@ -288,7 +288,9 @@ public class XApiClient : IXApiClient
         var body = await response.Content.ReadAsStringAsync(cancellationToken);
         throw new HttpRequestException(
             $"X API request failed with {(int)response.StatusCode} {response.ReasonPhrase} " +
-            $"for {request.Method} {request.RequestUri}. Body: {body}");
+            $"for {request.Method} {request.RequestUri}. Body: {body}",
+            inner: null,
+            statusCode: response.StatusCode);
     }
 
     private class XTokenApiResponse

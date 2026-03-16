@@ -31,9 +31,7 @@ public class RecommendationService : IRecommendationService
       DateOnly date,
       CancellationToken cancellationToken = default)
   {
-    // Verify user exists
-    var user = await _userRepository.GetByIdAsync(userId, cancellationToken);
-    if (user == null)
+    if (!await _userRepository.ExistsAsync(userId, cancellationToken))
     {
       throw new KeyNotFoundException($"User with ID {userId} not found");
     }
@@ -114,9 +112,7 @@ public class RecommendationService : IRecommendationService
       Guid userId,
       CancellationToken cancellationToken = default)
   {
-    // Verify user exists
-    var user = await _userRepository.GetByIdAsync(userId, cancellationToken);
-    if (user == null)
+    if (!await _userRepository.ExistsAsync(userId, cancellationToken))
     {
       throw new KeyNotFoundException($"User with ID {userId} not found");
     }
@@ -206,4 +202,3 @@ public class RecommendationService : IRecommendationService
     return feedRecommendations;
   }
 }
-

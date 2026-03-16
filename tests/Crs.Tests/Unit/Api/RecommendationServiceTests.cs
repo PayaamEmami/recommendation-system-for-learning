@@ -24,8 +24,8 @@ public sealed class RecommendationServiceTests
     public async Task GetFeedRecommendationsAsync_WhenUserMissing_Throws()
     {
         var service = CreateService(out _, out var userRepository);
-        userRepository.Setup(repo => repo.GetByIdAsync(It.IsAny<Guid>(), It.IsAny<CancellationToken>()))
-            .ReturnsAsync((User?)null);
+        userRepository.Setup(repo => repo.ExistsAsync(It.IsAny<Guid>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(false);
 
         await TestAssert.ThrowsAsync<KeyNotFoundException>(() =>
             service.GetFeedRecommendationsAsync(Guid.NewGuid(), ResourceType.Video, DateOnly.FromDateTime(DateTime.UtcNow), CancellationToken.None));
@@ -36,8 +36,8 @@ public sealed class RecommendationServiceTests
     {
         var service = CreateService(out var recommendationRepository, out var userRepository);
         var userId = Guid.NewGuid();
-        userRepository.Setup(repo => repo.GetByIdAsync(userId, It.IsAny<CancellationToken>()))
-            .ReturnsAsync(new User { Id = userId });
+        userRepository.Setup(repo => repo.ExistsAsync(userId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(true);
 
         var requestedDate = new DateOnly(2024, 12, 1);
         var fallbackDate = new DateOnly(2024, 11, 30);
@@ -81,8 +81,8 @@ public sealed class RecommendationServiceTests
     public async Task GetTodaysRecommendationsAsync_WhenUserMissing_Throws()
     {
         var service = CreateService(out _, out var userRepository);
-        userRepository.Setup(repo => repo.GetByIdAsync(It.IsAny<Guid>(), It.IsAny<CancellationToken>()))
-            .ReturnsAsync((User?)null);
+        userRepository.Setup(repo => repo.ExistsAsync(It.IsAny<Guid>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(false);
 
         await TestAssert.ThrowsAsync<KeyNotFoundException>(() =>
             service.GetTodaysRecommendationsAsync(Guid.NewGuid(), CancellationToken.None));
@@ -93,8 +93,8 @@ public sealed class RecommendationServiceTests
     {
         var service = CreateService(out var recommendationRepository, out var userRepository);
         var userId = Guid.NewGuid();
-        userRepository.Setup(repo => repo.GetByIdAsync(userId, It.IsAny<CancellationToken>()))
-            .ReturnsAsync(new User { Id = userId });
+        userRepository.Setup(repo => repo.ExistsAsync(userId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(true);
 
         var today = DateOnly.FromDateTime(DateTime.UtcNow);
         recommendationRepository.Setup(repo => repo.GetByUserDateAndTypeAsync(userId, today, It.IsAny<ResourceType>(), It.IsAny<CancellationToken>()))

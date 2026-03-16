@@ -169,6 +169,27 @@ public sealed class XAccountsControllerTests
     }
 
     [TestMethod]
+    public async Task HandleCallback_WhenXDeniesProfileAccess_ReturnsForbiddenProblem()
+    {
+        var controller = CreateController(CreateConfiguration("https://allowed.com"), out var service);
+        var userId = Guid.NewGuid();
+        ControllerTestHelpers.SetUser(controller, userId);
+
+        service.Setup(svc => svc.HandleCallbackAsync(userId, "code", "state", It.IsAny<CancellationToken>()))
+            .ThrowsAsync(new HttpRequestException("forbidden", null, System.Net.HttpStatusCode.Forbidden));
+
+        var result = await controller.HandleCallback(new XCallbackRequest { Code = "code", State = "state" }, CancellationToken.None);
+
+        var objectResult = result as ObjectResult;
+        Assert.IsNotNull(objectResult);
+        Assert.AreEqual(StatusCodes.Status403Forbidden, objectResult.StatusCode);
+
+        var problem = objectResult.Value as ProblemDetails;
+        Assert.IsNotNull(problem);
+        Assert.AreEqual("X denied profile access", problem.Title);
+    }
+
+    [TestMethod]
     public async Task GetFollowedAccounts_WhenMissingUser_ReturnsUnauthorized()
     {
         var controller = CreateController(CreateConfiguration("https://allowed.com"), out _);
