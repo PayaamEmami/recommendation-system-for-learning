@@ -99,8 +99,16 @@ public class XAccountsController : ControllerBase
             return BadRequest("Missing code or state");
         }
 
-        await _xAccountService.HandleCallbackAsync(userId.Value, request.Code, request.State, cancellationToken);
-        return NoContent();
+        try
+        {
+            await _xAccountService.HandleCallbackAsync(userId.Value, request.Code, request.State, cancellationToken);
+            return NoContent();
+        }
+        catch (InvalidOperationException ex)
+        {
+            _logger.LogWarning(ex, "X callback failed for user {UserId}", userId.Value);
+            return BadRequest(ex.Message);
+        }
     }
 
     /// <summary>

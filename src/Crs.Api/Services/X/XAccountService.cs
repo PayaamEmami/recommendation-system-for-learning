@@ -92,6 +92,7 @@ public class XAccountService : IXAccountService
         var authState = await _authStateRepository.GetAndRemoveAsync(state, cancellationToken);
         if (authState == null || authState.UserId != userId)
         {
+            _logger.LogWarning("X callback rejected: invalid or expired state for user {UserId} (state found: {StateFound})", userId, authState != null);
             throw new InvalidOperationException("Invalid or expired X authorization state");
         }
 

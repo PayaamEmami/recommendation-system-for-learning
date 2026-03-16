@@ -173,6 +173,8 @@ dotnet ef database update --project src/Crs.Infrastructure --startup-project src
 
 # View API logs
 aws logs tail /crs/api --follow --region us-west-2
+
+# X connection failures: Run the above before retrying. Look for "X callback rejected" (invalid/expired state), "X callback failed for user" (BadRequest), or "An unhandled exception occurred" (token exchange / X API errors). Browser DevTools (F12) → Network tab shows the POST /api/v1/x/callback status and response body.
 ```
 
 ## Key Decisions

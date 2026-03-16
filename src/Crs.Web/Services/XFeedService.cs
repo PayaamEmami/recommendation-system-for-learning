@@ -104,9 +104,16 @@ public class XFeedService
                 _httpClient.PostAsJsonAsync("/api/v1/x/callback", request, JsonOptions));
             if (response == null)
             {
+                _logger.LogWarning("X callback failed: no response (auth may have expired during OAuth flow)");
                 return false;
             }
-            return response.IsSuccessStatusCode;
+            if (!response.IsSuccessStatusCode)
+            {
+                var body = await response.Content.ReadAsStringAsync();
+                _logger.LogWarning("X callback API returned {StatusCode}: {Body}", response.StatusCode, body);
+                return false;
+            }
+            return true;
         }
         catch (Exception ex)
         {
