@@ -35,7 +35,7 @@
         else if (!_followedAccounts.Any())
         {
             <div class="x-connect-prompt">
-                <p>Connect your X account to see tweets from people you follow in your feed.</p>
+                <p>Connect your X account to see posts from people you follow in your feed.</p>
                 <button class="btn-primary" @onclick="ConnectXAsync" disabled="@_xConnecting">
                     @(_xConnecting ? "Connecting..." : "Connect X")
                 </button>
