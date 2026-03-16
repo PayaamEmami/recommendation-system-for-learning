@@ -97,13 +97,10 @@ public class XApiClient : IXApiClient
 
     public async Task<XUserProfile> GetCurrentUserAsync(string accessToken, CancellationToken cancellationToken = default)
     {
-        using var request = new HttpRequestMessage(HttpMethod.Get, $"{_settings.BaseUrl}/2/users/me?user.fields=profile_image_url");
-        request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", accessToken);
-
-        var response = await _httpClient.SendAsync(request, cancellationToken);
-        await EnsureSuccessAsync(response, request, cancellationToken);
-
-        var payload = await response.Content.ReadFromJsonAsync<XUserResponse>(JsonOptions, cancellationToken);
+        var payload = await GetCurrentUserPayloadAsync(
+            $"{_settings.BaseUrl}/2/users/me?user.fields=profile_image_url",
+            accessToken,
+            cancellationToken);
         if (payload?.Data == null)
         {
             return new XUserProfile();
@@ -116,6 +113,29 @@ public class XApiClient : IXApiClient
             DisplayName = payload.Data.Name,
             ProfileImageUrl = payload.Data.ProfileImageUrl
         };
+    }
+
+    private async Task<XUserResponse?> GetCurrentUserPayloadAsync(string requestUri, string accessToken, CancellationToken cancellationToken)
+    {
+        using var request = new HttpRequestMessage(HttpMethod.Get, requestUri);
+        request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", accessToken);
+
+        var response = await _httpClient.SendAsync(request, cancellationToken);
+        if (!response.IsSuccessStatusCode &&
+            response.StatusCode == System.Net.HttpStatusCode.Forbidden &&
+            requestUri.Contains("user.fields=profile_image_url", StringComparison.Ordinal))
+        {
+            response.Dispose();
+            using var fallbackRequest = new HttpRequestMessage(HttpMethod.Get, $"{_settings.BaseUrl}/2/users/me");
+            fallbackRequest.Headers.Authorization = new AuthenticationHeaderValue("Bearer", accessToken);
+
+            var fallbackResponse = await _httpClient.SendAsync(fallbackRequest, cancellationToken);
+            await EnsureSuccessAsync(fallbackResponse, fallbackRequest, cancellationToken);
+            return await fallbackResponse.Content.ReadFromJsonAsync<XUserResponse>(JsonOptions, cancellationToken);
+        }
+
+        await EnsureSuccessAsync(response, request, cancellationToken);
+        return await response.Content.ReadFromJsonAsync<XUserResponse>(JsonOptions, cancellationToken);
     }
 
     public async Task<List<XFollowedAccountInfo>> GetFollowedAccountsAsync(string accessToken, string userId, CancellationToken cancellationToken = default)

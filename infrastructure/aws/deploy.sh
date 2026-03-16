@@ -389,7 +389,7 @@ create_s3_web() {
     WEB_URL="http://${BUCKET_NAME}.s3-website-${REGION}.amazonaws.com"
 
     # Get CloudFront URL if distribution exists
-    CF_DOMAIN=$(aws cloudfront list-distributions --query "DistributionList.Items[?contains(Origins.Items[].DomainName, '${BUCKET_NAME}')].DomainName" --output text --region $REGION 2>/dev/null || echo "")
+    CF_DOMAIN=$(aws cloudfront list-distributions --query "DistributionList.Items[?contains(Origins.Items[0].DomainName, '${BUCKET_NAME}')].DomainName | [0]" --output text 2>/dev/null || echo "")
     if [ -n "$CF_DOMAIN" ] && [ "$CF_DOMAIN" != "None" ]; then
         CF_URL="https://${CF_DOMAIN}"
         log_info "CloudFront URL: $CF_URL"
@@ -759,7 +759,7 @@ create_cloudfront_invalidation_schedule() {
     log_info "Creating CloudFront cache invalidation schedule..."
 
     BUCKET_NAME="${PREFIX}-web-${ACCOUNT_ID}"
-    DIST_ID=$(aws cloudfront list-distributions --query "DistributionList.Items[?contains(Origins.Items[].DomainName, '${BUCKET_NAME}')].Id" --output text 2>/dev/null || echo "")
+    DIST_ID=$(aws cloudfront list-distributions --query "DistributionList.Items[?contains(Origins.Items[0].DomainName, '${BUCKET_NAME}')].Id | [0]" --output text 2>/dev/null || echo "")
 
     if [ -z "$DIST_ID" ] || [ "$DIST_ID" = "None" ]; then
         log_warn "No CloudFront distribution found for ${BUCKET_NAME} - skipping invalidation schedule"
