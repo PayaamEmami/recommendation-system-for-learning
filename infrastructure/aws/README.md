@@ -177,3 +177,6 @@ For CI/CD, add these secrets to your GitHub repository:
 | `SQL_ADMIN_USERNAME` | RDS master username (optional, defaults to `crsadmin`) |
 | `OpenAI__ApiKey` | OpenAI API key for ingestion and embeddings |
 | `JWT_SECRET_KEY` | JWT signing secret (64+ chars) |
+| `X__CLIENT_ID` | X OAuth client ID for connect and refresh flows |
+| `X__CLIENT_SECRET` | X OAuth client secret |
+| `X__REDIRECT_URI` | X OAuth redirect URI, e.g. `https://your-web-host/x/callback` |

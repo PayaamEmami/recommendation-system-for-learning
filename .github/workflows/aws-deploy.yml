@@ -107,6 +107,24 @@ jobs:
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: ${{ env.AWS_REGION }}
 
+      - name: Stamp web config with live API URL
+        run: |
+          SERVICE_ARN=$(aws apprunner list-services --query "ServiceSummaryList[?ServiceName=='crs-api'].ServiceArn" --output text)
+          if [ -z "$SERVICE_ARN" ] || [ "$SERVICE_ARN" = "None" ]; then
+            echo "App Runner service not found - cannot resolve API URL for web config"
+            exit 1
+          fi
+
+          API_URL=$(aws apprunner describe-service --service-arn "$SERVICE_ARN" --query "Service.ServiceUrl" --output text)
+          API_BASE_URL="https://${API_URL}"
+
+          sed -i "s|\"ApiBaseUrl\": \".*\"|\"ApiBaseUrl\": \"${API_BASE_URL}\"|" web-app/appsettings.json
+          if [ -f web-app/appsettings.Production.json ]; then
+            sed -i "s|\"ApiBaseUrl\": \".*\"|\"ApiBaseUrl\": \"${API_BASE_URL}\"|" web-app/appsettings.Production.json
+          fi
+
+          echo "Stamped web config with ${API_BASE_URL}"
+
       - name: Deploy to S3
         run: |
           ACCOUNT_ID=$(aws sts get-caller-identity --query Account --output text)
@@ -206,7 +224,13 @@ jobs:
           ACCOUNT_ID=$(aws sts get-caller-identity --query Account --output text)
           BUCKET_NAME="crs-web-${ACCOUNT_ID}"
 
+          SERVICE_ARN=$(aws apprunner list-services --query "ServiceSummaryList[?ServiceName=='crs-api'].ServiceArn" --output text 2>/dev/null || echo "")
           API_URL=$(aws apprunner list-services --query "ServiceSummaryList[?ServiceName=='crs-api'].ServiceUrl" --output text 2>/dev/null || echo "not-deployed")
+          API_LOG_GROUP="not-available"
+          if [ -n "$SERVICE_ARN" ] && [ "$SERVICE_ARN" != "None" ]; then
+            SERVICE_ID=$(aws apprunner describe-service --service-arn "$SERVICE_ARN" --query "Service.ServiceId" --output text)
+            API_LOG_GROUP="/aws/apprunner/crs-api/${SERVICE_ID}/application"
+          fi
           WEB_URL="http://${BUCKET_NAME}.s3-website-${{ env.AWS_REGION }}.amazonaws.com"
 
           echo "=============================================="
@@ -214,4 +238,5 @@ jobs:
           echo "=============================================="
           echo "API URL: https://${API_URL}"
           echo "Web URL: ${WEB_URL}"
+          echo "API Logs: ${API_LOG_GROUP}"
           echo "=============================================="

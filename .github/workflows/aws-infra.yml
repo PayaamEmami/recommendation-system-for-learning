@@ -28,6 +28,9 @@ jobs:
           SQL_ADMIN_USERNAME=${{ secrets.SQL_ADMIN_USERNAME }}
           OpenAI__ApiKey=${{ secrets.OPENAI__API_KEY }}
           JWT_SECRET=${{ secrets.JWT_SECRET_KEY }}
+          X__ClientId=${{ secrets.X__CLIENT_ID }}
+          X__ClientSecret=${{ secrets.X__CLIENT_SECRET }}
+          X__RedirectUri=${{ secrets.X__REDIRECT_URI }}
           OPENSEARCH_ENDPOINT=
           EOF
 
