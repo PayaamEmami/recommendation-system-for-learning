@@ -28,6 +28,7 @@ public sealed class AuthServiceTests
         var registrationSettings = new RegistrationSettings { Enabled = true };
         var authService = new AuthService(
             userRepository,
+            new InMemoryRefreshTokenRepository(),
             CreateJwtSettings(),
             registrationSettings,
             NullLogger<AuthService>.Instance);
@@ -53,6 +54,7 @@ public sealed class AuthServiceTests
         var registrationSettings = new RegistrationSettings { Enabled = true };
         var authService = new AuthService(
             userRepository,
+            new InMemoryRefreshTokenRepository(),
             CreateJwtSettings(),
             registrationSettings,
             NullLogger<AuthService>.Instance);
@@ -83,6 +85,7 @@ public sealed class AuthServiceTests
         var registrationSettings = new RegistrationSettings { Enabled = true };
         var authService = new AuthService(
             userRepository,
+            new InMemoryRefreshTokenRepository(),
             CreateJwtSettings(),
             registrationSettings,
             NullLogger<AuthService>.Instance);
@@ -117,6 +120,7 @@ public sealed class AuthServiceTests
 
         var authService = new AuthService(
             userRepository,
+            new InMemoryRefreshTokenRepository(),
             CreateJwtSettings(),
             registrationSettings,
             NullLogger<AuthService>.Instance);

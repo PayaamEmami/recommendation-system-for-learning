@@ -19,21 +19,21 @@ namespace Crs.Api.Services;
 public class AuthService : IAuthService
 {
     private readonly IUserRepository _userRepository;
+    private readonly IRefreshTokenRepository _refreshTokenRepository;
     private readonly JwtSettings _jwtSettings;
     private readonly RegistrationSettings _registrationSettings;
     private readonly ILogger<AuthService> _logger;
     private readonly PasswordHasher<User> _passwordHasher;
 
-    // Simple in-memory storage for refresh tokens (in production, use Redis or database)
-    private static readonly Dictionary<string, (Guid UserId, DateTime ExpiresAt)> _refreshTokens = new();
-
     public AuthService(
         IUserRepository userRepository,
+        IRefreshTokenRepository refreshTokenRepository,
         JwtSettings jwtSettings,
         RegistrationSettings registrationSettings,
         ILogger<AuthService> logger)
     {
         _userRepository = userRepository;
+        _refreshTokenRepository = refreshTokenRepository;
         _jwtSettings = jwtSettings;
         _registrationSettings = registrationSettings;
         _logger = logger;
@@ -62,7 +62,7 @@ public class AuthService : IAuthService
 
         // Generate tokens
         var accessToken = GenerateAccessToken(user);
-        var refreshToken = GenerateRefreshToken(user.Id);
+        var refreshToken = await GenerateAndStoreRefreshTokenAsync(user.Id, cancellationToken);
 
         return new LoginResponse
         {
@@ -108,7 +108,7 @@ public class AuthService : IAuthService
 
         // Generate tokens
         var accessToken = GenerateAccessToken(user);
-        var refreshToken = GenerateRefreshToken(user.Id);
+        var refreshToken = await GenerateAndStoreRefreshTokenAsync(user.Id, cancellationToken);
 
         return new LoginResponse
         {
@@ -123,31 +123,27 @@ public class AuthService : IAuthService
         RefreshTokenRequest request,
         CancellationToken cancellationToken = default)
     {
-        // Validate refresh token
-        if (!_refreshTokens.TryGetValue(request.RefreshToken, out var tokenData))
+        await _refreshTokenRepository.RemoveExpiredAsync(cancellationToken);
+
+        var tokenEntity = await _refreshTokenRepository.GetAndRemoveAsync(request.RefreshToken, cancellationToken);
+        if (tokenEntity == null)
         {
             throw new UnauthorizedAccessException("Invalid refresh token");
         }
 
-        if (tokenData.ExpiresAt < DateTime.UtcNow)
+        if (tokenEntity.ExpiresAt < DateTime.UtcNow)
         {
-            _refreshTokens.Remove(request.RefreshToken);
             throw new UnauthorizedAccessException("Refresh token has expired");
         }
 
-        // Get user
-        var user = await _userRepository.GetByIdAsync(tokenData.UserId, cancellationToken);
+        var user = await _userRepository.GetByIdAsync(tokenEntity.UserId, cancellationToken);
         if (user == null)
         {
             throw new UnauthorizedAccessException("User not found");
         }
 
-        // Remove old refresh token
-        _refreshTokens.Remove(request.RefreshToken);
-
-        // Generate new tokens
         var accessToken = GenerateAccessToken(user);
-        var refreshToken = GenerateRefreshToken(user.Id);
+        var refreshToken = await GenerateAndStoreRefreshTokenAsync(user.Id, cancellationToken);
 
         return new RefreshTokenResponse
         {
@@ -219,12 +215,17 @@ public class AuthService : IAuthService
         return tokenHandler.WriteToken(token);
     }
 
-    private string GenerateRefreshToken(Guid userId)
+    private async Task<string> GenerateAndStoreRefreshTokenAsync(Guid userId, CancellationToken cancellationToken)
     {
         var refreshToken = Convert.ToBase64String(RandomNumberGenerator.GetBytes(64));
         var expiresAt = DateTime.UtcNow.AddDays(_jwtSettings.RefreshTokenExpirationDays);
 
-        _refreshTokens[refreshToken] = (userId, expiresAt);
+        await _refreshTokenRepository.AddAsync(new RefreshToken
+        {
+            Token = refreshToken,
+            UserId = userId,
+            ExpiresAt = expiresAt
+        }, cancellationToken);
 
         return refreshToken;
     }
