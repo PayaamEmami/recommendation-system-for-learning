@@ -90,7 +90,7 @@ public class XFeedService
         }
     }
 
-    public async Task<bool> HandleCallbackAsync(string code, string state)
+    public async Task<XCallbackResult> HandleCallbackAsync(string code, string state)
     {
         try
         {
@@ -105,21 +105,61 @@ public class XFeedService
             if (response == null)
             {
                 _logger.LogWarning("X callback failed: no response (auth may have expired during OAuth flow)");
-                return false;
+                return new XCallbackResult
+                {
+                    Success = false,
+                    ErrorMessage = "Your session expired during the X connection flow. Please sign in again and retry."
+                };
             }
             if (!response.IsSuccessStatusCode)
             {
                 var body = await response.Content.ReadAsStringAsync();
                 _logger.LogWarning("X callback API returned {StatusCode}: {Body}", response.StatusCode, body);
-                return false;
+                return new XCallbackResult
+                {
+                    Success = false,
+                    ErrorMessage = ExtractErrorMessage(body)
+                };
             }
-            return true;
+            return new XCallbackResult { Success = true };
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error handling X callback");
-            return false;
+            return new XCallbackResult
+            {
+                Success = false,
+                ErrorMessage = "Unexpected error while finishing the X connection."
+            };
         }
+    }
+
+    private static string ExtractErrorMessage(string? body)
+    {
+        if (string.IsNullOrWhiteSpace(body))
+        {
+            return "Failed to connect to X. Please try again.";
+        }
+
+        try
+        {
+            var payload = JsonSerializer.Deserialize<ApiProblemResponse>(body, JsonOptions);
+            if (!string.IsNullOrWhiteSpace(payload?.Detail))
+            {
+                return payload.Detail;
+            }
+
+            if (!string.IsNullOrWhiteSpace(payload?.Title))
+            {
+                return payload.Title;
+            }
+        }
+        catch (JsonException)
+        {
+            // Fall back to the raw response body below.
+        }
+
+        return body.Length > 240 ? $"{body[..240]}..." : body;
     }
 
     public async Task<bool> DisconnectAsync()
@@ -278,6 +318,12 @@ public class XCallbackRequest
     public string State { get; set; } = string.Empty;
 }
 
+public class XCallbackResult
+{
+    public bool Success { get; set; }
+    public string? ErrorMessage { get; set; }
+}
+
 public class XSelectedAccountsRequest
 {
     public List<Guid> FollowedAccountIds { get; set; } = new();
@@ -335,4 +381,10 @@ public class XPostItem
     public int ReplyCount { get; set; }
     public int RepostCount { get; set; }
     public int QuoteCount { get; set; }
+}
+
+public class ApiProblemResponse
+{
+    public string? Title { get; set; }
+    public string? Detail { get; set; }
 }

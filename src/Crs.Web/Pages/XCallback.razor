@@ -38,10 +38,12 @@
             return;
         }
 
-        var success = await XFeedService.HandleCallbackAsync(Code, State);
-        _statusMessage = success ? "Connected! Redirecting to your feed..." : "Failed to connect. Please try again.";
+        var result = await XFeedService.HandleCallbackAsync(Code, State);
+        _statusMessage = result.Success
+            ? "Connected! Redirecting to your feed..."
+            : result.ErrorMessage ?? "Failed to connect. Please try again.";
 
-        if (success)
+        if (result.Success)
         {
             await Task.Delay(800);
             Navigation.NavigateTo("/feeds");

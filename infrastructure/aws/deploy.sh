@@ -25,6 +25,28 @@ log_info() { echo -e "${GREEN}[INFO]${NC} $1"; }
 log_warn() { echo -e "${YELLOW}[WARN]${NC} $1"; }
 log_error() { echo -e "${RED}[ERROR]${NC} $1"; }
 
+require_config_value() {
+    local name="$1"
+    local value="$2"
+    local location="$3"
+    local placeholder="${4:-}"
+
+    if [ -z "$value" ] || { [ -n "$placeholder" ] && [ "$value" = "$placeholder" ]; }; then
+        log_error "Please set ${name} in ${location}"
+        exit 1
+    fi
+}
+
+resolve_secrets_file() {
+    if [ -f "secrets.env" ]; then
+        echo "secrets.env"
+    elif [ -f "infrastructure/aws/secrets.env" ]; then
+        echo "infrastructure/aws/secrets.env"
+    else
+        echo "secrets.env"
+    fi
+}
+
 # Check AWS CLI is configured
 check_aws_cli() {
     log_info "Checking AWS CLI configuration..."
@@ -192,10 +214,7 @@ create_secrets() {
     log_info "Creating Secrets Manager secrets..."
 
     # Check if secrets file exists (handle both running from repo root and from aws directory)
-    SECRETS_FILE="secrets.env"
-    if [ ! -f "$SECRETS_FILE" ]; then
-        SECRETS_FILE="infrastructure/aws/secrets.env"
-    fi
+    SECRETS_FILE=$(resolve_secrets_file)
     if [ ! -f "$SECRETS_FILE" ]; then
         log_warn "Secrets file not found. Creating template at secrets.env"
         SECRETS_FILE="secrets.env"
@@ -213,6 +232,12 @@ OpenAI__ApiKey=sk-your-openai-key
 # JWT Secret (generate a random 64+ character string)
 JWT_SECRET=your-jwt-secret-key-minimum-64-characters-long-for-security
 
+# Optional X OAuth settings. You can also provide these as local environment variables
+# before running deploy.sh so they never live on disk.
+X__ClientId=
+X__ClientSecret=
+X__RedirectUri=
+
 # OpenSearch (will be auto-populated after creation)
 OPENSEARCH_ENDPOINT=
 EOF
@@ -220,18 +245,23 @@ EOF
         exit 1
     fi
 
+    log_info "Loading application secrets from $SECRETS_FILE"
     source "$SECRETS_FILE"
 
     DB_USERNAME="${SQL_ADMIN_USERNAME:-crsadmin}"
 
-    if [ -z "$DB_PASSWORD" ] || [ "$DB_PASSWORD" = "your-strong-password-here" ]; then
-        log_error "Please set DB_PASSWORD in $SECRETS_FILE"
+    require_config_value "DB_PASSWORD" "$DB_PASSWORD" "$SECRETS_FILE" "your-strong-password-here"
+    require_config_value "OpenAI__ApiKey" "$OpenAI__ApiKey" "$SECRETS_FILE" "sk-your-openai-key"
+    require_config_value "JWT_SECRET" "$JWT_SECRET" "$SECRETS_FILE" "your-jwt-secret-key-minimum-64-characters-long-for-security"
+
+    if { [ -n "$X__ClientId" ] || [ -n "$X__ClientSecret" ] || [ -n "$X__RedirectUri" ]; } &&
+       { [ -z "$X__ClientId" ] || [ -z "$X__ClientSecret" ] || [ -z "$X__RedirectUri" ]; }; then
+        log_error "Set X__ClientId, X__ClientSecret, and X__RedirectUri together in $SECRETS_FILE."
         exit 1
     fi
 
-    if [ -z "$OpenAI__ApiKey" ] || [ "$OpenAI__ApiKey" = "sk-your-openai-key" ]; then
-        log_error "Please set OpenAI__ApiKey in $SECRETS_FILE"
-        exit 1
+    if [ -z "$X__ClientId" ]; then
+        log_warn "X OAuth settings were not provided. X connect and X token refresh will stay unconfigured until you set X__ClientId, X__ClientSecret, and X__RedirectUri."
     fi
 
     # Create or update secrets
@@ -254,7 +284,7 @@ EOF
         fi
     done
 
-    export DB_PASSWORD OpenAI__ApiKey JWT_SECRET DB_USERNAME
+    export DB_PASSWORD OpenAI__ApiKey JWT_SECRET DB_USERNAME X__ClientId X__ClientSecret X__RedirectUri
 }
 
 # Create RDS PostgreSQL
@@ -374,7 +404,9 @@ create_s3_web() {
 create_cloudwatch_logs() {
     log_info "Creating CloudWatch Log Groups..."
 
-    for LOG_NAME in "api" "jobs" "ingestion" "feed" "x-ingestion"; do
+    log_info "App Runner API logs are managed under /aws/apprunner/${PREFIX}-api/<service-id>/application"
+
+    for LOG_NAME in "jobs" "ingestion" "feed" "x-ingestion"; do
         LOG_GROUP="/crs/$LOG_NAME"
         EXISTING=$(aws logs describe-log-groups --log-group-name-prefix "$LOG_GROUP" --region $REGION --query "logGroups[?logGroupName=='$LOG_GROUP'].logGroupName" --output text 2>/dev/null || echo "")
         if [ -z "$EXISTING" ]; then
@@ -574,42 +606,44 @@ create_app_runner() {
 
     # Check if service exists
     SERVICE_ARN=$(aws apprunner list-services --region $REGION --query "ServiceSummaryList[?ServiceName=='${PREFIX}-api'].ServiceArn" --output text 2>/dev/null || echo "")
+    CONNECTION_STRING="Host=${RDS_ENDPOINT};Database=crsdb;Username=${DB_USERNAME};Password=${DB_PASSWORD}"
+    APP_RUNNER_SOURCE_CONFIGURATION='{
+        "AuthenticationConfiguration": {
+            "AccessRoleArn": "arn:aws:iam::'${ACCOUNT_ID}':role/'${PREFIX}'-apprunner-role"
+        },
+        "AutoDeploymentsEnabled": false,
+        "ImageRepository": {
+            "ImageIdentifier": "'${ECR_URI}'/crs-api:latest",
+            "ImageRepositoryType": "ECR",
+            "ImageConfiguration": {
+                "Port": "8080",
+                "RuntimeEnvironmentVariables": {
+                    "ASPNETCORE_ENVIRONMENT": "Production",
+                    "ConnectionStrings__DefaultConnection": "'"${CONNECTION_STRING}"'",
+                    "OpenAI__ApiKey": "'"${OpenAI__ApiKey}"'",
+                    "Embedding__ModelName": "text-embedding-3-small",
+                    "Embedding__Dimensions": "1536",
+                    "OpenSearch__Endpoint": "'"${OPENSEARCH_ENDPOINT}"'",
+                    "OpenSearch__IndexName": "crs-resources",
+                    "OpenSearch__EmbeddingDimensions": "1536",
+                    "JwtSettings__SecretKey": "'"${JWT_SECRET}"'",
+                    "JwtSettings__ExpirationMinutes": "60",
+                    "Cors__AllowedOrigins__0": "'"${WEB_URL}"'",
+                    "Cors__AllowedOrigins__1": "'"${CF_URL:-$WEB_URL}"'",
+                    "Registration__Enabled": "true",
+                    "X__ClientId": "'"${X__ClientId}"'",
+                    "X__ClientSecret": "'"${X__ClientSecret}"'",
+                    "X__RedirectUri": "'"${X__RedirectUri}"'"
+                }
+            }
+        }
+    }'
 
     if [ -z "$SERVICE_ARN" ]; then
-        # Build connection string
-        CONNECTION_STRING="Host=${RDS_ENDPOINT};Database=crsdb;Username=${DB_USERNAME};Password=${DB_PASSWORD}"
-
         # Create service
         SERVICE_ARN=$(aws apprunner create-service \
             --service-name ${PREFIX}-api \
-            --source-configuration '{
-                "AuthenticationConfiguration": {
-                    "AccessRoleArn": "arn:aws:iam::'${ACCOUNT_ID}':role/'${PREFIX}'-apprunner-role"
-                },
-                "AutoDeploymentsEnabled": false,
-                "ImageRepository": {
-                    "ImageIdentifier": "'${ECR_URI}'/crs-api:latest",
-                    "ImageRepositoryType": "ECR",
-                    "ImageConfiguration": {
-                        "Port": "8080",
-                        "RuntimeEnvironmentVariables": {
-                            "ASPNETCORE_ENVIRONMENT": "Production",
-                            "ConnectionStrings__DefaultConnection": "'"${CONNECTION_STRING}"'",
-                            "OpenAI__ApiKey": "'"${OpenAI__ApiKey}"'",
-                            "Embedding__ModelName": "text-embedding-3-small",
-                            "Embedding__Dimensions": "1536",
-                            "OpenSearch__Endpoint": "'"${OPENSEARCH_ENDPOINT}"'",
-                            "OpenSearch__IndexName": "crs-resources",
-                            "OpenSearch__EmbeddingDimensions": "1536",
-                            "JwtSettings__SecretKey": "'"${JWT_SECRET}"'",
-                            "JwtSettings__ExpirationMinutes": "60",
-                            "Cors__AllowedOrigins__0": "'"${WEB_URL}"'",
-                            "Cors__AllowedOrigins__1": "'"${CF_URL:-$WEB_URL}"'",
-                            "Registration__Enabled": "true"
-                        }
-                    }
-                }
-            }' \
+            --source-configuration "${APP_RUNNER_SOURCE_CONFIGURATION}" \
             --instance-configuration '{"Cpu": "0.25 vCPU", "Memory": "0.5 GB"}' \
             --health-check-configuration '{"Protocol": "HTTP", "Path": "/health", "Interval": 20, "Timeout": 5, "HealthyThreshold": 1, "UnhealthyThreshold": 5}' \
             --tags Key=Project,Value=${PROJECT_TAG} \
@@ -632,13 +666,36 @@ create_app_runner() {
         log_info "App Runner service is now running!"
     else
         log_info "App Runner service already exists: ${PREFIX}-api"
+
+        aws apprunner update-service \
+            --service-arn $SERVICE_ARN \
+            --source-configuration "${APP_RUNNER_SOURCE_CONFIGURATION}" \
+            --instance-configuration '{"Cpu": "0.25 vCPU", "Memory": "0.5 GB"}' \
+            --health-check-configuration '{"Protocol": "HTTP", "Path": "/health", "Interval": 20, "Timeout": 5, "HealthyThreshold": 1, "UnhealthyThreshold": 5}' \
+            --region $REGION > /dev/null
+
+        log_info "Updating App Runner service configuration..."
+
+        while true; do
+            STATUS=$(aws apprunner describe-service --service-arn $SERVICE_ARN --region $REGION --query 'Service.Status' --output text)
+            if [ "$STATUS" = "RUNNING" ]; then
+                break
+            fi
+            echo -n "."
+            sleep 10
+        done
+        echo ""
+        log_info "App Runner service configuration updated"
     fi
 
     # Get service URL
     API_URL=$(aws apprunner describe-service --service-arn $SERVICE_ARN --region $REGION --query 'Service.ServiceUrl' --output text 2>/dev/null || \
               aws apprunner list-services --region $REGION --query "ServiceSummaryList[?ServiceName=='${PREFIX}-api'].ServiceUrl" --output text)
+    SERVICE_ID=$(aws apprunner describe-service --service-arn $SERVICE_ARN --region $REGION --query 'Service.ServiceId' --output text)
+    APP_RUNNER_APPLICATION_LOG_GROUP="/aws/apprunner/${PREFIX}-api/${SERVICE_ID}/application"
     log_info "API URL: https://$API_URL"
-    export API_URL
+    log_info "API log group: ${APP_RUNNER_APPLICATION_LOG_GROUP}"
+    export API_URL APP_RUNNER_APPLICATION_LOG_GROUP
 }
 
 # Register ECS Task Definitions
@@ -677,7 +734,10 @@ register_task_definitions() {
                     {"name": "OpenSearch__IndexName", "value": "crs-resources"},
                     {"name": "OpenAI__ApiKey", "value": "'"${OpenAI__ApiKey}"'"},
                     {"name": "OpenAI__Model", "value": "gpt-5-nano"},
-                    {"name": "OpenAI__MaxTokens", "value": "16384"}
+                    {"name": "OpenAI__MaxTokens", "value": "16384"},
+                    {"name": "X__ClientId", "value": "'"${X__ClientId}"'"},
+                    {"name": "X__ClientSecret", "value": "'"${X__ClientSecret}"'"},
+                    {"name": "X__RedirectUri", "value": "'"${X__RedirectUri}"'"}
                 ],
                 "logConfiguration": {
                     "logDriver": "awslogs",
@@ -831,6 +891,7 @@ print_summary() {
     echo "API:"
     echo "  - App Runner: ${PREFIX}-api"
     echo "  - URL: https://${API_URL}"
+    echo "  - CloudWatch Logs: ${APP_RUNNER_APPLICATION_LOG_GROUP}"
     echo ""
     echo "Web (Static):"
     echo "  - S3 Bucket: ${BUCKET_NAME}"
@@ -860,10 +921,10 @@ print_summary() {
     echo "   ./infrastructure/aws/build-and-push.sh"
     echo ""
     echo "2. Deploy web frontend:"
-    echo "   aws s3 sync publish/web/wwwroot s3://${BUCKET_NAME}"
+    echo "   ./infrastructure/aws/deploy-web.sh"
     echo ""
-    echo "3. Update Blazor config (src/Crs.Web/wwwroot/appsettings.json):"
-    echo "   Set ApiBaseUrl to: https://${API_URL}"
+    echo "3. Tail API logs:"
+    echo "   aws logs tail ${APP_RUNNER_APPLICATION_LOG_GROUP} --follow --region ${REGION}"
     echo "=============================================="
 }
 

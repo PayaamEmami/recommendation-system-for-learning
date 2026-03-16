@@ -37,7 +37,7 @@ All resources prefixed with `crs-` for clear separation:
 - EventBridge Scheduler - `crs-cloudfront-invalidation` (daily CloudFront cache invalidation at 1 PM Pacific)
 - EventBridge Rule - `crs-x-ingestion-schedule` (daily at 1 AM UTC)
 - Secrets Manager - `crs-secrets/*`
-- CloudWatch logs - `/crs/*`
+- CloudWatch logs - `/aws/apprunner/crs-api/*` for API, `/crs/*` for ECS jobs
 - OpenAI API (direct, not AWS Bedrock)
 - AWS OpenSearch Serverless - **not currently deployed** (enable with `ENABLE_OPENSEARCH=true` in `deploy.sh`)
 
@@ -158,13 +158,10 @@ Helper scripts in `infrastructure/aws/`:
 See `infrastructure/aws/README.md` for detailed usage.
 
 ```bash
-# Deploy infrastructure
-cd infrastructure/aws && ./deploy.sh
-
-# Build and push Docker images
+# Recommended deployment order
+cd infrastructure/aws
+./deploy.sh
 ./build-and-push.sh
-
-# Deploy web
 ./deploy-web.sh
 
 # Migrations (local development)
@@ -172,9 +169,9 @@ dotnet ef migrations add Name --project src/Crs.Infrastructure --startup-project
 dotnet ef database update --project src/Crs.Infrastructure --startup-project src/Crs.Api
 
 # View API logs
-aws logs tail /crs/api --follow --region us-west-2
-
-# X connection failures: Run the above before retrying. Look for "X callback rejected" (invalid/expired state), "X callback failed for user" (BadRequest), or "An unhandled exception occurred" (token exchange / X API errors). Browser DevTools (F12) → Network tab shows the POST /api/v1/x/callback status and response body.
+SERVICE_ARN=$(aws apprunner list-services --query "ServiceSummaryList[?ServiceName=='crs-api'].ServiceArn" --output text --region us-west-2)
+SERVICE_ID=$(aws apprunner describe-service --service-arn "$SERVICE_ARN" --query 'Service.ServiceId' --output text --region us-west-2)
+aws logs tail /aws/apprunner/crs-api/$SERVICE_ID/application --follow --region us-west-2
 ```
 
 ## Key Decisions

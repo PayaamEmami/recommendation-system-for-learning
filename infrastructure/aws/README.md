@@ -28,7 +28,14 @@ OpenAI__ApiKey=sk-your-openai-key
 
 # JWT Secret (64+ characters)
 JWT_SECRET=your-very-long-jwt-secret-key-at-least-64-characters-for-security
+
+# Optional X OAuth settings for X connect and token refresh
+X__ClientId=your-x-client-id
+X__ClientSecret=your-x-client-secret
+X__RedirectUri=https://your-web-host/x/callback
 ```
+
+The deploy script reads `infrastructure/aws/secrets.env` as the single source of truth for application secrets and runtime configuration.
 
 ### 2. Deploy infrastructure
 
@@ -50,7 +57,7 @@ This creates all AWS resources:
 - App Runner service (`crs-api`)
 - ECS cluster and scheduled tasks (`crs-cluster`)
 - IAM roles and policies (`crs-*-role`)
-- CloudWatch log groups (`/crs/*`)
+- CloudWatch log groups (`/aws/apprunner/crs-api/*` for API, `/crs/*` for ECS jobs)
 
 ### 3. Build and push Docker images
 
@@ -63,6 +70,15 @@ chmod +x build-and-push.sh
 
 ```bash
 chmod +x deploy-web.sh
+./deploy-web.sh
+```
+
+Recommended deployment order after updating code or config:
+
+```bash
+cd infrastructure/aws
+./deploy.sh
+./build-and-push.sh
 ./deploy-web.sh
 ```
 
@@ -84,7 +100,7 @@ All resources are prefixed with `crs-` for clear separation from other projects:
 | EventBridge Rules | `crs-ingestion-schedule`, `crs-feed-schedule`, `crs-x-ingestion-schedule` |
 | OpenSearch | `crs-search` |
 | Secrets | `crs-secrets/*` |
-| Log Groups | `/crs/*` |
+| Log Groups | `/aws/apprunner/crs-api/*` for API, `/crs/*` for ECS jobs |
 | IAM Roles | `crs-*-role` |
 
 ## Manual Operations
@@ -121,7 +137,9 @@ aws ecs run-task \
 
 ```bash
 # API logs
-aws logs tail /crs/api --follow --region us-west-2
+SERVICE_ARN=$(aws apprunner list-services --query "ServiceSummaryList[?ServiceName=='crs-api'].ServiceArn" --output text --region us-west-2)
+SERVICE_ID=$(aws apprunner describe-service --service-arn "$SERVICE_ARN" --query 'Service.ServiceId' --output text --region us-west-2)
+aws logs tail /aws/apprunner/crs-api/$SERVICE_ID/application --follow --region us-west-2
 
 # Job logs
 aws logs tail /crs/ingestion --follow --region us-west-2

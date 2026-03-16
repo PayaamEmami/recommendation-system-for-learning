@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging.Abstractions;
 using Moq;
@@ -144,6 +145,27 @@ public sealed class XAccountsControllerTests
         var result = await controller.HandleCallback(new XCallbackRequest { Code = "code", State = "state" }, CancellationToken.None);
 
         Assert.IsInstanceOfType<NoContentResult>(result);
+    }
+
+    [TestMethod]
+    public async Task HandleCallback_WhenUpstreamFails_ReturnsProblemResponse()
+    {
+        var controller = CreateController(CreateConfiguration("https://allowed.com"), out var service);
+        var userId = Guid.NewGuid();
+        ControllerTestHelpers.SetUser(controller, userId);
+
+        service.Setup(svc => svc.HandleCallbackAsync(userId, "code", "state", It.IsAny<CancellationToken>()))
+            .ThrowsAsync(new HttpRequestException("upstream failed"));
+
+        var result = await controller.HandleCallback(new XCallbackRequest { Code = "code", State = "state" }, CancellationToken.None);
+
+        var objectResult = result as ObjectResult;
+        Assert.IsNotNull(objectResult);
+        Assert.AreEqual(StatusCodes.Status502BadGateway, objectResult.StatusCode);
+
+        var problem = objectResult.Value as ProblemDetails;
+        Assert.IsNotNull(problem);
+        Assert.AreEqual("X connection failed", problem.Title);
     }
 
     [TestMethod]

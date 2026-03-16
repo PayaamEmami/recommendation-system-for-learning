@@ -109,6 +109,14 @@ public class XAccountsController : ControllerBase
             _logger.LogWarning(ex, "X callback failed for user {UserId}", userId.Value);
             return BadRequest(ex.Message);
         }
+        catch (HttpRequestException ex)
+        {
+            _logger.LogError(ex, "X callback upstream request failed for user {UserId}", userId.Value);
+            return Problem(
+                title: "X connection failed",
+                detail: "X authorized the app, but rejected a follow-up API request. Check the API logs for the X response body and verify the app's access tier and user auth permissions.",
+                statusCode: StatusCodes.Status502BadGateway);
+        }
     }
 
     /// <summary>

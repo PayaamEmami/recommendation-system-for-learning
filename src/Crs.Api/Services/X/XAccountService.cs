@@ -82,12 +82,15 @@ public class XAccountService : IXAccountService
         };
 
         var url = $"{_settings.AuthorizationUrl}?{ToQueryString(query)}";
+        _logger.LogInformation("Created X connect URL for user {UserId} with redirect URI {RedirectUri}", userId, effectiveRedirectUri);
         return url;
     }
 
     public async Task HandleCallbackAsync(Guid userId, string code, string state, CancellationToken cancellationToken = default)
     {
         await _authStateRepository.RemoveExpiredAsync(cancellationToken);
+
+        _logger.LogInformation("Handling X callback for user {UserId}", userId);
 
         var authState = await _authStateRepository.GetAndRemoveAsync(state, cancellationToken);
         if (authState == null || authState.UserId != userId)
@@ -96,11 +99,14 @@ public class XAccountService : IXAccountService
             throw new InvalidOperationException("Invalid or expired X authorization state");
         }
 
+        _logger.LogInformation("Exchanging X OAuth code for user {UserId} using redirect URI {RedirectUri}", userId, authState.RedirectUri);
         var token = await _xApiClient.ExchangeCodeAsync(code, authState.CodeVerifier, authState.RedirectUri, cancellationToken);
         if (!string.IsNullOrWhiteSpace(token.Scope))
         {
             _logger.LogInformation("X OAuth token scopes: {Scopes}", token.Scope);
         }
+
+        _logger.LogInformation("Fetching current X profile for user {UserId}", userId);
         var profile = await _xApiClient.GetCurrentUserAsync(token.AccessToken, cancellationToken);
 
         var connection = new XConnection
@@ -252,4 +258,3 @@ public class XAccountService : IXAccountService
         public string AccessToken { get; set; } = string.Empty;
     }
 }
-
