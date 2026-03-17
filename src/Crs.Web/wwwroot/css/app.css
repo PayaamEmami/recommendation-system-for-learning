@@ -177,11 +177,6 @@ a:hover {
     border-color: var(--border-color);
 }
 
-.user-menu-caret {
-    font-size: 0.8rem;
-    color: var(--text-tertiary);
-}
-
 .user-menu-dropdown {
     position: absolute;
     top: calc(100% + 0.5rem);

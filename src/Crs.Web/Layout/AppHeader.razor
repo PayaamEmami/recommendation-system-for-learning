@@ -11,10 +11,9 @@
         </nav>
 
         <div class="header-actions">
-            <div class="user-menu">
+            <div class="user-menu" tabindex="0" @onfocusout="HandleUserMenuFocusOut" @onkeydown="HandleUserMenuKeyDown">
                 <button class="user-menu-trigger" @onclick="ToggleUserMenu" aria-expanded="@_isUserMenuOpen" aria-haspopup="menu">
                     <span class="user-name">@AuthService.CurrentState.DisplayName</span>
-                    <span class="user-menu-caret">▾</span>
                 </button>
 
                 @if (_isUserMenuOpen)
@@ -40,6 +39,19 @@
     private void CloseUserMenu()
     {
         _isUserMenuOpen = false;
+    }
+
+    private void HandleUserMenuFocusOut(FocusEventArgs _)
+    {
+        _isUserMenuOpen = false;
+    }
+
+    private void HandleUserMenuKeyDown(KeyboardEventArgs args)
+    {
+        if (args.Key == "Escape")
+        {
+            _isUserMenuOpen = false;
+        }
     }
 
     private async Task HandleLogout()
