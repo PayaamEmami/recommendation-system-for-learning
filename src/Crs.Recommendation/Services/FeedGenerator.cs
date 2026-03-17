@@ -14,14 +14,14 @@ public class FeedGenerator : IFeedGenerator
     private readonly IRecommendationEngine _engine;
     private readonly IUserProfileService _profileService;
     private readonly IRecommendationRepository _recommendationRepository;
-    private readonly IResourceVoteRepository _voteRepository;
+    private readonly IContentVoteRepository _voteRepository;
     private readonly ILogger<FeedGenerator> _logger;
 
     public FeedGenerator(
         IRecommendationEngine engine,
         IUserProfileService profileService,
         IRecommendationRepository recommendationRepository,
-        IResourceVoteRepository voteRepository,
+        IContentVoteRepository voteRepository,
         ILogger<FeedGenerator> logger)
     {
         _engine = engine;
@@ -33,7 +33,7 @@ public class FeedGenerator : IFeedGenerator
 
     public async Task<List<Core.Entities.Recommendation>> GenerateFeedAsync(
         Guid userId,
-        ResourceType feedType,
+        ContentType feedType,
         DateOnly date,
         int count = 5,
         CancellationToken cancellationToken = default)
@@ -57,14 +57,14 @@ public class FeedGenerator : IFeedGenerator
         // Build user profile
         var userProfile = await _profileService.BuildProfileAsync(userId, cancellationToken);
 
-        // Get resources user has already seen (voted on)
+        // Get content user has already seen (voted on)
         var userVotes = await _voteRepository.GetByUserAsync(userId, cancellationToken);
-        var seenResourceIds = userVotes.Select(v => v.ResourceId).ToHashSet();
+        var seenContentIds = userVotes.Select(v => v.ContentId).ToHashSet();
 
-        // Get recently recommended resources (last 7 days) to avoid repetition
+        // Get recently recommended content (last 7 days) to avoid repetition
         var recentRecommendations = await _recommendationRepository.GetRecentByUserAsync(
             userId, date.AddDays(-7), date, cancellationToken);
-        var recentlyRecommendedIds = recentRecommendations.Select(r => r.ResourceId).ToHashSet();
+        var recentlyRecommendedIds = recentRecommendations.Select(r => r.ContentId).ToHashSet();
 
         // Build recommendation context
         var context = new RecommendationContext
@@ -74,14 +74,14 @@ public class FeedGenerator : IFeedGenerator
             Date = date,
             Count = count,
             UserProfile = userProfile,
-            SeenResourceIds = seenResourceIds,
+            SeenContentIds = seenContentIds,
             RecentlyRecommendedIds = recentlyRecommendedIds
         };
 
         // Generate recommendations
-        var scoredResources = await _engine.GenerateRecommendationsAsync(context, cancellationToken);
+        var scoredContent = await _engine.GenerateRecommendationsAsync(context, cancellationToken);
 
-        if (!scoredResources.Any())
+        if (!scoredContent.Any())
         {
             _logger.LogWarning(
                 "No recommendations generated for user {UserId}, feed {FeedType}",
@@ -93,13 +93,13 @@ public class FeedGenerator : IFeedGenerator
         var recommendations = new List<Core.Entities.Recommendation>();
         var position = 1;
 
-        foreach (var scored in scoredResources)
+        foreach (var scored in scoredContent)
         {
             var recommendation = new Core.Entities.Recommendation
             {
                 Id = Guid.NewGuid(),
                 UserId = userId,
-                ResourceId = scored.Resource.Id,
+                ContentId = scored.Content.Id,
                 FeedType = feedType,
                 Date = date,
                 Position = position++,
@@ -128,7 +128,7 @@ public class FeedGenerator : IFeedGenerator
             userId, date);
 
         var allRecommendations = new List<Core.Entities.Recommendation>();
-        var feedTypes = Enum.GetValues<ResourceType>();
+        var feedTypes = Enum.GetValues<ContentType>();
 
         foreach (var feedType in feedTypes)
         {

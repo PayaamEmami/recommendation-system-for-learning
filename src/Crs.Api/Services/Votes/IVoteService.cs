@@ -9,14 +9,14 @@ namespace Crs.Api.Services;
 public interface IVoteService
 {
     /// <summary>
-    /// Casts or updates a vote on a resource.
+    /// Casts or updates a vote on a content item.
     /// </summary>
-    Task<VoteResponse> VoteOnResourceAsync(Guid userId, Guid resourceId, VoteRequest request, CancellationToken cancellationToken = default);
+    Task<VoteResponse> VoteOnContentAsync(Guid userId, Guid contentId, VoteRequest request, CancellationToken cancellationToken = default);
 
     /// <summary>
-    /// Removes a vote from a resource.
+    /// Removes a vote from a content item.
     /// </summary>
-    Task RemoveVoteAsync(Guid userId, Guid resourceId, CancellationToken cancellationToken = default);
+    Task RemoveVoteAsync(Guid userId, Guid contentId, CancellationToken cancellationToken = default);
 
     /// <summary>
     /// Gets all votes by a user.
@@ -24,8 +24,7 @@ public interface IVoteService
     Task<List<VoteResponse>> GetUserVotesAsync(Guid userId, CancellationToken cancellationToken = default);
 
     /// <summary>
-    /// Gets a user's vote on a specific resource.
+    /// Gets a user's vote on a specific content item.
     /// </summary>
-    Task<VoteResponse?> GetUserVoteOnResourceAsync(Guid userId, Guid resourceId, CancellationToken cancellationToken = default);
+    Task<VoteResponse?> GetUserVoteOnContentAsync(Guid userId, Guid contentId, CancellationToken cancellationToken = default);
 }
-

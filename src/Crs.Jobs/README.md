@@ -15,9 +15,9 @@ Jobs runs as a scheduled container task that orchestrates periodic tasks for con
 - **Steps:**
   1. Fetch active sources from database
   2. For each source, use LLM agent to extract content
-  3. Generate embeddings for new resources
-  4. Index resources in OpenSearch vector store
-  5. Save new resources to database
+  3. Generate embeddings for new content
+  4. Index content in OpenSearch vector store
+  5. Save new content to database
 
 ### Daily Feed Generation Job
 
@@ -70,7 +70,7 @@ dotnet run --project src/Crs.Jobs -- x-ingestion
 
 ## Reindexing embeddings
 
-Rebuild vector embeddings and reindex all resources:
+Rebuild vector embeddings and reindex all content:
 
 ```bash
 dotnet run --project src/Crs.Jobs -- reindex

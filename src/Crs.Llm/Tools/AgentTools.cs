@@ -9,14 +9,14 @@ namespace Crs.Llm.Tools;
 /// </summary>
 public class AgentTools
 {
-    private readonly IResourceRepository _resourceRepository;
+    private readonly IContentRepository _contentRepository;
     private readonly ISourceRepository _sourceRepository;
 
     public AgentTools(
-        IResourceRepository resourceRepository,
+        IContentRepository contentRepository,
         ISourceRepository sourceRepository)
     {
-        _resourceRepository = resourceRepository;
+        _contentRepository = contentRepository;
         _sourceRepository = sourceRepository;
     }
 
@@ -32,8 +32,8 @@ public class AgentTools
                 type = "function",
                 function = new
                 {
-                    name = "check_resource_exists",
-                    description = "Check if a resource URL already exists in the database to avoid duplicates.",
+                    name = "check_content_exists",
+                    description = "Check if a content URL already exists in the database to avoid duplicates.",
                     parameters = new
                     {
                         type = "object",
@@ -42,7 +42,7 @@ public class AgentTools
                             url = new
                             {
                                 type = "string",
-                                description = "The URL of the resource to check"
+                                description = "The URL of the content to check"
                             }
                         },
                         required = new[] { "url" }
@@ -54,8 +54,8 @@ public class AgentTools
                 type = "function",
                 function = new
                 {
-                    name = "get_resources_from_source",
-                    description = "Get all resources that have already been ingested from a specific source URL.",
+                    name = "get_content_from_source",
+                    description = "Get all content that has already been ingested from a specific source URL.",
                     parameters = new
                     {
                         type = "object",
@@ -64,7 +64,7 @@ public class AgentTools
                             sourceId = new
                             {
                                 type = "string",
-                                description = "The ID of the source to get resources from"
+                                description = "The ID of the source to get content from"
                             }
                         },
                         required = new[] { "sourceId" }
@@ -85,10 +85,10 @@ public class AgentTools
 
             return toolName switch
             {
-                "check_resource_exists" => await CheckResourceExistsAsync(
+                "check_content_exists" => await CheckContentExistsAsync(
                     arguments!["url"].GetString()!, cancellationToken),
 
-                "get_resources_from_source" => await GetResourcesFromSourceAsync(
+                "get_content_from_source" => await GetContentFromSourceAsync(
                     Guid.Parse(arguments!["sourceId"].GetString()!), cancellationToken),
 
                 _ => JsonSerializer.Serialize(new { error = $"Unknown tool: {toolName}" })
@@ -100,13 +100,13 @@ public class AgentTools
         }
     }
 
-    private async Task<string> CheckResourceExistsAsync(string url, CancellationToken cancellationToken)
+    private async Task<string> CheckContentExistsAsync(string url, CancellationToken cancellationToken)
     {
-        var exists = await _resourceRepository.ExistsByUrlAsync(url, cancellationToken);
+        var exists = await _contentRepository.ExistsByUrlAsync(url, cancellationToken);
         return JsonSerializer.Serialize(new { exists, url });
     }
 
-    private async Task<string> GetResourcesFromSourceAsync(Guid sourceId, CancellationToken cancellationToken)
+    private async Task<string> GetContentFromSourceAsync(Guid sourceId, CancellationToken cancellationToken)
     {
         var source = await _sourceRepository.GetByIdAsync(sourceId, cancellationToken);
 
@@ -115,7 +115,7 @@ public class AgentTools
             return JsonSerializer.Serialize(new { error = "Source not found" });
         }
 
-        var resources = source.Resources.Select(r => new
+        var content = source.Content.Select(r => new
         {
             r.Id,
             r.Title,
@@ -123,7 +123,6 @@ public class AgentTools
             Type = r.Type.ToString()
         });
 
-        return JsonSerializer.Serialize(new { sourceId, count = resources.Count(), resources });
+        return JsonSerializer.Serialize(new { sourceId, count = content.Count(), content });
     }
 }
-

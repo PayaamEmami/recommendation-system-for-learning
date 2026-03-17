@@ -30,7 +30,7 @@ public sealed class FeedServiceTests
     }
 
     [TestMethod]
-    public async Task GetFeedAsync_WhenSuccess_ReturnsSortedResources()
+    public async Task GetFeedAsync_WhenSuccess_ReturnsSortedContent()
     {
         var localStorage = new Mock<ILocalStorageService>(MockBehavior.Strict);
         localStorage.Setup(store => store.GetItemAsync<AuthState>(It.IsAny<string>()))
@@ -48,29 +48,29 @@ public sealed class FeedServiceTests
         {
             new()
             {
-                FeedType = ResourceType.Video,
+                FeedType = ContentType.Video,
                 Recommendations = new List<RecommendationItemResponse>
                 {
                     new()
                     {
-                        Resource = new ResourceItemResponse
+                        Content = new ContentItemResponse
                         {
                             Id = Guid.NewGuid(),
                             Title = "Older",
                             Url = "https://example.com/old",
-                            Type = ResourceType.Video,
+                            Type = ContentType.Video,
                             CreatedAt = DateTime.UtcNow.AddDays(-2),
                             PublishedDate = DateTime.UtcNow.AddDays(-2)
                         }
                     },
                     new()
                     {
-                        Resource = new ResourceItemResponse
+                        Content = new ContentItemResponse
                         {
                             Id = Guid.NewGuid(),
                             Title = "Newer",
                             Url = "https://example.com/new",
-                            Type = ResourceType.Video,
+                            Type = ContentType.Video,
                             CreatedAt = DateTime.UtcNow.AddDays(-1),
                             PublishedDate = DateTime.UtcNow.AddDays(-1)
                         }

@@ -10,19 +10,19 @@ namespace Crs.Recommendation.Services;
 /// </summary>
 public class UserProfileService : IUserProfileService
 {
-    private readonly IResourceVoteRepository _voteRepository;
-    private readonly IResourceRepository _resourceRepository;
+    private readonly IContentVoteRepository _voteRepository;
+    private readonly IContentRepository _contentRepository;
     private readonly IEmbeddingService _embeddingService;
     private readonly ILogger<UserProfileService> _logger;
 
     public UserProfileService(
-        IResourceVoteRepository voteRepository,
-        IResourceRepository resourceRepository,
+        IContentVoteRepository voteRepository,
+        IContentRepository contentRepository,
         IEmbeddingService embeddingService,
         ILogger<UserProfileService> logger)
     {
         _voteRepository = voteRepository;
-        _resourceRepository = resourceRepository;
+        _contentRepository = contentRepository;
         _embeddingService = embeddingService;
         _logger = logger;
     }
@@ -49,7 +49,7 @@ public class UserProfileService : IUserProfileService
 
         profile.TotalInteractions = votesList.Count;
 
-        // Build user embedding from upvoted resources
+        // Build user embedding from upvoted content
         await BuildUserEmbeddingAsync(profile, votesList, cancellationToken);
 
         // Calculate source scores based on votes (legacy, kept for hybrid scoring)
@@ -65,29 +65,29 @@ public class UserProfileService : IUserProfileService
     }
 
     /// <summary>
-    /// Build user preference embedding by aggregating embeddings of upvoted resources.
+    /// Build user preference embedding by aggregating embeddings of upvoted content.
     /// </summary>
     private async Task BuildUserEmbeddingAsync(
         UserInterestProfile profile,
-        List<Core.Entities.ResourceVote> votes,
+        List<Core.Entities.ContentVote> votes,
         CancellationToken cancellationToken)
     {
         try
         {
-            // Filter to upvoted resources only
-            var upvotedResources = votes
+            // Filter to upvoted content only
+            var upvotedContent = votes
                 .Where(v => v.VoteType == VoteType.Upvote)
-                .Select(v => v.Resource)
+                .Select(v => v.Content)
                 .ToList();
 
-            if (!upvotedResources.Any())
+            if (!upvotedContent.Any())
             {
-                _logger.LogInformation("No upvoted resources for user {UserId}, cannot build embedding", profile.UserId);
+                _logger.LogInformation("No upvoted content for user {UserId}, cannot build embedding", profile.UserId);
                 return;
             }
 
-            // Generate embeddings for all upvoted resources
-            var texts = upvotedResources
+            // Generate embeddings for all upvoted content
+            var texts = upvotedContent
                 .Select(r => $"{r.Title} {r.Description}".Trim())
                 .ToList();
 
@@ -130,8 +130,8 @@ public class UserProfileService : IUserProfileService
             profile.UserEmbedding = averageEmbedding;
 
             _logger.LogDebug(
-                "Built user embedding from {Count} upvoted resources for user {UserId}",
-                upvotedResources.Count,
+                "Built user embedding from {Count} upvoted content for user {UserId}",
+                upvotedContent.Count,
                 profile.UserId);
         }
         catch (Exception ex)
@@ -144,7 +144,7 @@ public class UserProfileService : IUserProfileService
     /// <summary>
     /// Build source preference scores (legacy method, kept for hybrid scoring).
     /// </summary>
-    private void BuildSourceScores(UserInterestProfile profile, List<Core.Entities.ResourceVote> votes)
+    private void BuildSourceScores(UserInterestProfile profile, List<Core.Entities.ContentVote> votes)
     {
         var sourceScores = new Dictionary<Guid, double>();
 
@@ -152,10 +152,10 @@ public class UserProfileService : IUserProfileService
         {
             var weight = vote.VoteType == VoteType.Upvote ? 1.0 : -0.5;
 
-            // If resource has a source, track score for that source
-            if (vote.Resource.SourceId.HasValue)
+            // If content has a source, track score for that source
+            if (vote.Content.SourceId.HasValue)
             {
-                var sourceId = vote.Resource.SourceId.Value;
+                var sourceId = vote.Content.SourceId.Value;
 
                 if (!sourceScores.ContainsKey(sourceId))
                 {

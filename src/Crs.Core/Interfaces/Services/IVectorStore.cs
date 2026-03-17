@@ -3,7 +3,7 @@ using Crs.Core.Models;
 namespace Crs.Core.Interfaces;
 
 /// <summary>
-/// Vector store for semantic similarity search on resources.
+/// Vector store for semantic similarity search on content.
 /// </summary>
 public interface IVectorStore
 {
@@ -13,28 +13,28 @@ public interface IVectorStore
     Task InitializeAsync(CancellationToken cancellationToken = default);
 
     /// <summary>
-    /// Add or update a single resource document in the vector index.
+    /// Add or update a single content document in the vector index.
     /// </summary>
-    /// <param name="document">Resource document with embedding</param>
+    /// <param name="document">Content document with embedding</param>
     /// <param name="cancellationToken">Cancellation token</param>
-    Task UpsertDocumentAsync(ResourceDocument document, CancellationToken cancellationToken = default);
+    Task UpsertDocumentAsync(ContentDocument document, CancellationToken cancellationToken = default);
 
     /// <summary>
-    /// Add or update multiple resource documents in the vector index.
+    /// Add or update multiple content documents in the vector index.
     /// </summary>
-    /// <param name="documents">Collection of resource documents with embeddings</param>
+    /// <param name="documents">Collection of content documents with embeddings</param>
     /// <param name="cancellationToken">Cancellation token</param>
-    Task UpsertDocumentsAsync(IEnumerable<ResourceDocument> documents, CancellationToken cancellationToken = default);
+    Task UpsertDocumentsAsync(IEnumerable<ContentDocument> documents, CancellationToken cancellationToken = default);
 
     /// <summary>
-    /// Delete a resource document from the vector index.
+    /// Delete a content document from the vector index.
     /// </summary>
-    /// <param name="resourceId">Resource ID to delete</param>
+    /// <param name="contentId">Content ID to delete</param>
     /// <param name="cancellationToken">Cancellation token</param>
-    Task DeleteDocumentAsync(Guid resourceId, CancellationToken cancellationToken = default);
+    Task DeleteDocumentAsync(Guid contentId, CancellationToken cancellationToken = default);
 
     /// <summary>
-    /// Search for similar resources using vector similarity.
+    /// Search for similar content using vector similarity.
     /// </summary>
     /// <param name="request">Search request with query vector and filters</param>
     /// <param name="cancellationToken">Cancellation token</param>
@@ -46,4 +46,3 @@ public interface IVectorStore
     /// </summary>
     Task<long> GetDocumentCountAsync(CancellationToken cancellationToken = default);
 }
-

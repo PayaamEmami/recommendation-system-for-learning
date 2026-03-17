@@ -1,5 +1,5 @@
 using Crs.Api.DTOs.Recommendations.Responses;
-using Crs.Api.DTOs.Resources.Responses;
+using Crs.Api.DTOs.Content.Responses;
 using Crs.Api.DTOs.Sources.Responses;
 using Crs.Core.Enums;
 using Crs.Core.Interfaces;
@@ -27,7 +27,7 @@ public class RecommendationService : IRecommendationService
 
   public async Task<FeedRecommendationsResponse> GetFeedRecommendationsAsync(
       Guid userId,
-      ResourceType feedType,
+      ContentType feedType,
       DateOnly date,
       CancellationToken cancellationToken = default)
   {
@@ -77,27 +77,27 @@ public class RecommendationService : IRecommendationService
             .Select(r => new RecommendationResponse
             {
               Id = r.Id,
-              Resource = new ResourceResponse
+              Content = new ContentResponse
               {
-                Id = r.Resource.Id,
-                Title = r.Resource.Title,
-                Description = r.Resource.Description,
-                Url = r.Resource.Url,
-                Type = r.Resource.Type,
-                CreatedAt = r.Resource.CreatedAt,
-                UpdatedAt = r.Resource.UpdatedAt,
-                SourceInfo = r.Resource.Source != null ? new SourceResponse
+                Id = r.Content.Id,
+                Title = r.Content.Title,
+                Description = r.Content.Description,
+                Url = r.Content.Url,
+                Type = r.Content.Type,
+                CreatedAt = r.Content.CreatedAt,
+                UpdatedAt = r.Content.UpdatedAt,
+                SourceInfo = r.Content.Source != null ? new SourceResponse
                 {
-                  Id = r.Resource.Source.Id,
-                  UserId = r.Resource.Source.UserId,
-                  Name = r.Resource.Source.Name,
-                  Url = r.Resource.Source.Url,
-                  Description = r.Resource.Source.Description,
-                  Category = r.Resource.Source.Category,
-                  IsActive = r.Resource.Source.IsActive,
-                  CreatedAt = r.Resource.Source.CreatedAt,
-                  UpdatedAt = r.Resource.Source.UpdatedAt,
-                  ResourceCount = r.Resource.Source.Resources?.Count ?? 0
+                  Id = r.Content.Source.Id,
+                  UserId = r.Content.Source.UserId,
+                  Name = r.Content.Source.Name,
+                  Url = r.Content.Source.Url,
+                  Description = r.Content.Source.Description,
+                  Category = r.Content.Source.Category,
+                  IsActive = r.Content.Source.IsActive,
+                  CreatedAt = r.Content.Source.CreatedAt,
+                  UpdatedAt = r.Content.Source.UpdatedAt,
+                  ContentCount = r.Content.Source.Content?.Count ?? 0
                 } : null
               },
               Position = r.Position,
@@ -118,7 +118,7 @@ public class RecommendationService : IRecommendationService
     }
 
     var today = DateOnly.FromDateTime(DateTime.UtcNow);
-    var allFeedTypes = Enum.GetValues<ResourceType>();
+    var allFeedTypes = Enum.GetValues<ContentType>();
 
     var feedRecommendations = new List<FeedRecommendationsResponse>();
 
@@ -167,27 +167,27 @@ public class RecommendationService : IRecommendationService
                 .Select(r => new RecommendationResponse
                 {
                   Id = r.Id,
-                  Resource = new ResourceResponse
+                  Content = new ContentResponse
                   {
-                    Id = r.Resource.Id,
-                    Title = r.Resource.Title,
-                    Description = r.Resource.Description,
-                    Url = r.Resource.Url,
-                    Type = r.Resource.Type,
-                    CreatedAt = r.Resource.CreatedAt,
-                    UpdatedAt = r.Resource.UpdatedAt,
-                    SourceInfo = r.Resource.Source != null ? new SourceResponse
+                    Id = r.Content.Id,
+                    Title = r.Content.Title,
+                    Description = r.Content.Description,
+                    Url = r.Content.Url,
+                    Type = r.Content.Type,
+                    CreatedAt = r.Content.CreatedAt,
+                    UpdatedAt = r.Content.UpdatedAt,
+                    SourceInfo = r.Content.Source != null ? new SourceResponse
                     {
-                      Id = r.Resource.Source.Id,
-                      UserId = r.Resource.Source.UserId,
-                      Name = r.Resource.Source.Name,
-                      Url = r.Resource.Source.Url,
-                      Description = r.Resource.Source.Description,
-                      Category = r.Resource.Source.Category,
-                      IsActive = r.Resource.Source.IsActive,
-                      CreatedAt = r.Resource.Source.CreatedAt,
-                      UpdatedAt = r.Resource.Source.UpdatedAt,
-                      ResourceCount = r.Resource.Source.Resources?.Count ?? 0
+                      Id = r.Content.Source.Id,
+                      UserId = r.Content.Source.UserId,
+                      Name = r.Content.Source.Name,
+                      Url = r.Content.Source.Url,
+                      Description = r.Content.Source.Description,
+                      Category = r.Content.Source.Category,
+                      IsActive = r.Content.Source.IsActive,
+                      CreatedAt = r.Content.Source.CreatedAt,
+                      UpdatedAt = r.Content.Source.UpdatedAt,
+                      ContentCount = r.Content.Source.Content?.Count ?? 0
                     } : null
                   },
                   Position = r.Position,

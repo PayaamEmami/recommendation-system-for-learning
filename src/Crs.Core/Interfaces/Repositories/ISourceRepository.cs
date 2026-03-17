@@ -26,7 +26,7 @@ public interface ISourceRepository
     /// <summary>
     /// Gets all sources by category.
     /// </summary>
-    Task<List<Source>> GetByCategoryAsync(ResourceType category, CancellationToken cancellationToken = default);
+    Task<List<Source>> GetByCategoryAsync(ContentType category, CancellationToken cancellationToken = default);
 
     /// <summary>
     /// Gets all active sources that need to be fetched.

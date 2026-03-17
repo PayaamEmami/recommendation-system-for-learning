@@ -42,7 +42,7 @@ public class RecommendationConfiguration : IEntityTypeConfiguration<Recommendati
         // Index for querying by user and date
         builder.HasIndex(r => new { r.UserId, r.Date });
 
-        // Relationships are configured in User and Resource configurations
+        // Relationships are configured in User and Content configurations
     }
 }
 

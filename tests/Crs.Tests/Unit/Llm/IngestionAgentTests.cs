@@ -25,7 +25,7 @@ public class IngestionAgentTests
     }
 
     [TestMethod]
-    public async Task IngestFromUrlAsync_SuccessfulIngestion_ReturnsResources()
+    public async Task IngestFromUrlAsync_SuccessfulIngestion_ReturnsContent()
     {
         // Arrange
         var sourceUrl = "https://example.com/feed";
@@ -36,7 +36,7 @@ public class IngestionAgentTests
             .ReturnsAsync(new ContentFetchResult { Success = true, Content = htmlContent });
 
         var jsonResponse = @"{
-            ""resources"": [
+            ""content"": [
                 {
                     ""title"": ""Test Paper"",
                     ""url"": ""https://example.com/paper1"",
@@ -71,20 +71,20 @@ public class IngestionAgentTests
         // Assert
         Assert.IsTrue(result.Success);
         Assert.AreEqual(sourceUrl, result.SourceUrl);
-        Assert.HasCount(2, result.Resources);
+        Assert.HasCount(2, result.Content);
         Assert.AreEqual(2, result.TotalFound);
 
-        var paper = result.Resources[0];
+        var paper = result.Content[0];
         Assert.AreEqual("Test Paper", paper.Title);
         Assert.AreEqual("https://example.com/paper1", paper.Url);
         Assert.AreEqual("A test paper about AI", paper.Description);
-        Assert.AreEqual(ResourceType.Paper, paper.Type);
+        Assert.AreEqual(ContentType.Paper, paper.Type);
 
-        var video = result.Resources[1];
+        var video = result.Content[1];
         Assert.AreEqual("Test Video", video.Title);
         Assert.AreEqual("https://example.com/video1", video.Url);
         Assert.AreEqual("A tutorial video", video.Description);
-        Assert.AreEqual(ResourceType.Video, video.Type);
+        Assert.AreEqual(ContentType.Video, video.Type);
     }
 
     [TestMethod]
@@ -105,9 +105,9 @@ public class IngestionAgentTests
         var result = await _agent.IngestFromUrlAsync(sourceUrl);
 
         // Assert
-        Assert.IsTrue(result.Success); // Still returns success, but with 0 resources
+        Assert.IsTrue(result.Success); // Still returns success, but with 0 content
         Assert.AreEqual(sourceUrl, result.SourceUrl);
-        Assert.IsEmpty(result.Resources);
+        Assert.IsEmpty(result.Content);
         Assert.AreEqual(0, result.TotalFound);
         Assert.IsNotNull(result.ErrorMessage);
         Assert.IsTrue(result.ErrorMessage.Contains("Network error") || result.ErrorMessage.Contains("Failed to fetch content"));
@@ -132,7 +132,7 @@ public class IngestionAgentTests
 
         // Assert
         Assert.IsTrue(result.Success);
-        Assert.IsEmpty(result.Resources);
+        Assert.IsEmpty(result.Content);
         Assert.IsNotNull(result.ErrorMessage);
     }
 
@@ -155,7 +155,7 @@ public class IngestionAgentTests
                 It.IsAny<CancellationToken>()))
             .ReturnsAsync(new LlmResponse
             {
-                Content = "No resources found in this content.",
+                Content = "No content found in this content.",
                 FinishReason = "stop",
                 CompletionTokens = 50
             });
@@ -165,7 +165,7 @@ public class IngestionAgentTests
 
         // Assert
         Assert.IsTrue(result.Success);
-        Assert.IsEmpty(result.Resources);
+        Assert.IsEmpty(result.Content);
         Assert.IsNotNull(result.ErrorMessage);
     }
 
@@ -182,7 +182,7 @@ public class IngestionAgentTests
 
         // Malformed JSON (missing closing braces/brackets)
         var malformedJson = @"{
-            ""resources"": [
+            ""content"": [
                 {
                     ""title"": ""Test Paper"",
                     ""url"": ""https://example.com/paper1""
@@ -207,12 +207,12 @@ public class IngestionAgentTests
 
         // Assert
         Assert.IsTrue(result.Success);
-        Assert.IsEmpty(result.Resources);
+        Assert.IsEmpty(result.Content);
         Assert.IsNotNull(result.ErrorMessage);
     }
 
     [TestMethod]
-    public async Task IngestFromUrlAsync_EmptyResourcesArray_ReturnsEmptyResult()
+    public async Task IngestFromUrlAsync_EmptyContentArray_ReturnsEmptyResult()
     {
         // Arrange
         var sourceUrl = "https://example.com/feed";
@@ -222,7 +222,7 @@ public class IngestionAgentTests
             .Setup(x => x.FetchContentAsync(sourceUrl, It.IsAny<CancellationToken>()))
             .ReturnsAsync(new ContentFetchResult { Success = true, Content = htmlContent });
 
-        var jsonResponse = @"{ ""resources"": [] }";
+        var jsonResponse = @"{ ""content"": [] }";
 
         _mockLlmClient
             .Setup(x => x.SendMessageAsync(
@@ -242,12 +242,12 @@ public class IngestionAgentTests
 
         // Assert
         Assert.IsTrue(result.Success);
-        Assert.IsEmpty(result.Resources);
+        Assert.IsEmpty(result.Content);
         Assert.AreEqual(0, result.TotalFound);
     }
 
     [TestMethod]
-    public async Task IngestFromUrlAsync_ResourceMissingTitle_SkipsResource()
+    public async Task IngestFromUrlAsync_ContentMissingTitle_SkipsContent()
     {
         // Arrange
         var sourceUrl = "https://example.com/feed";
@@ -258,7 +258,7 @@ public class IngestionAgentTests
             .ReturnsAsync(new ContentFetchResult { Success = true, Content = htmlContent });
 
         var jsonResponse = @"{
-            ""resources"": [
+            ""content"": [
                 {
                     ""url"": ""https://example.com/paper1"",
                     ""description"": ""A test paper without title"",
@@ -291,12 +291,12 @@ public class IngestionAgentTests
 
         // Assert
         Assert.IsTrue(result.Success);
-        Assert.HasCount(1, result.Resources);
-        Assert.AreEqual("Valid Paper", result.Resources[0].Title);
+        Assert.HasCount(1, result.Content);
+        Assert.AreEqual("Valid Paper", result.Content[0].Title);
     }
 
     [TestMethod]
-    public async Task IngestFromUrlAsync_ResourceMissingUrl_SkipsResource()
+    public async Task IngestFromUrlAsync_ContentMissingUrl_SkipsContent()
     {
         // Arrange
         var sourceUrl = "https://example.com/feed";
@@ -307,7 +307,7 @@ public class IngestionAgentTests
             .ReturnsAsync(new ContentFetchResult { Success = true, Content = htmlContent });
 
         var jsonResponse = @"{
-            ""resources"": [
+            ""content"": [
                 {
                     ""title"": ""Paper Without URL"",
                     ""description"": ""A test paper without URL"",
@@ -340,12 +340,12 @@ public class IngestionAgentTests
 
         // Assert
         Assert.IsTrue(result.Success);
-        Assert.HasCount(1, result.Resources);
-        Assert.AreEqual("Valid Paper", result.Resources[0].Title);
+        Assert.HasCount(1, result.Content);
+        Assert.AreEqual("Valid Paper", result.Content[0].Title);
     }
 
     [TestMethod]
-    public async Task IngestFromUrlAsync_DefaultsToResourceTypePaper_WhenTypeNotSpecified()
+    public async Task IngestFromUrlAsync_DefaultsToContentTypePaper_WhenTypeNotSpecified()
     {
         // Arrange
         var sourceUrl = "https://example.com/feed";
@@ -356,11 +356,11 @@ public class IngestionAgentTests
             .ReturnsAsync(new ContentFetchResult { Success = true, Content = htmlContent });
 
         var jsonResponse = @"{
-            ""resources"": [
+            ""content"": [
                 {
-                    ""title"": ""Resource Without Type"",
-                    ""url"": ""https://example.com/resource1"",
-                    ""description"": ""A resource without type field""
+                    ""title"": ""Content Without Type"",
+                    ""url"": ""https://example.com/content1"",
+                    ""description"": ""A content without type field""
                 }
             ]
         }";
@@ -383,12 +383,12 @@ public class IngestionAgentTests
 
         // Assert
         Assert.IsTrue(result.Success);
-        Assert.HasCount(1, result.Resources);
-        Assert.AreEqual(ResourceType.Paper, result.Resources[0].Type);
+        Assert.HasCount(1, result.Content);
+        Assert.AreEqual(ContentType.Paper, result.Content[0].Type);
     }
 
     [TestMethod]
-    public async Task IngestFromUrlAsync_ParsesAllResourceTypes_Correctly()
+    public async Task IngestFromUrlAsync_ParsesAllContentTypes_Correctly()
     {
         // Arrange
         var sourceUrl = "https://example.com/feed";
@@ -399,21 +399,21 @@ public class IngestionAgentTests
             .ReturnsAsync(new ContentFetchResult { Success = true, Content = htmlContent });
 
         var jsonResponse = @"{
-            ""resources"": [
+            ""content"": [
                 {
-                    ""title"": ""Paper Resource"",
+                    ""title"": ""Paper Content"",
                     ""url"": ""https://example.com/paper"",
                     ""description"": ""A paper"",
                     ""type"": ""Paper""
                 },
                 {
-                    ""title"": ""Video Resource"",
+                    ""title"": ""Video Content"",
                     ""url"": ""https://example.com/video"",
                     ""description"": ""A video"",
                     ""type"": ""Video""
                 },
                 {
-                    ""title"": ""BlogPost Resource"",
+                    ""title"": ""BlogPost Content"",
                     ""url"": ""https://example.com/blog"",
                     ""description"": ""A blog post"",
                     ""type"": ""BlogPost""
@@ -439,14 +439,14 @@ public class IngestionAgentTests
 
         // Assert
         Assert.IsTrue(result.Success);
-        Assert.HasCount(3, result.Resources);
-        Assert.AreEqual(ResourceType.Paper, result.Resources[0].Type);
-        Assert.AreEqual(ResourceType.Video, result.Resources[1].Type);
-        Assert.AreEqual(ResourceType.BlogPost, result.Resources[2].Type);
+        Assert.HasCount(3, result.Content);
+        Assert.AreEqual(ContentType.Paper, result.Content[0].Type);
+        Assert.AreEqual(ContentType.Video, result.Content[1].Type);
+        Assert.AreEqual(ContentType.BlogPost, result.Content[2].Type);
     }
 
     [TestMethod]
-    public async Task IngestFromUrlAsync_HandlesInvalidResourceType_DefaultsToPaper()
+    public async Task IngestFromUrlAsync_HandlesInvalidContentType_DefaultsToPaper()
     {
         // Arrange
         var sourceUrl = "https://example.com/feed";
@@ -457,11 +457,11 @@ public class IngestionAgentTests
             .ReturnsAsync(new ContentFetchResult { Success = true, Content = htmlContent });
 
         var jsonResponse = @"{
-            ""resources"": [
+            ""content"": [
                 {
-                    ""title"": ""Resource With Invalid Type"",
-                    ""url"": ""https://example.com/resource"",
-                    ""description"": ""A resource with invalid type"",
+                    ""title"": ""Content With Invalid Type"",
+                    ""url"": ""https://example.com/content"",
+                    ""description"": ""A content with invalid type"",
                     ""type"": ""InvalidType""
                 }
             ]
@@ -485,8 +485,8 @@ public class IngestionAgentTests
 
         // Assert
         Assert.IsTrue(result.Success);
-        Assert.HasCount(1, result.Resources);
-        Assert.AreEqual(ResourceType.Paper, result.Resources[0].Type);
+        Assert.HasCount(1, result.Content);
+        Assert.AreEqual(ContentType.Paper, result.Content[0].Type);
     }
 
     [TestMethod]
@@ -504,7 +504,7 @@ public class IngestionAgentTests
 
         // Assert
         Assert.IsTrue(result.Success);
-        Assert.IsEmpty(result.Resources);
+        Assert.IsEmpty(result.Content);
         Assert.IsNotNull(result.ErrorMessage);
         Assert.Contains("Unexpected error", result.ErrorMessage);
     }

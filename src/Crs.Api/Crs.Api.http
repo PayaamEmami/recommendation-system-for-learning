@@ -9,7 +9,7 @@
 @accessToken = YOUR_ACCESS_TOKEN_HERE
 @userId = YOUR_USER_ID_HERE
 @topicId = YOUR_TOPIC_ID_HERE
-@resourceId = YOUR_RESOURCE_ID_HERE
+@contentId = YOUR_RESOURCE_ID_HERE
 
 ###############################################################################
 # Health Check
@@ -98,27 +98,27 @@ GET {{baseUrl}}/topics/{{topicId}}
 Authorization: Bearer {{accessToken}}
 
 ###############################################################################
-# Resources
+# Content
 ###############################################################################
 
-### Get all resources (paginated)
-GET {{baseUrl}}/resources?pageNumber=1&pageSize=20
+### Get all content (paginated)
+GET {{baseUrl}}/content?pageNumber=1&pageSize=20
 Authorization: Bearer {{accessToken}}
 
-### Get resources filtered by type
-GET {{baseUrl}}/resources?pageNumber=1&pageSize=20&type=Paper
+### Get content filtered by type
+GET {{baseUrl}}/content?pageNumber=1&pageSize=20&type=Paper
 Authorization: Bearer {{accessToken}}
 
-### Get resources filtered by topics
-GET {{baseUrl}}/resources?pageNumber=1&pageSize=20&topicIds={{topicId}}
+### Get content filtered by topics
+GET {{baseUrl}}/content?pageNumber=1&pageSize=20&topicIds={{topicId}}
 Authorization: Bearer {{accessToken}}
 
-### Get resource by ID
-GET {{baseUrl}}/resources/{{resourceId}}
+### Get content by ID
+GET {{baseUrl}}/content/{{contentId}}
 Authorization: Bearer {{accessToken}}
 
-### Create a resource (Paper)
-POST {{baseUrl}}/resources
+### Create a content (Paper)
+POST {{baseUrl}}/content
 Authorization: Bearer {{accessToken}}
 Content-Type: application/json
 
@@ -129,11 +129,11 @@ Content-Type: application/json
   "publishedDate": "2025-01-01T00:00:00Z",
   "source": "arXiv",
   "topicIds": ["{{topicId}}"],
-  "resourceType": 0
+  "contentType": 0
 }
 
-### Create a resource (Video)
-POST {{baseUrl}}/resources
+### Create a content (Video)
+POST {{baseUrl}}/content
 Authorization: Bearer {{accessToken}}
 Content-Type: application/json
 
@@ -144,11 +144,11 @@ Content-Type: application/json
   "publishedDate": "2025-01-15T00:00:00Z",
   "source": "YouTube",
   "topicIds": ["{{topicId}}"],
-  "resourceType": 1
+  "contentType": 1
 }
 
-### Update a resource
-PUT {{baseUrl}}/resources/{{resourceId}}
+### Update a content
+PUT {{baseUrl}}/content/{{contentId}}
 Authorization: Bearer {{accessToken}}
 Content-Type: application/json
 
@@ -157,16 +157,16 @@ Content-Type: application/json
   "description": "Updated description"
 }
 
-### Delete a resource
-DELETE {{baseUrl}}/resources/{{resourceId}}
+### Delete a content
+DELETE {{baseUrl}}/content/{{contentId}}
 Authorization: Bearer {{accessToken}}
 
 ###############################################################################
 # Voting
 ###############################################################################
 
-### Upvote a resource
-POST {{baseUrl}}/resources/{{resourceId}}/vote
+### Upvote a content
+POST {{baseUrl}}/content/{{contentId}}/vote
 Authorization: Bearer {{accessToken}}
 Content-Type: application/json
 
@@ -174,8 +174,8 @@ Content-Type: application/json
   "voteType": 1
 }
 
-### Downvote a resource
-POST {{baseUrl}}/resources/{{resourceId}}/vote
+### Downvote a content
+POST {{baseUrl}}/content/{{contentId}}/vote
 Authorization: Bearer {{accessToken}}
 Content-Type: application/json
 
@@ -183,12 +183,12 @@ Content-Type: application/json
   "voteType": -1
 }
 
-### Get your vote on a resource
-GET {{baseUrl}}/resources/{{resourceId}}/vote
+### Get your vote on a content
+GET {{baseUrl}}/content/{{contentId}}/vote
 Authorization: Bearer {{accessToken}}
 
-### Remove vote from resource
-DELETE {{baseUrl}}/resources/{{resourceId}}/vote
+### Remove vote from content
+DELETE {{baseUrl}}/content/{{contentId}}/vote
 Authorization: Bearer {{accessToken}}
 
 ###############################################################################

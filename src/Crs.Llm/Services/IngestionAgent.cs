@@ -7,8 +7,8 @@ using Crs.Llm.Models;
 namespace Crs.Llm.Services;
 
 /// <summary>
-/// LLM-based ingestion agent that extracts learning resources from URLs.
-/// Fetches HTML content and uses ChatGPT to extract structured resource data.
+/// LLM-based ingestion agent that extracts learning content from URLs.
+/// Fetches HTML content and uses ChatGPT to extract structured content data.
 /// </summary>
 public class IngestionAgent : IIngestionAgent
 {
@@ -47,15 +47,15 @@ public class IngestionAgent : IIngestionAgent
                 {
                     Success = true,
                     SourceUrl = sourceUrl,
-                    Resources = new List<ExtractedResource>(),
+                    Content = new List<ExtractedContent>(),
                     TotalFound = 0,
-                    NewResources = 0,
+                    NewContent = 0,
                     DuplicatesSkipped = 0,
                     ErrorMessage = contentResult.ErrorMessage ?? "Failed to fetch content"
                 };
             }
 
-            // Step 2: Send content to ChatGPT for resource extraction
+            // Step 2: Send content to ChatGPT for content extraction
             var systemPrompt = GetSystemPrompt();
             var userMessage = GetUserMessage(sourceUrl, contentResult.Content);
 
@@ -74,7 +74,7 @@ public class IngestionAgent : IIngestionAgent
             var result = ParseIngestionResult(response, sourceUrl);
 
             _logger.LogInformation(
-                "Ingestion completed from {SourceUrl}: {TotalFound} resources found",
+                "Ingestion completed from {SourceUrl}: {TotalFound} content found",
                 sourceUrl, result.TotalFound);
 
             return result;
@@ -86,9 +86,9 @@ public class IngestionAgent : IIngestionAgent
             {
                 Success = true,
                 SourceUrl = sourceUrl,
-                Resources = new List<ExtractedResource>(),
+                Content = new List<ExtractedContent>(),
                 TotalFound = 0,
-                NewResources = 0,
+                NewContent = 0,
                 DuplicatesSkipped = 0,
                 ErrorMessage = $"Ingestion error: {ex.Message}"
             };
@@ -119,14 +119,14 @@ public class IngestionAgent : IIngestionAgent
                     "No JSON found in LLM response for {SourceUrl}. FinishReason: {FinishReason}, Response preview: {Response}",
                     sourceUrl, response.FinishReason, llmResponse?.Substring(0, Math.Min(200, llmResponse?.Length ?? 0)));
 
-                // Return success with 0 resources rather than failing - this is expected for some sources
+                // Return success with 0 content rather than failing - this is expected for some sources
                 return new IngestionResult
                 {
                     Success = true,
                     SourceUrl = sourceUrl,
-                    Resources = new List<ExtractedResource>(),
+                    Content = new List<ExtractedContent>(),
                     TotalFound = 0,
-                    NewResources = 0,
+                    NewContent = 0,
                     DuplicatesSkipped = 0,
                     ErrorMessage = $"No JSON found (finish_reason: {response.FinishReason})"
                 };
@@ -150,9 +150,9 @@ public class IngestionAgent : IIngestionAgent
                 {
                     Success = true,
                     SourceUrl = sourceUrl,
-                    Resources = new List<ExtractedResource>(),
+                    Content = new List<ExtractedContent>(),
                     TotalFound = 0,
-                    NewResources = 0,
+                    NewContent = 0,
                     DuplicatesSkipped = 0,
                     ErrorMessage = "Malformed JSON (likely truncated)"
                 };
@@ -160,48 +160,48 @@ public class IngestionAgent : IIngestionAgent
 
             var parsedData = JsonSerializer.Deserialize<JsonElement>(jsonString);
 
-            var resources = new List<ExtractedResource>();
+            var extractedContent = new List<ExtractedContent>();
 
-            if (parsedData.TryGetProperty("resources", out var resourcesArray))
+            if (parsedData.TryGetProperty("content", out var contentArray))
             {
                 int arrayIndex = 0;
-                foreach (var item in resourcesArray.EnumerateArray())
+                foreach (var item in contentArray.EnumerateArray())
                 {
                     arrayIndex++;
                     try
                     {
-                        var resource = ParseExtractedResource(item);
-                        if (resource != null)
+                        var extractedItem = ParseExtractedContent(item);
+                        if (extractedItem != null)
                         {
-                            resources.Add(resource);
-                            _logger.LogInformation("Parsed resource #{Index}: {Title} (Type: {Type}, URL: {Url})",
-                                arrayIndex, resource.Title, resource.Type, resource.Url);
+                            extractedContent.Add(extractedItem);
+                            _logger.LogInformation("Parsed content #{Index}: {Title} (Type: {Type}, URL: {Url})",
+                                arrayIndex, extractedItem.Title, extractedItem.Type, extractedItem.Url);
                         }
                         else
                         {
-                            _logger.LogWarning("Failed to parse resource #{Index}: missing title or url. JSON: {Json}",
+                            _logger.LogWarning("Failed to parse content #{Index}: missing title or url. JSON: {Json}",
                                 arrayIndex, item.GetRawText());
                         }
                     }
                     catch (Exception ex)
                     {
-                        _logger.LogWarning(ex, "Exception parsing resource #{Index} from JSON: {Json}",
+                        _logger.LogWarning(ex, "Exception parsing content #{Index} from JSON: {Json}",
                             arrayIndex, item.GetRawText());
                     }
                 }
             }
 
             _logger.LogInformation(
-                "Successfully parsed {ResourceCount} resources from {SourceUrl} (JSON had {ArrayLength} items)",
-                resources.Count, sourceUrl, resourcesArray.GetArrayLength());
+                "Successfully parsed {ContentCount} content from {SourceUrl} (JSON had {ArrayLength} items)",
+                extractedContent.Count, sourceUrl, contentArray.GetArrayLength());
 
             return new IngestionResult
             {
                 Success = true,
                 SourceUrl = sourceUrl,
-                Resources = resources,
-                TotalFound = resources.Count,
-                NewResources = resources.Count,
+                Content = extractedContent,
+                TotalFound = extractedContent.Count,
+                NewContent = extractedContent.Count,
                 DuplicatesSkipped = 0
             };
         }
@@ -218,9 +218,9 @@ public class IngestionAgent : IIngestionAgent
             {
                 Success = true,
                 SourceUrl = sourceUrl,
-                Resources = new List<ExtractedResource>(),
+                Content = new List<ExtractedContent>(),
                 TotalFound = 0,
-                NewResources = 0,
+                NewContent = 0,
                 DuplicatesSkipped = 0,
                 ErrorMessage = $"JSON parse error: {ex.Message}"
             };
@@ -228,21 +228,21 @@ public class IngestionAgent : IIngestionAgent
         catch (Exception ex)
         {
             _logger.LogWarning(ex, "Error parsing ingestion result from {SourceUrl}", sourceUrl);
-            // Return success with 0 resources rather than failing
+            // Return success with 0 content rather than failing
             return new IngestionResult
             {
                 Success = true,
                 SourceUrl = sourceUrl,
-                Resources = new List<ExtractedResource>(),
+                Content = new List<ExtractedContent>(),
                 TotalFound = 0,
-                NewResources = 0,
+                NewContent = 0,
                 DuplicatesSkipped = 0,
                 ErrorMessage = $"Could not parse response: {ex.Message}"
             };
         }
     }
 
-    private ExtractedResource? ParseExtractedResource(JsonElement json)
+    private ExtractedContent? ParseExtractedContent(JsonElement json)
     {
         if (!json.TryGetProperty("title", out var title) ||
             !json.TryGetProperty("url", out var url))
@@ -250,25 +250,25 @@ public class IngestionAgent : IIngestionAgent
             return null;
         }
 
-        var resource = new ExtractedResource
+        var content = new ExtractedContent
         {
             Title = title.GetString() ?? string.Empty,
             Url = url.GetString() ?? string.Empty,
             Description = json.TryGetProperty("description", out var desc)
                 ? desc.GetString() ?? string.Empty : string.Empty,
-            Type = ResourceType.Paper // Default if not specified
+            Type = ContentType.Paper // Default if not specified
         };
 
-        // Parse resource type (override default if present)
+        // Parse content type (override default if present)
         if (json.TryGetProperty("type", out var type))
         {
             var typeString = type.GetString();
             if (!string.IsNullOrEmpty(typeString))
             {
-                if (Enum.TryParse<ResourceType>(typeString, true, out var resourceType))
+                if (Enum.TryParse<ContentType>(typeString, true, out var contentType))
                 {
-                    resource.Type = resourceType;
-                    _logger.LogDebug("Parsed type '{TypeString}' as {ResourceType}", typeString, resourceType);
+                    content.Type = contentType;
+                    _logger.LogDebug("Parsed type '{TypeString}' as {ContentType}", typeString, contentType);
                 }
                 else
                 {
@@ -277,18 +277,18 @@ public class IngestionAgent : IIngestionAgent
             }
         }
 
-        return resource;
+        return content;
     }
 
     private string GetSystemPrompt()
     {
-        return @"You are a learning resource extraction assistant. You MUST respond with ONLY valid JSON - no other text.
+        return @"You are a learning content extraction assistant. You MUST respond with ONLY valid JSON - no other text.
 
-Extract learning resources from the provided HTML/RSS/XML content. If nothing can be extracted, return { ""resources"": [] }.
+Extract learning content from the provided HTML/RSS/XML content. If nothing can be extracted, return { ""content"": [] }.
 
 OUTPUT SCHEMA (strict):
 {
-  ""resources"": [
+  ""content"": [
     {
       ""title"": string,
       ""url"": string (absolute URL),
@@ -300,15 +300,15 @@ OUTPUT SCHEMA (strict):
 
 CRITICAL CONSTRAINTS:
 1. Extract up to 20 most important/recent items
-2. DESCRIPTIONS: Write a clear, concise description (max 200 characters) that explains what this resource is about. Use information from the title, abstract, or summary if available. Do not use promotional language or random text from the page.
+2. DESCRIPTIONS: Write a clear, concise description (max 200 characters) that explains what this content is about. Use information from the title, abstract, or summary if available. Do not use promotional language or random text from the page.
 3. URLS: Must be absolute (not relative)
 4. DEDUPLICATE: Same URL = skip duplicate
 5. VALID JSON: Response must be parseable JSON, properly closed braces/brackets
 
 EXTRACTION RULES:
-- Only extract explicitly present resources (no invention)
+- Only extract explicitly present content (no invention)
 - Each item MUST have: non-empty title, absolute URL, description
-- Description: A factual summary of what the resource teaches or discusses. Prioritize abstracts, summaries, or descriptions from the content. If none exist, create a brief description based on the title and context.
+- Description: A factual summary of what the content teaches or discusses. Prioritize abstracts, summaries, or descriptions from the content. If none exist, create a brief description based on the title and context.
 - De-duplicate by URL (keep first occurrence)
 - Select the most valuable/recent items
 
@@ -324,7 +324,7 @@ EXCLUDE:
 - RSS/XML: extract <item>/<entry> only, NOT feed metadata
 - YouTube: extract watch URLs only, NOT channel URLs
 
-FAILURE MODE: If extraction fails or no valid items found, return { ""resources"": [] }";
+FAILURE MODE: If extraction fails or no valid items found, return { ""content"": [] }";
     }
 
     private string GetUserMessage(string sourceUrl, string htmlContent)
@@ -335,7 +335,7 @@ FAILURE MODE: If extraction fails or no valid items found, return { ""resources"
             ? htmlContent.Substring(0, maxHtmlLength) + "\n\n[...Content truncated for length...]"
             : htmlContent;
 
-        return $@"Extract learning resources from this content.
+        return $@"Extract learning content from this content.
 
 Source URL: {sourceUrl}
 
@@ -343,8 +343,8 @@ Content:
 {truncatedHtml}
 
 REQUIREMENTS:
-- Maximum 20 resources
-- Each description: Write a clear, factual summary (max 200 chars) of what the resource teaches or discusses. Use abstracts/summaries if available, otherwise derive from title and context.
+- Maximum 20 content
+- Each description: Write a clear, factual summary (max 200 chars) of what the content teaches or discusses. Use abstracts/summaries if available, otherwise derive from title and context.
 - URLs must be absolute
 - De-duplicate by URL
 - Return ONLY valid JSON
@@ -352,4 +352,3 @@ REQUIREMENTS:
 Respond with JSON only (no markdown, no explanation):";
     }
 }
-

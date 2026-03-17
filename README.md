@@ -13,13 +13,13 @@ This helps solve a few common problems:
 CRS provides:
 
 - **Add and manage URL-based sources** (RSS feeds, video sources, blogs, newsletters, etc.) organized by content category.
-- **Automatically ingest and aggregate** learning resources from these sources using LLM-powered agents.
+- **Automatically ingest and aggregate** learning content from these sources using LLM-powered agents.
 - **Provide personalized feeds** for different content types:
   - Papers
   - Videos
   - Blogs
 - **Hybrid recommendation engine** combining vector embeddings with heuristic signals for personalized content discovery.
-- **Vote on resources** (upvote/downvote) to refine recommendations based on your preferences.
+- **Vote on content** (upvote/downvote) to refine recommendations based on your preferences.
 - **Connect X accounts** to show a personalized X feed above recommendations (read-only, user selects followed accounts).
 
 ## Technology Stack
@@ -83,8 +83,8 @@ At a high level, CRS is composed of:
 - REST endpoints for:
   - User authentication and registration
   - Source management (URL-based content sources)
-  - Resource aggregation (content items)
-  - Resource voting (upvote/downvote)
+  - Content aggregation
+  - Content voting (upvote/downvote)
   - Personalized recommendations
 
 ### 📡 Data Ingestion Layer
@@ -93,14 +93,14 @@ At a high level, CRS is composed of:
   - RSS/Atom feeds (blogs, papers, news)
   - Video sources
   - Newsletter integrations
-- Parses and normalizes content into Resource entities
-- Associates resources with their originating Source
+- Parses and normalizes content into Content entities
+- Associates content with their originating Source
 
 ### 🤖 Recommendation Engine
 
 - **Hybrid recommendation system** combining:
   - **Vector similarity search** using text embeddings (primary signal, 70% weight)
-    - Resources embedded using OpenAI embeddings (text-embedding-3-small)
+    - Content embedded using OpenAI embeddings (text-embedding-3-small)
     - Preferences represented as aggregated embeddings of upvoted content
     - Semantic similarity matching via AWS OpenSearch Serverless vector database
   - **Heuristic signals** (secondary signals, 30% weight)
@@ -112,7 +112,7 @@ At a high level, CRS is composed of:
 ### 🧠 LLM Orchestration Layer
 
 - **Ingestion Agent**: LLM-powered content extraction from any URL
-  - Automatically categorizes resources (Papers, Videos, Blogs, etc.)
+  - Automatically categorizes content (Papers, Videos, Blogs, etc.)
   - Extracts metadata and handles duplicate detection
   - Flexible, no custom parsers needed per source
 
@@ -123,8 +123,8 @@ Jobs are implemented as **Amazon ECS Fargate tasks** with EventBridge cron sched
 - **Source Ingestion Job**: Runs daily at midnight UTC
 
   - Pulls new content from all active sources using LLM agent
-  - Generates embeddings for new resources via OpenAI API
-  - Indexes resources in AWS OpenSearch vector database
+  - Generates embeddings for new content via OpenAI API
+  - Indexes content in AWS OpenSearch vector database
   - Handles duplicate detection automatically
   - Container only runs during execution (cost-efficient)
 

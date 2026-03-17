@@ -10,7 +10,7 @@ public class FeedRecommendationsResponse
     /// <summary>
     /// The type of feed (Papers, Videos, etc.).
     /// </summary>
-    public ResourceType FeedType { get; set; }
+    public ContentType FeedType { get; set; }
 
     /// <summary>
     /// The date these recommendations are for.

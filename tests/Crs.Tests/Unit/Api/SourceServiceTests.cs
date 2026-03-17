@@ -45,7 +45,7 @@ public sealed class SourceServiceTests
         {
             Name = "Test",
             Url = "https://example.com",
-            Category = ResourceType.BlogPost
+            Category = ContentType.BlogPost
         };
 
         await TestAssert.ThrowsAsync<InvalidOperationException>(() =>
@@ -68,7 +68,7 @@ public sealed class SourceServiceTests
             UserId = userId,
             Name = "Test",
             Url = "https://example.com",
-            Category = ResourceType.BlogPost,
+            Category = ContentType.BlogPost,
             IsActive = true,
             CreatedAt = DateTime.UtcNow,
             UpdatedAt = DateTime.UtcNow
@@ -81,7 +81,7 @@ public sealed class SourceServiceTests
         {
             Name = "Test",
             Url = "https://example.com",
-            Category = ResourceType.BlogPost
+            Category = ContentType.BlogPost
         }, CancellationToken.None);
 
         Assert.AreEqual(createdSource.Id, response.Id);
@@ -207,8 +207,8 @@ public sealed class SourceServiceTests
         {
             Sources = new List<BulkImportSourceItem>
             {
-                new() { Name = "Dup", Url = "https://dup.com", Category = ResourceType.Video },
-                new() { Name = "New", Url = "https://new.com", Category = ResourceType.Video }
+                new() { Name = "Dup", Url = "https://dup.com", Category = ContentType.Video },
+                new() { Name = "New", Url = "https://new.com", Category = ContentType.Video }
             }
         }, CancellationToken.None);
 

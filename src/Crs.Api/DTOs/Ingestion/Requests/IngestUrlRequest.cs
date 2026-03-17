@@ -3,12 +3,12 @@ using System.ComponentModel.DataAnnotations;
 namespace Crs.Api.DTOs.Ingestion.Requests;
 
 /// <summary>
-/// Request to ingest resources from a URL using the LLM agent.
+/// Request to ingest content from a URL using the LLM agent.
 /// </summary>
 public class IngestUrlRequest
 {
     /// <summary>
-    /// The URL to ingest resources from.
+    /// The URL to ingest content from.
     /// </summary>
     [Required]
     [Url]

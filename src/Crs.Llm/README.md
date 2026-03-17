@@ -4,12 +4,12 @@ LLM-powered ingestion agent for the Content Recommendation System (CRS).
 
 ## Overview
 
-This project provides an intelligent, LLM-based agent that can automatically extract learning resources from any URL without requiring custom parsers for different sources.
+This project provides an intelligent, LLM-based agent that can automatically extract learning content from any URL without requiring custom parsers for different sources.
 
 ## Features
 
-- **Flexible URL Ingestion**: Provide any URL (YouTube channel, blog, arXiv listing, etc.) and the agent extracts resources
-- **Automatic Categorization**: LLM categorizes resources into Papers, Videos, or BlogPosts
+- **Flexible URL Ingestion**: Provide any URL (YouTube channel, blog, arXiv listing, etc.) and the agent extracts content
+- **Automatic Categorization**: LLM categorizes content into Papers, Videos, or BlogPosts
 - **Rich Metadata Extraction**: Extracts titles, descriptions, URLs, and type-specific metadata (authors, duration, DOI, etc.)
 - **Provider Agnostic**: Abstracted `ILlmClient` allows switching between OpenAI or other providers
 
@@ -23,8 +23,8 @@ This project provides an intelligent, LLM-based agent that can automatically ext
 
 2. **Models**
 
-   - `ExtractedResource`: Represents a learning resource extracted by the agent
-   - `IngestionResult`: Result object containing extracted resources and metadata
+   - `ExtractedContent`: Represents a learning content extracted by the agent
+   - `IngestionResult`: Result object containing extracted content and metadata
 
 3. **Services**
    - `ILlmClient` / `OpenAIClient`: Handles communication with OpenAI Chat Completion API
@@ -73,14 +73,14 @@ public class MyService
 
         if (result.Success)
         {
-            Console.WriteLine($"Found {result.TotalFound} resources");
-            Console.WriteLine($"New: {result.NewResources}, Duplicates: {result.DuplicatesSkipped}");
+            Console.WriteLine($"Found {result.TotalFound} content");
+            Console.WriteLine($"New: {result.NewContent}, Duplicates: {result.DuplicatesSkipped}");
 
-            foreach (var resource in result.Resources)
+            foreach (var content in result.Content)
             {
-                Console.WriteLine($"- {resource.Title} ({resource.Type})");
-                Console.WriteLine($"  {resource.Url}");
-                Console.WriteLine($"  {resource.Description}");
+                Console.WriteLine($"- {content.Title} ({content.Type})");
+                Console.WriteLine($"  {content.Url}");
+                Console.WriteLine($"  {content.Description}");
             }
         }
         else
@@ -99,19 +99,19 @@ public class MyService
 
 3. **LLM Extraction**: The cleaned HTML is sent to ChatGPT with instructions to:
 
-   - Identify all learning resources in the HTML
+   - Identify all learning content in the HTML
    - Extract title, URL, description, and metadata
-   - Categorize resources as Paper, Video, or BlogPost
+   - Categorize content as Paper, Video, or BlogPost
 
-4. **JSON Response**: ChatGPT returns structured JSON with extracted resources
+4. **JSON Response**: ChatGPT returns structured JSON with extracted content
 
-5. **Result parsing**: The agent parses the JSON response and returns structured `ExtractedResource` objects
+5. **Result parsing**: The agent parses the JSON response and returns structured `ExtractedContent` objects
 
-6. **Caller persists resources**: The calling code (typically in Crs.Jobs) creates appropriate entity objects and saves to database
+6. **Caller persists content**: The calling code (typically in Crs.Jobs) creates appropriate entity objects and saves to database
 
-## Resource Types
+## Content Types
 
-The agent categorizes resources into these types:
+The agent categorizes content into these types:
 
 - **Paper**: Academic papers, research publications (extracts DOI, authors, journal)
 - **Video**: Educational videos (extracts channel, duration, thumbnail)

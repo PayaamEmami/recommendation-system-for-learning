@@ -41,7 +41,7 @@ public class SourceRepository : ISourceRepository
             .ToListAsync(cancellationToken);
     }
 
-    public async Task<List<Source>> GetByCategoryAsync(ResourceType category, CancellationToken cancellationToken = default)
+    public async Task<List<Source>> GetByCategoryAsync(ContentType category, CancellationToken cancellationToken = default)
     {
         return await _context.Sources
             .Where(s => s.Category == category && s.IsActive)

@@ -41,7 +41,7 @@ public sealed class DailyFeedGenerationJobTests
             .ReturnsAsync(new[] { user });
         feedGenerator.Setup(service => service.GenerateFeedAsync(
                 user.Id,
-                It.IsAny<ResourceType>(),
+                It.IsAny<ContentType>(),
                 It.IsAny<DateOnly>(),
                 5,
                 It.IsAny<CancellationToken>()))
@@ -54,10 +54,10 @@ public sealed class DailyFeedGenerationJobTests
 
         feedGenerator.Verify(service => service.GenerateFeedAsync(
             user.Id,
-            It.IsAny<ResourceType>(),
+            It.IsAny<ContentType>(),
             It.IsAny<DateOnly>(),
             5,
-            It.IsAny<CancellationToken>()), Times.Exactly(Enum.GetValues<ResourceType>().Length));
+            It.IsAny<CancellationToken>()), Times.Exactly(Enum.GetValues<ContentType>().Length));
     }
 
     [TestMethod]

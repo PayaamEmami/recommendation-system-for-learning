@@ -38,7 +38,7 @@ public class SourceService : ISourceService
         return sources.Select(MapToResponse).ToList();
     }
 
-    public async Task<List<SourceResponse>> GetSourcesByCategoryAsync(ResourceType category, CancellationToken cancellationToken = default)
+    public async Task<List<SourceResponse>> GetSourcesByCategoryAsync(ContentType category, CancellationToken cancellationToken = default)
     {
         var sources = await _sourceRepository.GetByCategoryAsync(category, cancellationToken);
         return sources.Select(MapToResponse).ToList();
@@ -198,7 +198,7 @@ public class SourceService : ISourceService
             IsActive = source.IsActive,
             CreatedAt = source.CreatedAt,
             UpdatedAt = source.UpdatedAt,
-            ResourceCount = source.Resources?.Count ?? 0
+            ContentCount = source.Content?.Count ?? 0
         };
     }
 }

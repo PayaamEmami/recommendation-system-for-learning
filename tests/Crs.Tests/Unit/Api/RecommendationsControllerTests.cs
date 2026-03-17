@@ -52,7 +52,7 @@ public sealed class RecommendationsControllerTests
         var controller = CreateController(out _);
         ControllerTestHelpers.SetUser(controller, null);
 
-        var result = await controller.GetFeedRecommendations(ResourceType.Video, null, CancellationToken.None);
+        var result = await controller.GetFeedRecommendations(ContentType.Video, null, CancellationToken.None);
 
         Assert.IsInstanceOfType<UnauthorizedResult>(result);
     }
@@ -64,11 +64,11 @@ public sealed class RecommendationsControllerTests
         var userId = Guid.NewGuid();
         ControllerTestHelpers.SetUser(controller, userId);
 
-        var response = new FeedRecommendationsResponse { FeedType = ResourceType.Video, Date = DateOnly.FromDateTime(DateTime.UtcNow) };
-        service.Setup(svc => svc.GetFeedRecommendationsAsync(userId, ResourceType.Video, It.IsAny<DateOnly>(), It.IsAny<CancellationToken>()))
+        var response = new FeedRecommendationsResponse { FeedType = ContentType.Video, Date = DateOnly.FromDateTime(DateTime.UtcNow) };
+        service.Setup(svc => svc.GetFeedRecommendationsAsync(userId, ContentType.Video, It.IsAny<DateOnly>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(response);
 
-        var result = await controller.GetFeedRecommendations(ResourceType.Video, null, CancellationToken.None);
+        var result = await controller.GetFeedRecommendations(ContentType.Video, null, CancellationToken.None);
 
         var ok = result as OkObjectResult;
         Assert.IsNotNull(ok);

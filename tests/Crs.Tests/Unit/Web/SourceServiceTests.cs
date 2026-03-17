@@ -31,7 +31,7 @@ public sealed class SourceServiceTests
         var handler = new HttpTestHandler(_ => new HttpResponseMessage(HttpStatusCode.Created));
         var service = new SourceService(new HttpClient(handler) { BaseAddress = new Uri("https://example.com") }, authService, NullLogger<SourceService>.Instance);
 
-        var result = await service.AddSourceAsync("Test", "https://example.com", ResourceType.Video, null);
+        var result = await service.AddSourceAsync("Test", "https://example.com", ContentType.Video, null);
 
         Assert.IsTrue(result);
         Assert.HasCount(1, handler.Requests);

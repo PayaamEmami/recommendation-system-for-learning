@@ -17,7 +17,7 @@
   "OpenSearch": {
     "Mode": "Aws",
     "Endpoint": "https://your-opensearch-endpoint.us-west-2.aoss.amazonaws.com",
-    "IndexName": "crs-resources",
+    "IndexName": "crs-content",
     "EmbeddingDimensions": 1536
   },
   "OpenAI": {
@@ -27,3 +27,4 @@
     "Temperature": 0
   }
 }
+

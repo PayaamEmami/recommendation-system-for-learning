@@ -22,64 +22,7 @@ namespace Crs.Infrastructure.Migrations
 
             NpgsqlModelBuilderExtensions.UseIdentityByDefaultColumns(modelBuilder);
 
-            modelBuilder.Entity("Crs.Core.Entities.Recommendation", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uuid");
-
-                    b.Property<DateOnly>("Date")
-                        .HasColumnType("date");
-
-                    b.Property<int>("FeedType")
-                        .HasColumnType("integer");
-
-                    b.Property<DateTime>("GeneratedAt")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<int>("Position")
-                        .HasColumnType("integer");
-
-                    b.Property<Guid>("ResourceId")
-                        .HasColumnType("uuid");
-
-                    b.Property<double?>("Score")
-                        .HasColumnType("double precision");
-
-                    b.Property<Guid>("UserId")
-                        .HasColumnType("uuid");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("ResourceId");
-
-                    b.HasIndex("UserId", "Date");
-
-                    b.HasIndex("UserId", "Date", "FeedType");
-
-                    b.ToTable("Recommendations", (string)null);
-                });
-
-            modelBuilder.Entity("Crs.Core.Entities.RefreshToken", b =>
-                {
-                    b.Property<string>("Token")
-                        .HasMaxLength(256)
-                        .HasColumnType("character varying(256)");
-
-                    b.Property<DateTime>("ExpiresAt")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<Guid>("UserId")
-                        .HasColumnType("uuid");
-
-                    b.HasKey("Token");
-
-                    b.HasIndex("ExpiresAt");
-
-                    b.ToTable("RefreshTokens", (string)null);
-                });
-
-            modelBuilder.Entity("Crs.Core.Entities.Resource", b =>
+            modelBuilder.Entity("Crs.Core.Entities.Content", b =>
                 {
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
@@ -119,24 +62,24 @@ namespace Crs.Infrastructure.Migrations
                     b.HasIndex("Url")
                         .IsUnique();
 
-                    b.ToTable("Resources", (string)null);
+                    b.ToTable("Content", (string)null);
 
                     b.HasDiscriminator<string>("Type");
 
                     b.UseTphMappingStrategy();
                 });
 
-            modelBuilder.Entity("Crs.Core.Entities.ResourceVote", b =>
+            modelBuilder.Entity("Crs.Core.Entities.ContentVote", b =>
                 {
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uuid");
 
+                    b.Property<Guid>("ContentId")
+                        .HasColumnType("uuid");
+
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("timestamp with time zone");
-
-                    b.Property<Guid>("ResourceId")
-                        .HasColumnType("uuid");
 
                     b.Property<DateTime?>("UpdatedAt")
                         .HasColumnType("timestamp with time zone");
@@ -149,12 +92,69 @@ namespace Crs.Infrastructure.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("ResourceId");
+                    b.HasIndex("ContentId");
 
-                    b.HasIndex("UserId", "ResourceId")
+                    b.HasIndex("UserId", "ContentId")
                         .IsUnique();
 
-                    b.ToTable("ResourceVotes", (string)null);
+                    b.ToTable("ContentVotes", (string)null);
+                });
+
+            modelBuilder.Entity("Crs.Core.Entities.Recommendation", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("ContentId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateOnly>("Date")
+                        .HasColumnType("date");
+
+                    b.Property<int>("FeedType")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTime>("GeneratedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int>("Position")
+                        .HasColumnType("integer");
+
+                    b.Property<double?>("Score")
+                        .HasColumnType("double precision");
+
+                    b.Property<Guid>("UserId")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ContentId");
+
+                    b.HasIndex("UserId", "Date");
+
+                    b.HasIndex("UserId", "Date", "FeedType");
+
+                    b.ToTable("Recommendations", (string)null);
+                });
+
+            modelBuilder.Entity("Crs.Core.Entities.RefreshToken", b =>
+                {
+                    b.Property<string>("Token")
+                        .HasMaxLength(256)
+                        .HasColumnType("character varying(256)");
+
+                    b.Property<DateTime>("ExpiresAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("UserId")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("Token");
+
+                    b.HasIndex("ExpiresAt");
+
+                    b.ToTable("RefreshTokens", (string)null);
                 });
 
             modelBuilder.Entity("Crs.Core.Entities.Source", b =>
@@ -493,30 +493,59 @@ namespace Crs.Infrastructure.Migrations
 
             modelBuilder.Entity("Crs.Core.Entities.BlogPost", b =>
                 {
-                    b.HasBaseType("Crs.Core.Entities.Resource");
+                    b.HasBaseType("Crs.Core.Entities.Content");
 
                     b.HasDiscriminator().HasValue("BlogPost");
                 });
 
             modelBuilder.Entity("Crs.Core.Entities.Paper", b =>
                 {
-                    b.HasBaseType("Crs.Core.Entities.Resource");
+                    b.HasBaseType("Crs.Core.Entities.Content");
 
                     b.HasDiscriminator().HasValue("Paper");
                 });
 
             modelBuilder.Entity("Crs.Core.Entities.Video", b =>
                 {
-                    b.HasBaseType("Crs.Core.Entities.Resource");
+                    b.HasBaseType("Crs.Core.Entities.Content");
 
                     b.HasDiscriminator().HasValue("Video");
                 });
 
+            modelBuilder.Entity("Crs.Core.Entities.Content", b =>
+                {
+                    b.HasOne("Crs.Core.Entities.Source", "Source")
+                        .WithMany("Content")
+                        .HasForeignKey("SourceId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.Navigation("Source");
+                });
+
+            modelBuilder.Entity("Crs.Core.Entities.ContentVote", b =>
+                {
+                    b.HasOne("Crs.Core.Entities.Content", "Content")
+                        .WithMany("Votes")
+                        .HasForeignKey("ContentId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("Crs.Core.Entities.User", "User")
+                        .WithMany("Votes")
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Content");
+
+                    b.Navigation("User");
+                });
+
             modelBuilder.Entity("Crs.Core.Entities.Recommendation", b =>
                 {
-                    b.HasOne("Crs.Core.Entities.Resource", "Resource")
+                    b.HasOne("Crs.Core.Entities.Content", "Content")
                         .WithMany("Recommendations")
-                        .HasForeignKey("ResourceId")
+                        .HasForeignKey("ContentId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
@@ -526,36 +555,7 @@ namespace Crs.Infrastructure.Migrations
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.Navigation("Resource");
-
-                    b.Navigation("User");
-                });
-
-            modelBuilder.Entity("Crs.Core.Entities.Resource", b =>
-                {
-                    b.HasOne("Crs.Core.Entities.Source", "Source")
-                        .WithMany("Resources")
-                        .HasForeignKey("SourceId")
-                        .OnDelete(DeleteBehavior.SetNull);
-
-                    b.Navigation("Source");
-                });
-
-            modelBuilder.Entity("Crs.Core.Entities.ResourceVote", b =>
-                {
-                    b.HasOne("Crs.Core.Entities.Resource", "Resource")
-                        .WithMany("Votes")
-                        .HasForeignKey("ResourceId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.HasOne("Crs.Core.Entities.User", "User")
-                        .WithMany("Votes")
-                        .HasForeignKey("UserId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("Resource");
+                    b.Navigation("Content");
 
                     b.Navigation("User");
                 });
@@ -631,7 +631,7 @@ namespace Crs.Infrastructure.Migrations
                     b.Navigation("User");
                 });
 
-            modelBuilder.Entity("Crs.Core.Entities.Resource", b =>
+            modelBuilder.Entity("Crs.Core.Entities.Content", b =>
                 {
                     b.Navigation("Recommendations");
 
@@ -640,7 +640,7 @@ namespace Crs.Infrastructure.Migrations
 
             modelBuilder.Entity("Crs.Core.Entities.Source", b =>
                 {
-                    b.Navigation("Resources");
+                    b.Navigation("Content");
                 });
 
             modelBuilder.Entity("Crs.Core.Entities.User", b =>

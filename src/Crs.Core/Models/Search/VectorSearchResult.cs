@@ -8,9 +8,9 @@ namespace Crs.Core.Models;
 public class VectorSearchResult
 {
     /// <summary>
-    /// Resource ID.
+    /// Content ID.
     /// </summary>
-    public required Guid ResourceId { get; set; }
+    public required Guid ContentId { get; set; }
 
     /// <summary>
     /// Similarity score (typically 0.0 to 1.0, where 1.0 is most similar).
@@ -18,8 +18,8 @@ public class VectorSearchResult
     public required double SimilarityScore { get; set; }
 
     /// <summary>
-    /// Optional reference to the full resource entity (may be null if only IDs are returned).
+    /// Optional reference to the full content entity (may be null if only IDs are returned).
     /// </summary>
-    public Resource? Resource { get; set; }
+    public Content? Content { get; set; }
 }
 

@@ -7,17 +7,17 @@ using System.Linq;
 namespace Crs.Recommendation.Scorers;
 
 /// <summary>
-/// Scores resources based on similarity to previously upvoted content.
-/// Boosts resources from sources with upvoted items.
-/// Penalizes resources from sources with downvoted items.
+/// Scores content based on similarity to previously upvoted content.
+/// Boosts content from sources with upvoted items.
+/// Penalizes content from sources with downvoted items.
 /// </summary>
-public class VoteHistoryScorer : IResourceScorer
+public class VoteHistoryScorer : IContentScorer
 {
-    private readonly IResourceVoteRepository _voteRepository;
+    private readonly IContentVoteRepository _voteRepository;
     private Guid? _cachedUserId;
-    private IEnumerable<ResourceVote>? _cachedVotes;
+    private IEnumerable<ContentVote>? _cachedVotes;
 
-    public VoteHistoryScorer(IResourceVoteRepository voteRepository)
+    public VoteHistoryScorer(IContentVoteRepository voteRepository)
     {
         _voteRepository = voteRepository;
     }
@@ -25,19 +25,19 @@ public class VoteHistoryScorer : IResourceScorer
     public double Weight => 0.2; // 20% of final score
 
     public async Task<double> ScoreAsync(
-        Resource resource,
+        Content content,
         RecommendationContext context,
         CancellationToken cancellationToken = default)
     {
         // Get user's vote history
         var userVotes = await GetUserVotesCachedAsync(context.UserId, cancellationToken);
 
-        if (!userVotes.Any() || !resource.SourceId.HasValue)
+        if (!userVotes.Any() || !content.SourceId.HasValue)
         {
             return 0.5; // Neutral score
         }
 
-        var resourceSourceId = resource.SourceId.Value;
+        var contentSourceId = content.SourceId.Value;
 
         double upvoteScore = 0;
         double downvoteScore = 0;
@@ -46,8 +46,8 @@ public class VoteHistoryScorer : IResourceScorer
 
         foreach (var vote in userVotes)
         {
-            // Check if voted resource is from the same source
-            if (vote.Resource.SourceId == resourceSourceId)
+            // Check if voted content is from the same source
+            if (vote.Content.SourceId == contentSourceId)
             {
                 if (vote.VoteType == VoteType.Upvote)
                 {
@@ -78,7 +78,7 @@ public class VoteHistoryScorer : IResourceScorer
         return Math.Clamp(finalScore, 0.0, 1.0);
     }
 
-    private async Task<IEnumerable<ResourceVote>> GetUserVotesCachedAsync(Guid userId, CancellationToken cancellationToken)
+    private async Task<IEnumerable<ContentVote>> GetUserVotesCachedAsync(Guid userId, CancellationToken cancellationToken)
     {
         if (_cachedUserId == userId && _cachedVotes != null)
         {

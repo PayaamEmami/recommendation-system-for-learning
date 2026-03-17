@@ -2,7 +2,7 @@
 
 ## Project Overview
 
-**Purpose**: Personalized recommendation system that aggregates learning resources from user-defined sources using AI-powered recommendations.
+**Purpose**: Personalized recommendation system that aggregates learning content from user-defined sources using AI-powered recommendations.
 
 **Tech Stack**:
 
@@ -42,7 +42,7 @@ All resources prefixed with `crs-` for clear separation:
 - AWS OpenSearch Serverless - **not currently deployed** (enable with `ENABLE_OPENSEARCH=true` in `deploy.sh`)
 
 **Default Region**: `us-west-2`
-**Resource Types**: Paper, Video, BlogPost
+**Content Types**: Paper, Video, BlogPost
 
 ## Critical Configuration
 

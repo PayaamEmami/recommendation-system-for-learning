@@ -21,12 +21,12 @@ All database operations go through repository interfaces defined in `Crs.Core`. 
 Entity configurations use Fluent API (separate configuration classes) instead of attributes on domain models. This keeps `Crs.Core` entities clean and database-agnostic.
 
 ### Table-Per-Hierarchy (TPH) Inheritance
-All resource types (Paper, Video, BlogPost, etc.) are stored in a single `Resources` table with a discriminator column. This simplifies queries and foreign key relationships while still maintaining type safety in code.
+All content types (Paper, Video, BlogPost, etc.) are stored in a single `Content` table with a discriminator column. This simplifies queries and foreign key relationships while still maintaining type safety in code.
 
 **Why TPH over Table-Per-Type (TPT)?**
-- Better query performance (no joins needed when querying all resources)
+- Better query performance (no joins needed when querying all content)
 - Simpler foreign keys (recommendations/votes point to one table)
-- Resource types share 80%+ of their fields
+- Content types share 80%+ of their fields
 
 **Trade-off**: Some null columns for type-specific fields (e.g., `DOI` only exists for Papers).
 
@@ -36,21 +36,21 @@ All resource types (Paper, Video, BlogPost, etc.) are stored in a single `Resour
 Performance-critical queries are optimized with indexes:
 - `User.Email` (unique) - Login lookups
 - `Topic.Slug` (unique) - URL-based topic queries
-- `ResourceVote (UserId, ResourceId)` (composite unique) - Prevents duplicate votes
+- `ContentVote (UserId, ContentId)` (composite unique) - Prevents duplicate votes
 - `Recommendation (UserId, Date, FeedType)` (composite) - Fast feed retrieval
 
 ### Relationships & Cascade Behavior
-- **Many-to-Many**: User ↔ Topics, Resource ↔ Topics (using join tables)
+- **Many-to-Many**: User ↔ Topics, Content ↔ Topics (using join tables)
 - **One-to-Many**: User → Votes (cascade delete), User → Recommendations (cascade delete)
-- **One-to-Many**: Resource → Votes (cascade delete), Resource → Recommendations (restrict delete)
+- **One-to-Many**: Content → Votes (cascade delete), Content → Recommendations (restrict delete)
 
-**Why restrict delete on Resource → Recommendations?**
-Recommendations are historical records. If a resource is deleted, we want to preserve the fact that it was recommended (for metrics/auditing), not cascade delete the history.
+**Why restrict delete on Content → Recommendations?**
+Recommendations are historical records. If a content is deleted, we want to preserve the fact that it was recommended (for metrics/auditing), not cascade delete the history.
 
 ### Unique Constraints
 - **User.Email**: One account per email
 - **Topic.Slug**: URL-friendly unique identifiers
-- **ResourceVote (UserId, ResourceId)**: Users can't vote twice on same resource
+- **ContentVote (UserId, ContentId)**: Users can't vote twice on same content
 
 ## Usage
 
@@ -81,7 +81,7 @@ This registers:
   "OpenSearch": {
     "Mode": "Local",
     "Endpoint": "http://localhost:9200",
-    "IndexName": "crs-resources",
+    "IndexName": "crs-content",
     "EmbeddingDimensions": 1536,
     "Region": "us-west-2"
   }

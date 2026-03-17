@@ -13,7 +13,7 @@ public interface IRecommendationService
     /// </summary>
     Task<FeedRecommendationsResponse> GetFeedRecommendationsAsync(
         Guid userId,
-        ResourceType feedType,
+        ContentType feedType,
         DateOnly date,
         CancellationToken cancellationToken = default);
 

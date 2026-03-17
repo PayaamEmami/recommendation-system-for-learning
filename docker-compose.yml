@@ -57,7 +57,7 @@ services:
       - Embedding__Dimensions=1536
       - OpenSearch__Mode=Local
       - OpenSearch__Endpoint=http://opensearch:9200
-      - OpenSearch__IndexName=crs-resources
+      - OpenSearch__IndexName=crs-content
       - OpenSearch__EmbeddingDimensions=1536
       - JwtSettings__SecretKey=${JWT_SECRET_KEY:-your-development-secret-key-change-in-production}
       - JwtSettings__Issuer=http://localhost:8080
@@ -106,7 +106,7 @@ services:
       - Embedding__Dimensions=1536
       - OpenSearch__Mode=Local
       - OpenSearch__Endpoint=http://opensearch:9200
-      - OpenSearch__IndexName=crs-resources
+      - OpenSearch__IndexName=crs-content
       - OpenAI__Model=gpt-5-nano
       - OpenAI__MaxTokens=4096
     depends_on:

@@ -9,11 +9,11 @@ namespace Crs.Tests.Unit.Recommendation;
 public sealed class RecencyScorerTests
 {
     [TestMethod]
-    public async Task ScoreAsync_WhenResourceIsToday_ReturnsOne()
+    public async Task ScoreAsync_WhenContentIsToday_ReturnsOne()
     {
         var scorer = new RecencyScorer();
         var today = DateOnly.FromDateTime(DateTime.UtcNow);
-        var resource = new BlogPost
+        var content = new BlogPost
         {
             Id = Guid.NewGuid(),
             Title = "New",
@@ -25,22 +25,22 @@ public sealed class RecencyScorerTests
         var context = new RecommendationContext
         {
             UserId = Guid.NewGuid(),
-            FeedType = ResourceType.BlogPost,
+            FeedType = ContentType.BlogPost,
             Date = today
         };
 
-        var score = await scorer.ScoreAsync(resource, context);
+        var score = await scorer.ScoreAsync(content, context);
 
         Assert.AreEqual(1.0, score, 0.0001);
     }
 
     [TestMethod]
-    public async Task ScoreAsync_WhenResourceIsThirtyDaysOld_Decays()
+    public async Task ScoreAsync_WhenContentIsThirtyDaysOld_Decays()
     {
         var scorer = new RecencyScorer();
         var today = DateOnly.FromDateTime(DateTime.UtcNow);
         var createdAt = today.AddDays(-30).ToDateTime(TimeOnly.MinValue);
-        var resource = new BlogPost
+        var content = new BlogPost
         {
             Id = Guid.NewGuid(),
             Title = "Older",
@@ -52,11 +52,11 @@ public sealed class RecencyScorerTests
         var context = new RecommendationContext
         {
             UserId = Guid.NewGuid(),
-            FeedType = ResourceType.BlogPost,
+            FeedType = ContentType.BlogPost,
             Date = today
         };
 
-        var score = await scorer.ScoreAsync(resource, context);
+        var score = await scorer.ScoreAsync(content, context);
 
         var expected = Math.Exp(-30.0 / 30.0);
         Assert.AreEqual(expected, score, 0.0001);

@@ -14,26 +14,26 @@ namespace Crs.Recommendation.Engine;
 public class RecommendationEngine : IRecommendationEngine
 {
     private readonly IVectorStore _vectorStore;
-    private readonly IResourceRepository _resourceRepository;
+    private readonly IContentRepository _contentRepository;
     private readonly CompositeScorer _compositeScorer;
     private readonly IEnumerable<IRecommendationFilter> _filters;
     private readonly ILogger<RecommendationEngine> _logger;
 
     public RecommendationEngine(
         IVectorStore vectorStore,
-        IResourceRepository resourceRepository,
+        IContentRepository contentRepository,
         CompositeScorer compositeScorer,
         IEnumerable<IRecommendationFilter> filters,
         ILogger<RecommendationEngine> logger)
     {
         _vectorStore = vectorStore;
-        _resourceRepository = resourceRepository;
+        _contentRepository = contentRepository;
         _compositeScorer = compositeScorer;
         _filters = filters;
         _logger = logger;
     }
 
-    public async Task<List<ScoredResource>> GenerateRecommendationsAsync(
+    public async Task<List<ScoredContent>> GenerateRecommendationsAsync(
         RecommendationContext context,
         CancellationToken cancellationToken = default)
     {
@@ -42,7 +42,7 @@ public class RecommendationEngine : IRecommendationEngine
             context.Count, context.UserId, context.FeedType, context.Date);
 
         // Step 1: Get candidates via vector similarity (if user has embedding)
-        List<ScoredResource> scoredCandidates;
+        List<ScoredContent> scoredCandidates;
 
         if (context.UserProfile?.UserEmbedding != null && context.UserProfile.UserEmbedding.Length > 0)
         {
@@ -57,11 +57,11 @@ public class RecommendationEngine : IRecommendationEngine
 
         if (!scoredCandidates.Any())
         {
-            _logger.LogWarning("No candidate resources found for user {UserId}", context.UserId);
-            return new List<ScoredResource>();
+            _logger.LogWarning("No candidate content found for user {UserId}", context.UserId);
+            return new List<ScoredContent>();
         }
 
-        _logger.LogDebug("Found {Count} candidate resources", scoredCandidates.Count);
+        _logger.LogDebug("Found {Count} candidate content", scoredCandidates.Count);
 
         // Step 2: Apply additional heuristic scoring (recency, source preference, etc.)
         scoredCandidates = await ApplyHeuristicScoringAsync(scoredCandidates, context, cancellationToken);
@@ -96,7 +96,7 @@ public class RecommendationEngine : IRecommendationEngine
     /// <summary>
     /// Get candidates using vector similarity search.
     /// </summary>
-    private async Task<List<ScoredResource>> GetVectorSimilarityCandidatesAsync(
+    private async Task<List<ScoredContent>> GetVectorSimilarityCandidatesAsync(
         RecommendationContext context,
         CancellationToken cancellationToken)
     {
@@ -108,9 +108,9 @@ public class RecommendationEngine : IRecommendationEngine
             {
                 QueryVector = context.UserProfile!.UserEmbedding!,
                 TopK = context.Count * 10, // Get more candidates to allow for filtering
-                ResourceType = context.FeedType,
+                ContentType = context.FeedType,
                 PublishedAfter = cutoffDate,
-                ExcludeResourceIds = context.SeenResourceIds
+                ExcludeContentIds = context.SeenContentIds
                     .Union(context.RecentlyRecommendedIds)
                     .ToHashSet()
             };
@@ -124,17 +124,17 @@ public class RecommendationEngine : IRecommendationEngine
                 return await GetTraditionalCandidatesAsync(context, cancellationToken);
             }
 
-            // Load full resource entities
-            var resourceIds = searchResults.Select(r => r.ResourceId).ToList();
-            var resources = await _resourceRepository.GetByIdsAsync(resourceIds, cancellationToken);
-            var resourceMap = resources.ToDictionary(r => r.Id);
+            // Load full content entities
+            var contentIds = searchResults.Select(r => r.ContentId).ToList();
+            var content = await _contentRepository.GetByIdsAsync(contentIds, cancellationToken);
+            var contentMap = content.ToDictionary(r => r.Id);
 
-            // Create scored resources with vector similarity as the primary score
-            var scoredResources = searchResults
-                .Where(sr => resourceMap.ContainsKey(sr.ResourceId))
-                .Select(sr => new ScoredResource
+            // Create scored content with vector similarity as the primary score
+            var scoredContent = searchResults
+                .Where(sr => contentMap.ContainsKey(sr.ContentId))
+                .Select(sr => new ScoredContent
                 {
-                    Resource = resourceMap[sr.ResourceId],
+                    Content = contentMap[sr.ContentId],
                     Scores = new Dictionary<string, double>
                     {
                         { "vector_similarity", sr.SimilarityScore }
@@ -143,8 +143,8 @@ public class RecommendationEngine : IRecommendationEngine
                 })
                 .ToList();
 
-            _logger.LogInformation("Retrieved {Count} candidates via vector search", scoredResources.Count);
-            return scoredResources;
+            _logger.LogInformation("Retrieved {Count} candidates via vector search", scoredContent.Count);
+            return scoredContent;
         }
         catch (Exception ex)
         {
@@ -154,24 +154,24 @@ public class RecommendationEngine : IRecommendationEngine
     }
 
     /// <summary>
-    /// Fallback method: get candidates using traditional approach (fetch recent resources by type).
+    /// Fallback method: get candidates using traditional approach (fetch recent content by type).
     /// </summary>
-    private async Task<List<ScoredResource>> GetTraditionalCandidatesAsync(
+    private async Task<List<ScoredContent>> GetTraditionalCandidatesAsync(
         RecommendationContext context,
         CancellationToken cancellationToken)
     {
         var cutoffDate = context.Date.AddDays(-90).ToDateTime(TimeOnly.MinValue);
 
-        var candidates = await _resourceRepository.GetByTypeAsync(context.FeedType, cancellationToken);
+        var candidates = await _contentRepository.GetByTypeAsync(context.FeedType, cancellationToken);
 
         var recentCandidates = candidates
             .Where(r => r.CreatedAt >= cutoffDate)
             .ToList();
 
-        // Convert to scored resources with neutral vector similarity
-        var scoredResources = recentCandidates.Select(r => new ScoredResource
+        // Convert to scored content with neutral vector similarity
+        var scoredContent = recentCandidates.Select(r => new ScoredContent
         {
-            Resource = r,
+            Content = r,
             Scores = new Dictionary<string, double>
             {
                 { "vector_similarity", 0.5 } // Neutral score when not using vector search
@@ -179,29 +179,29 @@ public class RecommendationEngine : IRecommendationEngine
             FinalScore = 0.5
         }).ToList();
 
-        return scoredResources;
+        return scoredContent;
     }
 
     /// <summary>
     /// Apply additional heuristic scoring (recency, source preferences, vote history) on top of vector similarity.
     /// </summary>
-    private async Task<List<ScoredResource>> ApplyHeuristicScoringAsync(
-        List<ScoredResource> candidates,
+    private async Task<List<ScoredContent>> ApplyHeuristicScoringAsync(
+        List<ScoredContent> candidates,
         RecommendationContext context,
         CancellationToken cancellationToken)
     {
-        // Score each resource using the composite scorer (recency, source, vote history)
-        var heuristicScored = await _compositeScorer.ScoreResourcesAsync(
-            candidates.Select(c => c.Resource).ToList(),
+        // Score each content using the composite scorer (recency, source, vote history)
+        var heuristicScored = await _compositeScorer.ScoreContentAsync(
+            candidates.Select(c => c.Content).ToList(),
             context,
             cancellationToken);
 
         // Merge heuristic scores with vector similarity scores
-        var heuristicScoreMap = heuristicScored.ToDictionary(sr => sr.Resource.Id);
+        var heuristicScoreMap = heuristicScored.ToDictionary(sr => sr.Content.Id);
 
         foreach (var candidate in candidates)
         {
-            if (heuristicScoreMap.TryGetValue(candidate.Resource.Id, out var heuristicScore))
+            if (heuristicScoreMap.TryGetValue(candidate.Content.Id, out var heuristicScore))
             {
                 // Merge all scores
                 foreach (var kvp in heuristicScore.Scores)

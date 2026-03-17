@@ -9,19 +9,19 @@ namespace Crs.Tests.Unit.Recommendation;
 public sealed class CompositeScorerTests
 {
     [TestMethod]
-    public async Task ScoreResourceAsync_CombinesWeightedScores()
+    public async Task ScoreContentAsync_CombinesWeightedScores()
     {
-        var scorers = new IResourceScorer[]
+        var scorers = new IContentScorer[]
         {
             new FixedScoreScorer(0.2, 0.4),
             new FixedScoreScorer(0.8, 0.6)
         };
 
         var composite = new CompositeScorer(scorers);
-        var resource = new BlogPost
+        var content = new BlogPost
         {
             Id = Guid.NewGuid(),
-            Title = "Resource",
+            Title = "Content",
             Url = "https://example.com",
             CreatedAt = DateTime.UtcNow,
             UpdatedAt = DateTime.UtcNow
@@ -30,18 +30,18 @@ public sealed class CompositeScorerTests
         var context = new RecommendationContext
         {
             UserId = Guid.NewGuid(),
-            FeedType = ResourceType.BlogPost,
+            FeedType = ContentType.BlogPost,
             Date = DateOnly.FromDateTime(DateTime.UtcNow)
         };
 
-        var scored = await composite.ScoreResourceAsync(resource, context);
+        var scored = await composite.ScoreContentAsync(content, context);
 
         var expected = (0.2 * 0.4 + 0.8 * 0.6) / (0.4 + 0.6);
         Assert.AreEqual(expected, scored.FinalScore, 0.0001);
         Assert.IsTrue(scored.Scores.ContainsKey("fixedscore"));
     }
 
-    private sealed class FixedScoreScorer : IResourceScorer
+    private sealed class FixedScoreScorer : IContentScorer
     {
         private readonly double _score;
 
@@ -53,7 +53,7 @@ public sealed class CompositeScorerTests
 
         public double Weight { get; }
 
-        public Task<double> ScoreAsync(Resource resource, RecommendationContext context, CancellationToken cancellationToken = default)
+        public Task<double> ScoreAsync(Content content, RecommendationContext context, CancellationToken cancellationToken = default)
         {
             return Task.FromResult(_score);
         }

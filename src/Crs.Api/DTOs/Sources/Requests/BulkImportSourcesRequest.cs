@@ -40,7 +40,7 @@ public class BulkImportSourceItem
     /// The category/type of content this source provides.
     /// </summary>
     [Required]
-    public ResourceType Category { get; set; }
+    public ContentType Category { get; set; }
 
     /// <summary>
     /// Optional description of the source.

@@ -12,7 +12,7 @@ using Crs.Jobs.Validation;
 namespace Crs.Jobs.Jobs;
 
 /// <summary>
-/// Background job that periodically ingests resources from all active sources.
+/// Background job that periodically ingests content from all active sources.
 /// </summary>
 public class SourceIngestionJob
 {
@@ -38,7 +38,7 @@ public class SourceIngestionJob
 
         using var scope = _serviceProvider.CreateScope();
         var sourceRepository = scope.ServiceProvider.GetRequiredService<ISourceRepository>();
-        var resourceRepository = scope.ServiceProvider.GetRequiredService<IResourceRepository>();
+        var contentRepository = scope.ServiceProvider.GetRequiredService<IContentRepository>();
         var ingestionAgent = scope.ServiceProvider.GetRequiredService<IIngestionAgent>();
         var embeddingService = scope.ServiceProvider.GetRequiredService<IEmbeddingService>();
         var vectorStore = scope.ServiceProvider.GetRequiredService<IVectorStore>();
@@ -89,7 +89,7 @@ public class SourceIngestionJob
                         _logger.LogInformation("Ingesting from source: {SourceName} ({SourceUrl})", source.Name, source.Url);
                         var stopwatch = Stopwatch.StartNew();
 
-                        // Ingest resources using LLM agent
+                        // Ingest content using LLM agent
                         var ingestionResult = await ingestionAgent.IngestFromUrlAsync(
                             source.Url,
                             source.Id,
@@ -104,91 +104,91 @@ public class SourceIngestionJob
                             continue;
                         }
 
-                        // Save new resources and generate embeddings
-                        var newResources = new List<Resource>();
+                        // Save new content and generate embeddings
+                        var newContent = new List<Content>();
                         int duplicateCount = 0;
                         int errorCount = 0;
 
-                        _logger.LogInformation("Attempting to save {Count} extracted resources from {SourceName}",
-                            ingestionResult.Resources.Count, source.Name);
+                        _logger.LogInformation("Attempting to save {Count} extracted content from {SourceName}",
+                            ingestionResult.Content.Count, source.Name);
 
-                        foreach (var extractedResource in ingestionResult.Resources)
+                        foreach (var extractedContent in ingestionResult.Content)
                         {
                             try
                             {
                                 _logger.LogInformation("Processing: {Title} (Type: {Type}, URL: {Url})",
-                                    extractedResource.Title, extractedResource.Type, extractedResource.Url);
+                                    extractedContent.Title, extractedContent.Type, extractedContent.Url);
 
                                 // Validate URL is not empty
-                                if (string.IsNullOrWhiteSpace(extractedResource.Url))
+                                if (string.IsNullOrWhiteSpace(extractedContent.Url))
                                 {
                                     errorCount++;
-                                    _logger.LogWarning("Skipping resource with empty URL: {Title}", extractedResource.Title);
+                                    _logger.LogWarning("Skipping content with empty URL: {Title}", extractedContent.Title);
                                     continue;
                                 }
 
-                                if (!ResourceUrlPolicy.IsLikelyResourceUrl(extractedResource.Url, extractedResource.Type, source.Url))
+                                if (!ContentUrlPolicy.IsLikelyContentUrl(extractedContent.Url, extractedContent.Type, source.Url))
                                 {
                                     _logger.LogInformation("Skipping non-content URL: {Title} (URL: {Url})",
-                                        extractedResource.Title,
-                                        extractedResource.Url);
+                                        extractedContent.Title,
+                                        extractedContent.Url);
                                     continue;
                                 }
 
                                 // Check for duplicate URL before adding to context
-                                if (await resourceRepository.ExistsByUrlAsync(extractedResource.Url, perSourceCts.Token))
+                                if (await contentRepository.ExistsByUrlAsync(extractedContent.Url, perSourceCts.Token))
                                 {
                                     duplicateCount++;
-                                    _logger.LogInformation("Duplicate URL found: {Title} (URL: {Url})", extractedResource.Title, extractedResource.Url);
+                                    _logger.LogInformation("Duplicate URL found: {Title} (URL: {Url})", extractedContent.Title, extractedContent.Url);
                                     continue;
                                 }
 
-                                // Create resource entity (fallback to source category if LLM omitted type)
-                                var resource = CreateResourceEntity(extractedResource, source.Id, source.Category);
+                                // Create content entity (fallback to source category if LLM omitted type)
+                                var content = CreateContentEntity(extractedContent, source.Id, source.Category);
 
                                 _logger.LogInformation("Attempting to save: {Title} (Type: {Type}, URL: {Url})",
-                                    resource.Title, resource.Type, resource.Url);
+                                    content.Title, content.Type, content.Url);
 
-                                await resourceRepository.AddAsync(resource, perSourceCts.Token);
-                                newResources.Add(resource);
+                                await contentRepository.AddAsync(content, perSourceCts.Token);
+                                newContent.Add(content);
 
                                 totalIngested++;
-                                _logger.LogInformation("Successfully saved: {Title} (Type: {Type})", resource.Title, resource.Type);
+                                _logger.LogInformation("Successfully saved: {Title} (Type: {Type})", content.Title, content.Type);
                             }
                             catch (DbUpdateException ex) when (ex.InnerException?.Message.Contains("duplicate", StringComparison.OrdinalIgnoreCase) == true ||
                                                                ex.InnerException?.Message.Contains("unique constraint", StringComparison.OrdinalIgnoreCase) == true ||
                                                                ex.InnerException?.Message.Contains("UNIQUE", StringComparison.Ordinal) == true)
                             {
-                                // Resource URL already exists - this is a race condition edge case, just skip it
+                                // Content URL already exists - this is a race condition edge case, just skip it
                                 duplicateCount++;
-                                _logger.LogInformation("Duplicate (race condition): {Title} (URL: {Url})", extractedResource.Title, extractedResource.Url);
+                                _logger.LogInformation("Duplicate (race condition): {Title} (URL: {Url})", extractedContent.Title, extractedContent.Url);
                             }
                             catch (Exception ex)
                             {
                                 errorCount++;
                                 _logger.LogError(ex, "Error saving: {Title} (Type: {Type}, URL: {Url}) - {Error}",
-                                    extractedResource.Title, extractedResource.Type, extractedResource.Url, ex.Message);
+                                    extractedContent.Title, extractedContent.Type, extractedContent.Url, ex.Message);
                             }
                         }
 
                         // Generate embeddings and upsert to vector store
-                        if (newResources.Any())
+                        if (newContent.Any())
                         {
-                            await EmbedAndIndexResourcesAsync(
-                                newResources,
+                            await EmbedAndIndexContentAsync(
+                                newContent,
                                 embeddingService,
                                 vectorStore,
                                 perSourceCts.Token);
 
-                            totalEmbedded += newResources.Count;
+                            totalEmbedded += newContent.Count;
                         }
 
                         stopwatch.Stop();
                         _logger.LogInformation(
                             "Completed {SourceName}: {Extracted} extracted, {New} saved, {Duplicates} duplicates, {Errors} errors in {ElapsedMs} ms",
                             source.Name,
-                            ingestionResult.Resources.Count,
-                            newResources.Count,
+                            ingestionResult.Content.Count,
+                            newContent.Count,
                             duplicateCount,
                             errorCount,
                             stopwatch.ElapsedMilliseconds);
@@ -205,7 +205,7 @@ public class SourceIngestionJob
             }
 
             _logger.LogInformation(
-                "Source ingestion job completed: {Ingested} resources ingested, {Embedded} embedded",
+                "Source ingestion job completed: {Ingested} content ingested, {Embedded} embedded",
                 totalIngested,
                 totalEmbedded);
         }
@@ -218,64 +218,64 @@ public class SourceIngestionJob
     }
 
     /// <summary>
-    /// Generate embeddings and index resources in vector store.
+    /// Generate embeddings and index content in vector store.
     /// </summary>
-    private async Task EmbedAndIndexResourcesAsync(
-        List<Resource> resources,
+    private async Task EmbedAndIndexContentAsync(
+        List<Content> content,
         IEmbeddingService embeddingService,
         IVectorStore vectorStore,
         CancellationToken cancellationToken)
     {
         try
         {
-            // Generate embeddings for all resources
-            var texts = resources
+            // Generate embeddings for all content
+            var texts = content
                 .Select(r => $"{r.Title} {r.Description}".Trim())
                 .ToList();
 
             var embeddings = await embeddingService.GenerateEmbeddingsAsync(texts, cancellationToken);
 
-            // Create resource documents
-            var documents = resources.Zip(embeddings, (resource, embedding) => new ResourceDocument
+            // Create content documents
+            var documents = content.Zip(embeddings, (content, embedding) => new ContentDocument
             {
-                Id = resource.Id,
-                Title = resource.Title,
-                Description = resource.Description,
-                Url = resource.Url,
-                Type = resource.Type,
-                SourceId = resource.SourceId,
-                PublishedDate = resource.CreatedAt, // Use CreatedAt as the published date for filtering
-                CreatedAt = resource.CreatedAt,
-                UpdatedAt = resource.UpdatedAt,
+                Id = content.Id,
+                Title = content.Title,
+                Description = content.Description,
+                Url = content.Url,
+                Type = content.Type,
+                SourceId = content.SourceId,
+                PublishedDate = content.CreatedAt, // Use CreatedAt as the published date for filtering
+                CreatedAt = content.CreatedAt,
+                UpdatedAt = content.UpdatedAt,
                 Embedding = embedding
             }).ToList();
 
             // Upsert to vector store
             await vectorStore.UpsertDocumentsAsync(documents, cancellationToken);
 
-            _logger.LogInformation("Embedded and indexed {Count} resources", documents.Count);
+            _logger.LogInformation("Embedded and indexed {Count} content", documents.Count);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error embedding and indexing resources");
+            _logger.LogError(ex, "Error embedding and indexing content");
             throw;
         }
     }
 
     /// <summary>
-    /// Create a resource entity from extracted resource data.
-    /// Simplified version - in real app, would map to specific resource types.
+    /// Create a content entity from extracted content data.
+    /// Simplified version - in real app, would map to specific content types.
     /// </summary>
-    private Resource CreateResourceEntity(Llm.Models.ExtractedResource extracted, Guid sourceId, Core.Enums.ResourceType sourceCategory)
+    private Content CreateContentEntity(Llm.Models.ExtractedContent extracted, Guid sourceId, Core.Enums.ContentType sourceCategory)
     {
         // Prefer extracted type; if missing/default, fall back to source category
-        var resourceType = extracted.Type != default ? extracted.Type : sourceCategory;
+        var contentType = extracted.Type != default ? extracted.Type : sourceCategory;
 
-        // Map to appropriate resource type based on extracted.Type
+        // Map to appropriate content type based on extracted.Type
         // For now, using a simple factory approach
-        return resourceType switch
+        return contentType switch
         {
-            Core.Enums.ResourceType.Paper => new Paper
+            Core.Enums.ContentType.Paper => new Paper
             {
                 Id = Guid.NewGuid(),
                 Title = extracted.Title,
@@ -285,7 +285,7 @@ public class SourceIngestionJob
                 CreatedAt = DateTime.UtcNow,
                 UpdatedAt = DateTime.UtcNow
             },
-            Core.Enums.ResourceType.Video => new Video
+            Core.Enums.ContentType.Video => new Video
             {
                 Id = Guid.NewGuid(),
                 Title = extracted.Title,
@@ -295,7 +295,7 @@ public class SourceIngestionJob
                 CreatedAt = DateTime.UtcNow,
                 UpdatedAt = DateTime.UtcNow
             },
-            Core.Enums.ResourceType.BlogPost => new BlogPost
+            Core.Enums.ContentType.BlogPost => new BlogPost
             {
                 Id = Guid.NewGuid(),
                 Title = extracted.Title,
@@ -305,7 +305,7 @@ public class SourceIngestionJob
                 CreatedAt = DateTime.UtcNow,
                 UpdatedAt = DateTime.UtcNow
             },
-            _ => throw new ArgumentException($"Unknown resource type: {extracted.Type}")
+            _ => throw new ArgumentException($"Unknown content type: {extracted.Type}")
         };
     }
 }

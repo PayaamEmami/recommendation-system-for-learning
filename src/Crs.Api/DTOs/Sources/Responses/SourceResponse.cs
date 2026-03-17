@@ -35,7 +35,7 @@ public class SourceResponse
     /// <summary>
     /// The category/type of content this source provides.
     /// </summary>
-    public ResourceType Category { get; set; }
+    public ContentType Category { get; set; }
 
     /// <summary>
     /// Whether this source is active.
@@ -53,8 +53,8 @@ public class SourceResponse
     public DateTime UpdatedAt { get; set; }
 
     /// <summary>
-    /// Number of resources ingested from this source.
+    /// Number of content ingested from this source.
     /// </summary>
-    public int ResourceCount { get; set; }
+    public int ContentCount { get; set; }
 }
 

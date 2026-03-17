@@ -12,12 +12,12 @@ public class Recommendation
     public Guid Id { get; set; }
 
     public Guid UserId { get; set; }
-    public Guid ResourceId { get; set; }
+    public Guid ContentId { get; set; }
 
     /// <summary>
     /// The feed type this recommendation belongs to (Papers, Videos, etc.).
     /// </summary>
-    public ResourceType FeedType { get; set; }
+    public ContentType FeedType { get; set; }
 
     /// <summary>
     /// The date this recommendation was generated for (just the date, no time).
@@ -41,6 +41,6 @@ public class Recommendation
 
     // Navigation properties
     public User User { get; set; } = null!;
-    public Resource Resource { get; set; } = null!;
+    public Content Content { get; set; } = null!;
 }
 

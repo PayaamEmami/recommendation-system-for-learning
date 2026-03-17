@@ -8,9 +8,9 @@ namespace Crs.Recommendation.Scorers;
 /// </summary>
 public class CompositeScorer
 {
-    private readonly IEnumerable<IResourceScorer> _scorers;
+    private readonly IEnumerable<IContentScorer> _scorers;
 
-    public CompositeScorer(IEnumerable<IResourceScorer> scorers)
+    public CompositeScorer(IEnumerable<IContentScorer> scorers)
     {
         _scorers = scorers;
     }
@@ -18,14 +18,14 @@ public class CompositeScorer
     /// <summary>
     /// Calculate final weighted score by combining all scorers.
     /// </summary>
-    public async Task<ScoredResource> ScoreResourceAsync(
-        Resource resource,
+    public async Task<ScoredContent> ScoreContentAsync(
+        Content content,
         RecommendationContext context,
         CancellationToken cancellationToken = default)
     {
-        var scoredResource = new ScoredResource
+        var scoredContent = new ScoredContent
         {
-            Resource = resource
+            Content = content
         };
 
         double weightedSum = 0;
@@ -33,39 +33,38 @@ public class CompositeScorer
 
         foreach (var scorer in _scorers)
         {
-            var score = await scorer.ScoreAsync(resource, context, cancellationToken);
+            var score = await scorer.ScoreAsync(content, context, cancellationToken);
             weightedSum += score * scorer.Weight;
             totalWeight += scorer.Weight;
 
             // Store individual scores for transparency (using scorer type name as key)
             var scorerName = scorer.GetType().Name.Replace("Scorer", "").ToLowerInvariant();
-            scoredResource.Scores[scorerName] = score;
+            scoredContent.Scores[scorerName] = score;
         }
 
         // Calculate final weighted average
-        scoredResource.FinalScore = totalWeight > 0 ? weightedSum / totalWeight : 0.5;
+        scoredContent.FinalScore = totalWeight > 0 ? weightedSum / totalWeight : 0.5;
 
-        return scoredResource;
+        return scoredContent;
     }
 
     /// <summary>
-    /// Score multiple resources in parallel.
+    /// Score multiple content in parallel.
     /// </summary>
-    public async Task<List<ScoredResource>> ScoreResourcesAsync(
-        IEnumerable<Resource> resources,
+    public async Task<List<ScoredContent>> ScoreContentAsync(
+        IEnumerable<Content> contentItems,
         RecommendationContext context,
         CancellationToken cancellationToken = default)
     {
         // Process sequentially to avoid reusing scoped DbContexts across concurrent tasks
-        var results = new List<ScoredResource>();
-        foreach (var resource in resources)
+        var results = new List<ScoredContent>();
+        foreach (var contentItem in contentItems)
         {
             cancellationToken.ThrowIfCancellationRequested();
-            results.Add(await ScoreResourceAsync(resource, context, cancellationToken));
+            results.Add(await ScoreContentAsync(contentItem, context, cancellationToken));
         }
 
         return results;
     }
 }
-
 

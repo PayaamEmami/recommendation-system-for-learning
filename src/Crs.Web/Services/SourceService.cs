@@ -107,7 +107,7 @@ public class SourceService
                 IsActive = s.IsActive,
                 CreatedAt = s.CreatedAt,
                 LastFetchedAt = s.LastFetchedAt,
-                ResourceCount = s.ResourceCount
+                ContentCount = s.ContentCount
             }).OrderBy(s => s.Name).ToList();
         }
         catch (Exception ex)
@@ -117,7 +117,7 @@ public class SourceService
         }
     }
 
-    public async Task<bool> AddSourceAsync(string name, string url, ResourceType category, string? description)
+    public async Task<bool> AddSourceAsync(string name, string url, ContentType category, string? description)
     {
         try
         {
@@ -237,7 +237,7 @@ public class SourceService
         }
     }
 
-    public async Task<bool> UpdateSourceAsync(Guid sourceId, string name, string url, ResourceType category, string? description)
+    public async Task<bool> UpdateSourceAsync(Guid sourceId, string name, string url, ContentType category, string? description)
     {
         try
         {
@@ -343,12 +343,12 @@ public class SourceItem
     public Guid UserId { get; set; }
     public string Name { get; set; } = string.Empty;
     public string Url { get; set; } = string.Empty;
-    public ResourceType Category { get; set; }
+    public ContentType Category { get; set; }
     public string? Description { get; set; }
     public bool IsActive { get; set; }
     public DateTime CreatedAt { get; set; }
     public DateTime? LastFetchedAt { get; set; }
-    public int ResourceCount { get; set; }
+    public int ContentCount { get; set; }
 }
 
 // API Request/Response DTOs
@@ -356,7 +356,7 @@ public class CreateSourceRequest
 {
     public string Name { get; set; } = string.Empty;
     public string Url { get; set; } = string.Empty;
-    public ResourceType Category { get; set; }
+    public ContentType Category { get; set; }
     public string? Description { get; set; }
 }
 
@@ -364,7 +364,7 @@ public class UpdateSourceRequest
 {
     public string Name { get; set; } = string.Empty;
     public string Url { get; set; } = string.Empty;
-    public ResourceType Category { get; set; }
+    public ContentType Category { get; set; }
     public string? Description { get; set; }
     public bool IsActive { get; set; }
 }
@@ -376,13 +376,13 @@ public class SourceResponse
     public string Name { get; set; } = string.Empty;
     public string Url { get; set; } = string.Empty;
     public string? Description { get; set; }
-    public ResourceType Category { get; set; }
+    public ContentType Category { get; set; }
     public bool IsActive { get; set; }
     public DateTime CreatedAt { get; set; }
     public DateTime UpdatedAt { get; set; }
     public DateTime? LastFetchedAt { get; set; }
     public string? LastFetchError { get; set; }
-    public int ResourceCount { get; set; }
+    public int ContentCount { get; set; }
 }
 
 public class BulkImportResultResponse

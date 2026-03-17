@@ -17,7 +17,7 @@ public sealed class SourceIngestionJobTests
     public async Task ExecuteAsync_WhenNoActiveSources_ReturnsEarly()
     {
         var sourceRepository = new Mock<ISourceRepository>(MockBehavior.Strict);
-        var resourceRepository = new Mock<IResourceRepository>(MockBehavior.Strict);
+        var contentRepository = new Mock<IContentRepository>(MockBehavior.Strict);
         var ingestionAgent = new Mock<IIngestionAgent>(MockBehavior.Strict);
         var embeddingService = new Mock<IEmbeddingService>(MockBehavior.Strict);
         var vectorStore = new Mock<IVectorStore>(MockBehavior.Strict);
@@ -27,7 +27,7 @@ public sealed class SourceIngestionJobTests
 
         var provider = BuildProvider(
             sourceRepository.Object,
-            resourceRepository.Object,
+            contentRepository.Object,
             ingestionAgent.Object,
             embeddingService.Object,
             vectorStore.Object);
@@ -37,15 +37,15 @@ public sealed class SourceIngestionJobTests
         await job.ExecuteAsync(CancellationToken.None);
 
         ingestionAgent.VerifyNoOtherCalls();
-        resourceRepository.VerifyNoOtherCalls();
+        contentRepository.VerifyNoOtherCalls();
         vectorStore.VerifyNoOtherCalls();
     }
 
     [TestMethod]
-    public async Task ExecuteAsync_WhenIngestionFails_SkipsResourceSave()
+    public async Task ExecuteAsync_WhenIngestionFails_SkipsContentSave()
     {
         var sourceRepository = new Mock<ISourceRepository>(MockBehavior.Strict);
-        var resourceRepository = new Mock<IResourceRepository>(MockBehavior.Strict);
+        var contentRepository = new Mock<IContentRepository>(MockBehavior.Strict);
         var ingestionAgent = new Mock<IIngestionAgent>(MockBehavior.Strict);
         var embeddingService = new Mock<IEmbeddingService>(MockBehavior.Strict);
         var vectorStore = new Mock<IVectorStore>(MockBehavior.Strict);
@@ -59,7 +59,7 @@ public sealed class SourceIngestionJobTests
 
         var provider = BuildProvider(
             sourceRepository.Object,
-            resourceRepository.Object,
+            contentRepository.Object,
             ingestionAgent.Object,
             embeddingService.Object,
             vectorStore.Object);
@@ -68,20 +68,20 @@ public sealed class SourceIngestionJobTests
 
         await job.ExecuteAsync(CancellationToken.None);
 
-        resourceRepository.Verify(repo => repo.AddAsync(It.IsAny<Resource>(), It.IsAny<CancellationToken>()), Times.Never);
-        vectorStore.Verify(store => store.UpsertDocumentsAsync(It.IsAny<IEnumerable<ResourceDocument>>(), It.IsAny<CancellationToken>()), Times.Never);
+        contentRepository.Verify(repo => repo.AddAsync(It.IsAny<Content>(), It.IsAny<CancellationToken>()), Times.Never);
+        vectorStore.Verify(store => store.UpsertDocumentsAsync(It.IsAny<IEnumerable<ContentDocument>>(), It.IsAny<CancellationToken>()), Times.Never);
     }
 
     private static ServiceProvider BuildProvider(
         ISourceRepository sourceRepository,
-        IResourceRepository resourceRepository,
+        IContentRepository contentRepository,
         IIngestionAgent ingestionAgent,
         IEmbeddingService embeddingService,
         IVectorStore vectorStore)
     {
         var services = new ServiceCollection();
         services.AddSingleton(sourceRepository);
-        services.AddSingleton(resourceRepository);
+        services.AddSingleton(contentRepository);
         services.AddSingleton(ingestionAgent);
         services.AddSingleton(embeddingService);
         services.AddSingleton(vectorStore);

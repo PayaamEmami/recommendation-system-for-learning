@@ -33,7 +33,7 @@ public sealed class ApiWebApplicationFactory : WebApplicationFactory<Program>
                 ["Embedding:Dimensions"] = "3",
                 ["Embedding:MaxBatchSize"] = "100",
                 ["OpenSearch:Endpoint"] = "http://localhost:9200",
-                ["OpenSearch:IndexName"] = "crs-resources-test",
+                ["OpenSearch:IndexName"] = "crs-content-test",
                 ["OpenSearch:EmbeddingDimensions"] = "3",
                 ["OpenSearch:Region"] = "us-west-2",
                 ["OpenAI:ApiKey"] = "test-key",

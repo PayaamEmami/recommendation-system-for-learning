@@ -4,7 +4,7 @@ using Crs.Core.Enums;
 namespace Crs.Api.DTOs.Votes.Requests;
 
 /// <summary>
-/// Request model for voting on a resource.
+/// Request model for voting on a piece of content.
 /// </summary>
 public class VoteRequest
 {
@@ -14,4 +14,3 @@ public class VoteRequest
     [Required(ErrorMessage = "Vote type is required")]
     public VoteType VoteType { get; set; }
 }
-

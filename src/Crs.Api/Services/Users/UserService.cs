@@ -50,7 +50,7 @@ public class UserService : IUserService
                 IsActive = s.IsActive,
                 CreatedAt = s.CreatedAt,
                 UpdatedAt = s.UpdatedAt,
-                ResourceCount = s.Resources?.Count ?? 0
+                ContentCount = s.Content?.Count ?? 0
             }).ToList()
         };
     }

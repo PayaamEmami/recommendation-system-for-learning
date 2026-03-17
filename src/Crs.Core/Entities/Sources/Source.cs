@@ -3,7 +3,7 @@ using Crs.Core.Enums;
 namespace Crs.Core.Entities;
 
 /// <summary>
-/// Represents a URL-based source from which resources are ingested.
+/// Represents a URL-based source from which content is ingested.
 /// Examples: RSS feeds, YouTube channels, blogs, newsletters.
 /// </summary>
 public class Source
@@ -38,7 +38,7 @@ public class Source
     /// <summary>
     /// The category/type of content this source provides.
     /// </summary>
-    public ResourceType Category { get; set; }
+    public ContentType Category { get; set; }
 
     /// <summary>
     /// Whether this source is currently active for ingestion.
@@ -58,8 +58,7 @@ public class Source
     // Navigation properties
 
     /// <summary>
-    /// Resources that have been ingested from this source.
+    /// Content that has been ingested from this source.
     /// </summary>
-    public List<Resource> Resources { get; set; } = new();
+    public List<Content> Content { get; set; } = new();
 }
-

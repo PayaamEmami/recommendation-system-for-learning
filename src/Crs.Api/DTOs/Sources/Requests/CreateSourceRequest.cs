@@ -33,7 +33,7 @@ public class CreateSourceRequest
     /// The category/type of content this source provides.
     /// </summary>
     [Required]
-    public ResourceType Category { get; set; }
+    public ContentType Category { get; set; }
 
     /// <summary>
     /// Whether this source is active.

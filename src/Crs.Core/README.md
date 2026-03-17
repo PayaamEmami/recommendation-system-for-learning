@@ -22,7 +22,7 @@ Core defines interfaces (contracts) but doesn't implement them:
 ```
 Crs.Core (Interfaces)          Crs.Infrastructure (Implementations)
 ├─ IUserRepository      ←─     UserRepository
-├─ IResourceRepository  ←─     ResourceRepository
+├─ IContentRepository  ←─     ContentRepository
 └─ ITopicRepository     ←─     TopicRepository
 ```
 
@@ -37,18 +37,18 @@ Benefits:
 
 Core entities are plain C# classes without database annotations. All database mapping configuration lives in Infrastructure, not Core.
 
-### Resource Inheritance Hierarchy
+### Content Inheritance Hierarchy
 
-All learning resources inherit from an abstract `Resource` base class:
+All learning content inherit from an abstract `Content` base class:
 
 ```
-Resource (abstract)
+Content (abstract)
 ├─ Paper
 ├─ Video
 └─ BlogPost
 ```
 
-**Why inheritance?** Resources share most properties (Title, Url, Description, PublishedDate) and have a natural "is-a" relationship. This enables polymorphic queries and unified navigation properties.
+**Why inheritance?** Content share most properties (Title, Url, Description, PublishedDate) and have a natural "is-a" relationship. This enables polymorphic queries and unified navigation properties.
 
 **Trade-off:** Derived types have some null properties (e.g., `DOI` only exists for Papers).
 
@@ -64,17 +64,17 @@ Core defines repository interfaces; Infrastructure implements them. This allows 
 
 **Many-to-Many:**
 - User ↔ Topic
-- Resource ↔ Topic
+- Content ↔ Topic
 
 **One-to-Many:**
-- User → ResourceVote
+- User → ContentVote
 - User → Recommendation
-- Resource → ResourceVote
-- Resource → Recommendation
+- Content → ContentVote
+- Content → Recommendation
 
 ## Enums
 
-**ResourceType:** Discriminator for resource inheritance (used in Table-Per-Hierarchy mapping and feed separation)
+**ContentType:** Discriminator for content inheritance (used in Table-Per-Hierarchy mapping and feed separation)
 
 **VoteType:** User feedback stored as integers (Downvote = -1, Upvote = 1)
 

@@ -10,26 +10,26 @@ namespace Crs.Api.Services;
 /// </summary>
 public class VoteService : IVoteService
 {
-    private readonly IResourceVoteRepository _voteRepository;
+    private readonly IContentVoteRepository _voteRepository;
     private readonly IUserRepository _userRepository;
-    private readonly IResourceRepository _resourceRepository;
+    private readonly IContentRepository _contentRepository;
     private readonly ILogger<VoteService> _logger;
 
     public VoteService(
-        IResourceVoteRepository voteRepository,
+        IContentVoteRepository voteRepository,
         IUserRepository userRepository,
-        IResourceRepository resourceRepository,
+        IContentRepository contentRepository,
         ILogger<VoteService> logger)
     {
         _voteRepository = voteRepository;
         _userRepository = userRepository;
-        _resourceRepository = resourceRepository;
+        _contentRepository = contentRepository;
         _logger = logger;
     }
 
-    public async Task<VoteResponse> VoteOnResourceAsync(
+    public async Task<VoteResponse> VoteOnContentAsync(
         Guid userId,
-        Guid resourceId,
+        Guid contentId,
         VoteRequest request,
         CancellationToken cancellationToken = default)
     {
@@ -40,17 +40,17 @@ public class VoteService : IVoteService
             throw new KeyNotFoundException($"User with ID {userId} not found");
         }
 
-        // Verify resource exists
-        var resource = await _resourceRepository.GetByIdAsync(resourceId, cancellationToken);
-        if (resource == null)
+        // Verify content exists
+        var content = await _contentRepository.GetByIdAsync(contentId, cancellationToken);
+        if (content == null)
         {
-            throw new KeyNotFoundException($"Resource with ID {resourceId} not found");
+            throw new KeyNotFoundException($"Content with ID {contentId} not found");
         }
 
-        // Check if user already voted on this resource
-        var existingVote = await _voteRepository.GetByUserAndResourceAsync(userId, resourceId, cancellationToken);
+        // Check if user already voted on this content
+        var existingVote = await _voteRepository.GetByUserAndContentAsync(userId, contentId, cancellationToken);
 
-        ResourceVote vote;
+        ContentVote vote;
 
         if (existingVote != null)
         {
@@ -59,42 +59,42 @@ public class VoteService : IVoteService
             existingVote.UpdatedAt = DateTime.UtcNow;
             vote = await _voteRepository.UpdateAsync(existingVote, cancellationToken);
 
-            _logger.LogInformation("User {UserId} updated vote on resource {ResourceId} to {VoteType}",
-                userId, resourceId, request.VoteType);
+            _logger.LogInformation("User {UserId} updated vote on content {ContentId} to {VoteType}",
+                userId, contentId, request.VoteType);
         }
         else
         {
             // Create new vote
-            vote = new ResourceVote
+            vote = new ContentVote
             {
                 Id = Guid.NewGuid(),
                 UserId = userId,
-                ResourceId = resourceId,
+                ContentId = contentId,
                 VoteType = request.VoteType,
                 CreatedAt = DateTime.UtcNow
             };
 
             vote = await _voteRepository.CreateAsync(vote, cancellationToken);
 
-            _logger.LogInformation("User {UserId} voted {VoteType} on resource {ResourceId}",
-                userId, request.VoteType, resourceId);
+            _logger.LogInformation("User {UserId} voted {VoteType} on content {ContentId}",
+                userId, request.VoteType, contentId);
         }
 
         return MapToVoteResponse(vote);
     }
 
-    public async Task RemoveVoteAsync(Guid userId, Guid resourceId, CancellationToken cancellationToken = default)
+    public async Task RemoveVoteAsync(Guid userId, Guid contentId, CancellationToken cancellationToken = default)
     {
-        var vote = await _voteRepository.GetByUserAndResourceAsync(userId, resourceId, cancellationToken);
+        var vote = await _voteRepository.GetByUserAndContentAsync(userId, contentId, cancellationToken);
 
         if (vote == null)
         {
-            throw new KeyNotFoundException($"No vote found for user {userId} on resource {resourceId}");
+            throw new KeyNotFoundException($"No vote found for user {userId} on content {contentId}");
         }
 
         await _voteRepository.DeleteAsync(vote.Id, cancellationToken);
 
-        _logger.LogInformation("User {UserId} removed vote from resource {ResourceId}", userId, resourceId);
+        _logger.LogInformation("User {UserId} removed vote from content {ContentId}", userId, contentId);
     }
 
     public async Task<List<VoteResponse>> GetUserVotesAsync(Guid userId, CancellationToken cancellationToken = default)
@@ -104,23 +104,23 @@ public class VoteService : IVoteService
         return votes.Select(MapToVoteResponse).ToList();
     }
 
-    public async Task<VoteResponse?> GetUserVoteOnResourceAsync(
+    public async Task<VoteResponse?> GetUserVoteOnContentAsync(
         Guid userId,
-        Guid resourceId,
+        Guid contentId,
         CancellationToken cancellationToken = default)
     {
-        var vote = await _voteRepository.GetByUserAndResourceAsync(userId, resourceId, cancellationToken);
+        var vote = await _voteRepository.GetByUserAndContentAsync(userId, contentId, cancellationToken);
 
         return vote != null ? MapToVoteResponse(vote) : null;
     }
 
-    private static VoteResponse MapToVoteResponse(ResourceVote vote)
+    private static VoteResponse MapToVoteResponse(ContentVote vote)
     {
         return new VoteResponse
         {
             Id = vote.Id,
             UserId = vote.UserId,
-            ResourceId = vote.ResourceId,
+            ContentId = vote.ContentId,
             VoteType = vote.VoteType,
             CreatedAt = vote.CreatedAt,
             UpdatedAt = vote.UpdatedAt

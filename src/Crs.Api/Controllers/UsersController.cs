@@ -141,7 +141,7 @@ public class UsersController : ControllerBase
     }
 
     /// <summary>
-    /// Gets the current user's votes on resources.
+    /// Gets the current user's votes on content.
     /// </summary>
     /// <param name="cancellationToken">Cancellation token.</param>
     /// <returns>List of the user's votes.</returns>

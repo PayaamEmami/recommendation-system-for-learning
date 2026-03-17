@@ -1,6 +1,6 @@
 # Crs.Api
 
-The REST API layer for CRS. Provides HTTP endpoints for authentication, user management, resources, and recommendations.
+The REST API layer for CRS. Provides HTTP endpoints for authentication, user management, content, and recommendations.
 
 ## Purpose
 
@@ -34,10 +34,10 @@ URL-based versioning (`/api/v1/...`) for easy discovery. Version is required in 
 Standardized error responses. All exceptions are converted to Problem Details format by `ExceptionHandlingMiddleware`.
 
 ### Pagination
-Resources API supports pagination with query parameters:
+Content API supports pagination with query parameters:
 - `pageNumber` - Page number (default: 1)
 - `pageSize` - Items per page (default: 20, max: 100)
-- `type` - Filter by resource type (Paper, Video, BlogPost)
+- `type` - Filter by content type (Paper, Video, BlogPost)
 - `topicIds` - Comma-separated topic IDs for filtering
 
 ### Service Layer
@@ -98,15 +98,15 @@ To run the API against local OpenSearch:
 - `GET /api/v1/topics` - List all topics
 - `GET /api/v1/topics/{id}` - Get topic by ID
 
-### Resources (requires auth)
-- `GET /api/v1/resources` - List resources (paginated, filterable by type/topics)
-- `GET /api/v1/resources/{id}` - Get resource by ID
-- `POST /api/v1/resources` - Create resource
-- `PUT /api/v1/resources/{id}` - Update resource
-- `DELETE /api/v1/resources/{id}` - Delete resource
-- `POST /api/v1/resources/{id}/vote` - Vote on resource (upvote/downvote)
-- `DELETE /api/v1/resources/{id}/vote` - Remove vote
-- `GET /api/v1/resources/{id}/vote` - Get user's vote on resource
+### Content (requires auth)
+- `GET /api/v1/content` - List content (paginated, filterable by type/topics)
+- `GET /api/v1/content/{id}` - Get content by ID
+- `POST /api/v1/content` - Create content
+- `PUT /api/v1/content/{id}` - Update content
+- `DELETE /api/v1/content/{id}` - Delete content
+- `POST /api/v1/content/{id}/vote` - Vote on content (upvote/downvote)
+- `DELETE /api/v1/content/{id}/vote` - Remove vote
+- `GET /api/v1/content/{id}/vote` - Get user's vote on content
 
 ### Recommendations (requires auth)
 - `GET /api/v1/recommendations` - Get today's recommendations (all feeds)

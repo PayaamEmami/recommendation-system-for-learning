@@ -78,7 +78,7 @@ public class OpenSearchVectorStore : IVectorStore
                         .NumberOfShards(1)
                         .NumberOfReplicas(0)
                     )
-                    .Map<ResourceSearchDocument>(m => m
+                    .Map<ContentSearchDocument>(m => m
                         .Properties(p => p
                             .Keyword(k => k.Name(n => n.Id))
                             .Text(t => t.Name(n => n.Title))
@@ -109,7 +109,7 @@ public class OpenSearchVectorStore : IVectorStore
 
                 if (!createIndexResponse.IsValid)
                 {
-                    if (createIndexResponse.ServerError?.Error?.Type == "resource_already_exists_exception")
+                    if (createIndexResponse.ServerError?.Error?.Type == "content_already_exists_exception")
                     {
                         _logger.LogInformation("Index already exists: {IndexName}", _settings.IndexName);
                         return;
@@ -133,13 +133,13 @@ public class OpenSearchVectorStore : IVectorStore
         }
     }
 
-    public async Task UpsertDocumentAsync(ResourceDocument document, CancellationToken cancellationToken = default)
+    public async Task UpsertDocumentAsync(ContentDocument document, CancellationToken cancellationToken = default)
     {
         await UpsertDocumentsAsync(new[] { document }, cancellationToken);
     }
 
     public async Task UpsertDocumentsAsync(
-        IEnumerable<ResourceDocument> documents,
+        IEnumerable<ContentDocument> documents,
         CancellationToken cancellationToken = default)
     {
         var documentsList = documents
@@ -154,16 +154,16 @@ public class OpenSearchVectorStore : IVectorStore
         try
         {
             var searchDocuments = documentsList.Select(ToSearchDocument).ToList();
-            var resourceIds = documentsList.Select(d => d.Id.ToString()).ToList();
+            var contentIds = documentsList.Select(d => d.Id.ToString()).ToList();
 
             // OpenSearch Serverless vector collections don't allow custom _id values.
             // Remove any existing docs with matching IDs before indexing.
-            var deleteResponse = await _client.DeleteByQueryAsync<ResourceSearchDocument>(d => d
+            var deleteResponse = await _client.DeleteByQueryAsync<ContentSearchDocument>(d => d
                     .Index(_settings.IndexName)
                     .Query(q => q
                         .Terms(t => t
                             .Field(f => f.Id)
-                            .Terms(resourceIds)
+                            .Terms(contentIds)
                         )
                     ),
                 cancellationToken);
@@ -208,33 +208,33 @@ public class OpenSearchVectorStore : IVectorStore
         }
     }
 
-    public async Task DeleteDocumentAsync(Guid resourceId, CancellationToken cancellationToken = default)
+    public async Task DeleteDocumentAsync(Guid contentId, CancellationToken cancellationToken = default)
     {
         try
         {
-            var response = await _client.DeleteByQueryAsync<ResourceSearchDocument>(d => d
+            var response = await _client.DeleteByQueryAsync<ContentSearchDocument>(d => d
                     .Index(_settings.IndexName)
                     .Query(q => q
                         .Term(t => t
                             .Field(f => f.Id)
-                            .Value(resourceId.ToString())
+                            .Value(contentId.ToString())
                         )
                     ),
                 cancellationToken);
 
             if (response.IsValid)
             {
-                _logger.LogInformation("Deleted document {ResourceId} from index", resourceId);
+                _logger.LogInformation("Deleted document {ContentId} from index", contentId);
             }
             else
             {
-                _logger.LogWarning("Failed to delete document {ResourceId}: {Error}",
-                    resourceId, response.DebugInformation);
+                _logger.LogWarning("Failed to delete document {ContentId}: {Error}",
+                    contentId, response.DebugInformation);
             }
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error deleting document {ResourceId} from vector store", resourceId);
+            _logger.LogError(ex, "Error deleting document {ContentId} from vector store", contentId);
             throw;
         }
     }
@@ -246,12 +246,12 @@ public class OpenSearchVectorStore : IVectorStore
         try
         {
             // Build filter queries
-            var mustQueries = new List<Func<QueryContainerDescriptor<ResourceSearchDocument>, QueryContainer>>();
-            var mustNotQueries = new List<Func<QueryContainerDescriptor<ResourceSearchDocument>, QueryContainer>>();
+            var mustQueries = new List<Func<QueryContainerDescriptor<ContentSearchDocument>, QueryContainer>>();
+            var mustNotQueries = new List<Func<QueryContainerDescriptor<ContentSearchDocument>, QueryContainer>>();
 
-            if (request.ResourceType.HasValue)
+            if (request.ContentType.HasValue)
             {
-                mustQueries.Add(q => q.Term(t => t.Field(f => f.Type).Value(request.ResourceType.Value.ToString())));
+                mustQueries.Add(q => q.Term(t => t.Field(f => f.Type).Value(request.ContentType.Value.ToString())));
             }
 
             if (request.SourceIds != null && request.SourceIds.Any())
@@ -269,15 +269,15 @@ public class OpenSearchVectorStore : IVectorStore
                 mustQueries.Add(q => q.DateRange(dr => dr.Field(f => f.PublishedDate).LessThanOrEquals(request.PublishedBefore.Value)));
             }
 
-            if (request.ExcludeResourceIds != null && request.ExcludeResourceIds.Any())
+            if (request.ExcludeContentIds != null && request.ExcludeContentIds.Any())
             {
                 mustNotQueries.Add(q => q.Terms(t => t
                     .Field(f => f.Id)
-                    .Terms(request.ExcludeResourceIds.Select(id => id.ToString()))));
+                    .Terms(request.ExcludeContentIds.Select(id => id.ToString()))));
             }
 
             // Build the k-NN query with filters
-            var searchResponse = await _client.SearchAsync<ResourceSearchDocument>(s => s
+            var searchResponse = await _client.SearchAsync<ContentSearchDocument>(s => s
                 .Index(_settings.IndexName)
                 .Size(request.TopK)
                 .Query(q => q
@@ -312,7 +312,7 @@ public class OpenSearchVectorStore : IVectorStore
                 .Where(hit => !request.MinimumScore.HasValue || hit.Score >= request.MinimumScore.Value)
                 .Select(hit => new VectorSearchResult
                 {
-                    ResourceId = Guid.Parse(hit.Source.Id),
+                    ContentId = Guid.Parse(hit.Source.Id),
                     SimilarityScore = hit.Score ?? 0.0
                 })
                 .ToList();
@@ -335,7 +335,7 @@ public class OpenSearchVectorStore : IVectorStore
     {
         try
         {
-            var response = await _client.CountAsync<ResourceSearchDocument>(c => c
+            var response = await _client.CountAsync<ContentSearchDocument>(c => c
                 .Index(_settings.IndexName),
                 cancellationToken
             );
@@ -349,9 +349,9 @@ public class OpenSearchVectorStore : IVectorStore
         }
     }
 
-    private static ResourceSearchDocument ToSearchDocument(ResourceDocument document)
+    private static ContentSearchDocument ToSearchDocument(ContentDocument document)
     {
-        return new ResourceSearchDocument
+        return new ContentSearchDocument
         {
             Id = document.Id.ToString(),
             Title = document.Title,
@@ -370,7 +370,7 @@ public class OpenSearchVectorStore : IVectorStore
 /// <summary>
 /// Internal document type for OpenSearch indexing.
 /// </summary>
-internal class ResourceSearchDocument
+internal class ContentSearchDocument
 {
     public string Id { get; set; } = string.Empty;
     public string Title { get; set; } = string.Empty;

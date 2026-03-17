@@ -48,7 +48,7 @@ if (string.IsNullOrWhiteSpace(jobName))
   Console.WriteLine("Available jobs:");
   Console.WriteLine("  ingestion     - Run source ingestion job");
   Console.WriteLine("  feed          - Run daily feed generation job");
-  Console.WriteLine("  reindex       - Reindex all resources in vector store");
+  Console.WriteLine("  reindex       - Reindex all content in vector store");
   Console.WriteLine("  x-ingestion   - Run X post ingestion job");
   Environment.Exit(1);
 }

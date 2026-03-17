@@ -16,7 +16,7 @@ public class RecommendationContext
     /// <summary>
     /// Type of feed to generate recommendations for.
     /// </summary>
-    public required ResourceType FeedType { get; set; }
+    public required ContentType FeedType { get; set; }
 
     /// <summary>
     /// Date these recommendations are for.
@@ -34,12 +34,12 @@ public class RecommendationContext
     public UserInterestProfile? UserProfile { get; set; }
 
     /// <summary>
-    /// Resources the user has already interacted with (to exclude).
+    /// Content the user has already interacted with (to exclude).
     /// </summary>
-    public HashSet<Guid> SeenResourceIds { get; set; } = new();
+    public HashSet<Guid> SeenContentIds { get; set; } = new();
 
     /// <summary>
-    /// Resources already recommended to this user recently (to avoid repetition).
+    /// Content already recommended to this user recently (to avoid repetition).
     /// </summary>
     public HashSet<Guid> RecentlyRecommendedIds { get; set; } = new();
 }

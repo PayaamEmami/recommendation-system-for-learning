@@ -27,7 +27,7 @@ public interface ISourceService
     /// <summary>
     /// Gets sources by category.
     /// </summary>
-    Task<List<SourceResponse>> GetSourcesByCategoryAsync(ResourceType category, CancellationToken cancellationToken = default);
+    Task<List<SourceResponse>> GetSourcesByCategoryAsync(ContentType category, CancellationToken cancellationToken = default);
 
     /// <summary>
     /// Creates a new source.

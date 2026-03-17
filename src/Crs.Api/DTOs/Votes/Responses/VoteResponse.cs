@@ -18,9 +18,9 @@ public class VoteResponse
     public Guid UserId { get; set; }
 
     /// <summary>
-    /// The resource's ID that was voted on.
+    /// The content's ID that was voted on.
     /// </summary>
-    public Guid ResourceId { get; set; }
+    public Guid ContentId { get; set; }
 
     /// <summary>
     /// The type of vote.

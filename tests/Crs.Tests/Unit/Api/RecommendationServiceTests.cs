@@ -28,7 +28,7 @@ public sealed class RecommendationServiceTests
             .ReturnsAsync(false);
 
         await TestAssert.ThrowsAsync<KeyNotFoundException>(() =>
-            service.GetFeedRecommendationsAsync(Guid.NewGuid(), ResourceType.Video, DateOnly.FromDateTime(DateTime.UtcNow), CancellationToken.None));
+            service.GetFeedRecommendationsAsync(Guid.NewGuid(), ContentType.Video, DateOnly.FromDateTime(DateTime.UtcNow), CancellationToken.None));
     }
 
     [TestMethod]
@@ -42,9 +42,9 @@ public sealed class RecommendationServiceTests
         var requestedDate = new DateOnly(2024, 12, 1);
         var fallbackDate = new DateOnly(2024, 11, 30);
 
-        recommendationRepository.Setup(repo => repo.GetByUserDateAndTypeAsync(userId, requestedDate, ResourceType.Paper, It.IsAny<CancellationToken>()))
+        recommendationRepository.Setup(repo => repo.GetByUserDateAndTypeAsync(userId, requestedDate, ContentType.Paper, It.IsAny<CancellationToken>()))
             .ReturnsAsync(Array.Empty<RecommendationEntity>());
-        recommendationRepository.Setup(repo => repo.GetMostRecentDateWithRecommendationsAsync(userId, ResourceType.Paper, It.IsAny<CancellationToken>()))
+        recommendationRepository.Setup(repo => repo.GetMostRecentDateWithRecommendationsAsync(userId, ContentType.Paper, It.IsAny<CancellationToken>()))
             .ReturnsAsync(fallbackDate);
 
         var recommendations = new List<RecommendationEntity>
@@ -53,24 +53,24 @@ public sealed class RecommendationServiceTests
             {
                 Id = Guid.NewGuid(),
                 Position = 2,
-                FeedType = ResourceType.Paper,
+                FeedType = ContentType.Paper,
                 Date = fallbackDate,
-                Resource = new Paper { Id = Guid.NewGuid(), Title = "Two", Url = "https://example.com/2", CreatedAt = DateTime.UtcNow, UpdatedAt = DateTime.UtcNow }
+                Content = new Paper { Id = Guid.NewGuid(), Title = "Two", Url = "https://example.com/2", CreatedAt = DateTime.UtcNow, UpdatedAt = DateTime.UtcNow }
             },
             new()
             {
                 Id = Guid.NewGuid(),
                 Position = 1,
-                FeedType = ResourceType.Paper,
+                FeedType = ContentType.Paper,
                 Date = fallbackDate,
-                Resource = new Paper { Id = Guid.NewGuid(), Title = "One", Url = "https://example.com/1", CreatedAt = DateTime.UtcNow, UpdatedAt = DateTime.UtcNow }
+                Content = new Paper { Id = Guid.NewGuid(), Title = "One", Url = "https://example.com/1", CreatedAt = DateTime.UtcNow, UpdatedAt = DateTime.UtcNow }
             }
         };
 
-        recommendationRepository.Setup(repo => repo.GetByUserDateAndTypeAsync(userId, fallbackDate, ResourceType.Paper, It.IsAny<CancellationToken>()))
+        recommendationRepository.Setup(repo => repo.GetByUserDateAndTypeAsync(userId, fallbackDate, ContentType.Paper, It.IsAny<CancellationToken>()))
             .ReturnsAsync(recommendations);
 
-        var response = await service.GetFeedRecommendationsAsync(userId, ResourceType.Paper, requestedDate, CancellationToken.None);
+        var response = await service.GetFeedRecommendationsAsync(userId, ContentType.Paper, requestedDate, CancellationToken.None);
 
         Assert.AreEqual(fallbackDate, response.Date);
         Assert.HasCount(2, response.Recommendations);
@@ -97,26 +97,26 @@ public sealed class RecommendationServiceTests
             .ReturnsAsync(true);
 
         var today = DateOnly.FromDateTime(DateTime.UtcNow);
-        recommendationRepository.Setup(repo => repo.GetByUserDateAndTypeAsync(userId, today, It.IsAny<ResourceType>(), It.IsAny<CancellationToken>()))
+        recommendationRepository.Setup(repo => repo.GetByUserDateAndTypeAsync(userId, today, It.IsAny<ContentType>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(Array.Empty<RecommendationEntity>());
-        recommendationRepository.Setup(repo => repo.GetMostRecentDateWithRecommendationsAsync(userId, It.IsAny<ResourceType>(), It.IsAny<CancellationToken>()))
+        recommendationRepository.Setup(repo => repo.GetMostRecentDateWithRecommendationsAsync(userId, It.IsAny<ContentType>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync((DateOnly?)null);
 
         var recommendation = new RecommendationEntity
         {
             Id = Guid.NewGuid(),
             Position = 1,
-            FeedType = ResourceType.Video,
+            FeedType = ContentType.Video,
             Date = today,
-            Resource = new Video { Id = Guid.NewGuid(), Title = "Video", Url = "https://example.com/video", CreatedAt = DateTime.UtcNow, UpdatedAt = DateTime.UtcNow }
+            Content = new Video { Id = Guid.NewGuid(), Title = "Video", Url = "https://example.com/video", CreatedAt = DateTime.UtcNow, UpdatedAt = DateTime.UtcNow }
         };
 
-        recommendationRepository.Setup(repo => repo.GetByUserDateAndTypeAsync(userId, today, ResourceType.Video, It.IsAny<CancellationToken>()))
+        recommendationRepository.Setup(repo => repo.GetByUserDateAndTypeAsync(userId, today, ContentType.Video, It.IsAny<CancellationToken>()))
             .ReturnsAsync(new[] { recommendation });
 
         var result = await service.GetTodaysRecommendationsAsync(userId, CancellationToken.None);
 
         Assert.HasCount(1, result);
-        Assert.AreEqual(ResourceType.Video, result[0].FeedType);
+        Assert.AreEqual(ContentType.Video, result[0].FeedType);
     }
 }

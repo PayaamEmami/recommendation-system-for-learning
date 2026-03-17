@@ -58,7 +58,7 @@ public sealed class SourcesIntegrationTests
             Name = "Test Source",
             Url = "https://example.com/rss",
             Description = "Test source description",
-            Category = ResourceType.BlogPost,
+            Category = ContentType.BlogPost,
             IsActive = true
         };
 

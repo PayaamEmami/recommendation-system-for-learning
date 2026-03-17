@@ -104,10 +104,10 @@ public sealed class SourcesControllerTests
         var controller = CreateController(out var sourceService);
         var sources = new List<SourceResponse> { new() { Id = Guid.NewGuid(), Name = "Cat", Url = "https://example.com" } };
 
-        sourceService.Setup(service => service.GetSourcesByCategoryAsync(ResourceType.Paper, It.IsAny<CancellationToken>()))
+        sourceService.Setup(service => service.GetSourcesByCategoryAsync(ContentType.Paper, It.IsAny<CancellationToken>()))
             .ReturnsAsync(sources);
 
-        var result = await controller.GetSourcesByCategory(ResourceType.Paper, CancellationToken.None);
+        var result = await controller.GetSourcesByCategory(ContentType.Paper, CancellationToken.None);
 
         var okResult = result as OkObjectResult;
         Assert.IsNotNull(okResult);

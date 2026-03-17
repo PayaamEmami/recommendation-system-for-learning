@@ -67,7 +67,7 @@ public class RecommendationsController : ControllerBase
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     public async Task<IActionResult> GetFeedRecommendations(
-        ResourceType feedType,
+        ContentType feedType,
         [FromQuery] DateOnly? date = null,
         CancellationToken cancellationToken = default)
     {

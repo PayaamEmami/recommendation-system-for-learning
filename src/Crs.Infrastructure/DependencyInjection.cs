@@ -37,8 +37,8 @@ public static class DependencyInjection
     // Register repositories
     services.AddScoped<IUserRepository, UserRepository>();
     services.AddScoped<ISourceRepository, SourceRepository>();
-    services.AddScoped<IResourceRepository, ResourceRepository>();
-    services.AddScoped<IResourceVoteRepository, ResourceVoteRepository>();
+    services.AddScoped<IContentRepository, ContentRepository>();
+    services.AddScoped<IContentVoteRepository, ContentVoteRepository>();
     services.AddScoped<IRecommendationRepository, RecommendationRepository>();
     services.AddScoped<IXConnectionRepository, XConnectionRepository>();
     services.AddScoped<IXAuthStateRepository, XAuthStateRepository>();

@@ -16,9 +16,9 @@ public class IngestionResult
     public string SourceUrl { get; set; } = string.Empty;
 
     /// <summary>
-    /// Resources extracted from the source.
+    /// Content extracted from the source.
     /// </summary>
-    public List<ExtractedResource> Resources { get; set; } = new();
+    public List<ExtractedContent> Content { get; set; } = new();
 
     /// <summary>
     /// Error message if ingestion failed.
@@ -26,17 +26,17 @@ public class IngestionResult
     public string? ErrorMessage { get; set; }
 
     /// <summary>
-    /// Total number of resources found.
+    /// Total number of content found.
     /// </summary>
     public int TotalFound { get; set; }
 
     /// <summary>
-    /// Number of new resources (not already in database).
+    /// Number of new content (not already in database).
     /// </summary>
-    public int NewResources { get; set; }
+    public int NewContent { get; set; }
 
     /// <summary>
-    /// Number of resources that were duplicates.
+    /// Number of content that were duplicates.
     /// </summary>
     public int DuplicatesSkipped { get; set; }
 

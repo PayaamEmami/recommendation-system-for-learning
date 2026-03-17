@@ -9,18 +9,18 @@ namespace Crs.Tests.Unit.Recommendation;
 public sealed class DiversityFilterTests
 {
     [TestMethod]
-    public async Task FilterAsync_LimitsResourcesPerSource()
+    public async Task FilterAsync_LimitsContentPerSource()
     {
         var filter = new DiversityFilter();
         var sourceId = Guid.NewGuid();
         var context = new RecommendationContext
         {
             UserId = Guid.NewGuid(),
-            FeedType = ResourceType.BlogPost,
+            FeedType = ContentType.BlogPost,
             Date = DateOnly.FromDateTime(DateTime.UtcNow)
         };
 
-        var candidates = new List<ScoredResource>
+        var candidates = new List<ScoredContent>
         {
             BuildCandidate(sourceId, 0.9),
             BuildCandidate(sourceId, 0.8),
@@ -31,26 +31,26 @@ public sealed class DiversityFilterTests
 
         var filtered = await filter.FilterAsync(candidates, context);
 
-        var sameSourceCount = filtered.Count(sr => sr.Resource.SourceId == sourceId);
+        var sameSourceCount = filtered.Count(sr => sr.Content.SourceId == sourceId);
         Assert.AreEqual(3, sameSourceCount);
         Assert.HasCount(4, filtered);
     }
 
-    private static ScoredResource BuildCandidate(Guid? sourceId, double score)
+    private static ScoredContent BuildCandidate(Guid? sourceId, double score)
     {
-        var resource = new BlogPost
+        var content = new BlogPost
         {
             Id = Guid.NewGuid(),
-            Title = "Resource",
+            Title = "Content",
             Url = "https://example.com",
             CreatedAt = DateTime.UtcNow,
             UpdatedAt = DateTime.UtcNow,
             SourceId = sourceId
         };
 
-        return new ScoredResource
+        return new ScoredContent
         {
-            Resource = resource,
+            Content = content,
             FinalScore = score
         };
     }

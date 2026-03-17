@@ -22,7 +22,7 @@ public class RecommendationRepository : IRecommendationRepository
     {
         return await _context.Recommendations
             .Include(r => r.User)
-            .Include(r => r.Resource)
+            .Include(r => r.Content)
                 .ThenInclude(res => res.Source)
             .FirstOrDefaultAsync(r => r.Id == id, cancellationToken);
     }
@@ -31,24 +31,24 @@ public class RecommendationRepository : IRecommendationRepository
     {
         return await _context.Recommendations
             .Where(r => r.UserId == userId && r.Date == date)
-            .Include(r => r.Resource)
+            .Include(r => r.Content)
                 .ThenInclude(res => res.Source)
             .OrderBy(r => r.FeedType)
             .ThenBy(r => r.Position)
             .ToListAsync(cancellationToken);
     }
 
-    public async Task<IEnumerable<Recommendation>> GetByUserDateAndTypeAsync(Guid userId, DateOnly date, ResourceType feedType, CancellationToken cancellationToken = default)
+    public async Task<IEnumerable<Recommendation>> GetByUserDateAndTypeAsync(Guid userId, DateOnly date, ContentType feedType, CancellationToken cancellationToken = default)
     {
         return await _context.Recommendations
             .Where(r => r.UserId == userId && r.Date == date && r.FeedType == feedType)
-            .Include(r => r.Resource)
+            .Include(r => r.Content)
                 .ThenInclude(res => res.Source)
             .OrderBy(r => r.Position)
             .ToListAsync(cancellationToken);
     }
 
-    public async Task<IEnumerable<Recommendation>> GetHistoryForUserAsync(Guid userId, ResourceType? feedType = null, int pageSize = 30, int pageNumber = 1, CancellationToken cancellationToken = default)
+    public async Task<IEnumerable<Recommendation>> GetHistoryForUserAsync(Guid userId, ContentType? feedType = null, int pageSize = 30, int pageNumber = 1, CancellationToken cancellationToken = default)
     {
         var query = _context.Recommendations
             .Where(r => r.UserId == userId);
@@ -63,7 +63,7 @@ public class RecommendationRepository : IRecommendationRepository
             .ThenBy(r => r.Position)
             .Skip((pageNumber - 1) * pageSize)
             .Take(pageSize)
-            .Include(r => r.Resource)
+            .Include(r => r.Content)
                 .ThenInclude(res => res.Source)
             .ToListAsync(cancellationToken);
     }
@@ -86,7 +86,7 @@ public class RecommendationRepository : IRecommendationRepository
         }
     }
 
-    public async Task<bool> HasRecommendationsForDateAsync(Guid userId, DateOnly date, ResourceType feedType, CancellationToken cancellationToken = default)
+    public async Task<bool> HasRecommendationsForDateAsync(Guid userId, DateOnly date, ContentType feedType, CancellationToken cancellationToken = default)
     {
         return await _context.Recommendations
             .AnyAsync(r => r.UserId == userId && r.Date == date && r.FeedType == feedType, cancellationToken);
@@ -96,7 +96,7 @@ public class RecommendationRepository : IRecommendationRepository
     {
         return await _context.Recommendations
             .Where(r => r.UserId == userId && r.Date >= startDate && r.Date <= endDate)
-            .Include(r => r.Resource)
+            .Include(r => r.Content)
                 .ThenInclude(res => res.Source)
             .ToListAsync(cancellationToken);
     }
@@ -109,7 +109,7 @@ public class RecommendationRepository : IRecommendationRepository
 
     public async Task<DateOnly?> GetMostRecentDateWithRecommendationsAsync(
         Guid userId,
-        ResourceType feedType,
+        ContentType feedType,
         CancellationToken cancellationToken = default)
     {
         return await _context.Recommendations

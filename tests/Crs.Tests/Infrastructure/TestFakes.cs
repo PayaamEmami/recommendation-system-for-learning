@@ -23,20 +23,20 @@ public sealed class FakeEmbeddingService : IEmbeddingService
 
 public sealed class InMemoryVectorStore : IVectorStore
 {
-    private readonly Dictionary<Guid, ResourceDocument> _documents = new();
+    private readonly Dictionary<Guid, ContentDocument> _documents = new();
 
     public Task InitializeAsync(CancellationToken cancellationToken = default)
     {
         return Task.CompletedTask;
     }
 
-    public Task UpsertDocumentAsync(ResourceDocument document, CancellationToken cancellationToken = default)
+    public Task UpsertDocumentAsync(ContentDocument document, CancellationToken cancellationToken = default)
     {
         _documents[document.Id] = document;
         return Task.CompletedTask;
     }
 
-    public Task UpsertDocumentsAsync(IEnumerable<ResourceDocument> documents, CancellationToken cancellationToken = default)
+    public Task UpsertDocumentsAsync(IEnumerable<ContentDocument> documents, CancellationToken cancellationToken = default)
     {
         foreach (var document in documents)
         {
@@ -46,9 +46,9 @@ public sealed class InMemoryVectorStore : IVectorStore
         return Task.CompletedTask;
     }
 
-    public Task DeleteDocumentAsync(Guid resourceId, CancellationToken cancellationToken = default)
+    public Task DeleteDocumentAsync(Guid contentId, CancellationToken cancellationToken = default)
     {
-        _documents.Remove(resourceId);
+        _documents.Remove(contentId);
         return Task.CompletedTask;
     }
 
@@ -94,9 +94,9 @@ public sealed class FakeIngestionAgent : IIngestionAgent
         {
             Success = true,
             SourceUrl = sourceUrl,
-            Resources = new List<ExtractedResource>(),
+            Content = new List<ExtractedContent>(),
             TotalFound = 0,
-            NewResources = 0,
+            NewContent = 0,
             DuplicatesSkipped = 0
         });
     }

@@ -12,12 +12,12 @@ public sealed class VoteHistoryScorerTests
     [TestMethod]
     public async Task ScoreAsync_WhenNoVotes_ReturnsNeutral()
     {
-        var voteRepository = new InMemoryResourceVoteRepository();
+        var voteRepository = new InMemoryContentVoteRepository();
         var scorer = new VoteHistoryScorer(voteRepository);
-        var resource = new BlogPost
+        var content = new BlogPost
         {
             Id = Guid.NewGuid(),
-            Title = "Resource",
+            Title = "Content",
             Url = "https://example.com",
             CreatedAt = DateTime.UtcNow,
             UpdatedAt = DateTime.UtcNow,
@@ -27,11 +27,11 @@ public sealed class VoteHistoryScorerTests
         var context = new RecommendationContext
         {
             UserId = Guid.NewGuid(),
-            FeedType = ResourceType.BlogPost,
+            FeedType = ContentType.BlogPost,
             Date = DateOnly.FromDateTime(DateTime.UtcNow)
         };
 
-        var score = await scorer.ScoreAsync(resource, context);
+        var score = await scorer.ScoreAsync(content, context);
 
         Assert.AreEqual(0.5, score, 0.0001);
     }
@@ -39,12 +39,12 @@ public sealed class VoteHistoryScorerTests
     [TestMethod]
     public async Task ScoreAsync_UsesUpvoteRatioForSource()
     {
-        var voteRepository = new InMemoryResourceVoteRepository();
+        var voteRepository = new InMemoryContentVoteRepository();
         var scorer = new VoteHistoryScorer(voteRepository);
         var sourceId = Guid.NewGuid();
         var userId = Guid.NewGuid();
 
-        var votedResource = new BlogPost
+        var votedContent = new BlogPost
         {
             Id = Guid.NewGuid(),
             Title = "Voted",
@@ -54,37 +54,37 @@ public sealed class VoteHistoryScorerTests
             SourceId = sourceId
         };
 
-        await voteRepository.CreateAsync(new ResourceVote
+        await voteRepository.CreateAsync(new ContentVote
         {
             Id = Guid.NewGuid(),
             UserId = userId,
-            ResourceId = votedResource.Id,
-            Resource = votedResource,
+            ContentId = votedContent.Id,
+            Content = votedContent,
             VoteType = VoteType.Upvote,
             CreatedAt = DateTime.UtcNow
         });
 
-        await voteRepository.CreateAsync(new ResourceVote
+        await voteRepository.CreateAsync(new ContentVote
         {
             Id = Guid.NewGuid(),
             UserId = userId,
-            ResourceId = votedResource.Id,
-            Resource = votedResource,
+            ContentId = votedContent.Id,
+            Content = votedContent,
             VoteType = VoteType.Upvote,
             CreatedAt = DateTime.UtcNow
         });
 
-        await voteRepository.CreateAsync(new ResourceVote
+        await voteRepository.CreateAsync(new ContentVote
         {
             Id = Guid.NewGuid(),
             UserId = userId,
-            ResourceId = votedResource.Id,
-            Resource = votedResource,
+            ContentId = votedContent.Id,
+            Content = votedContent,
             VoteType = VoteType.Downvote,
             CreatedAt = DateTime.UtcNow
         });
 
-        var targetResource = new BlogPost
+        var targetContent = new BlogPost
         {
             Id = Guid.NewGuid(),
             Title = "Target",
@@ -97,11 +97,11 @@ public sealed class VoteHistoryScorerTests
         var context = new RecommendationContext
         {
             UserId = userId,
-            FeedType = ResourceType.BlogPost,
+            FeedType = ContentType.BlogPost,
             Date = DateOnly.FromDateTime(DateTime.UtcNow)
         };
 
-        var score = await scorer.ScoreAsync(targetResource, context);
+        var score = await scorer.ScoreAsync(targetContent, context);
 
         Assert.AreEqual(2.0 / 3.0, score, 0.0001);
     }

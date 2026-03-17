@@ -1,8 +1,8 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Crs.Api.DTOs.Ingestion.Requests;
-using Crs.Api.DTOs.Resources.Requests;
-using Crs.Api.DTOs.Resources.Responses;
+using Crs.Api.DTOs.Content.Requests;
+using Crs.Api.DTOs.Content.Responses;
 using Crs.Api.Extensions;
 using Crs.Api.Services;
 using Crs.Llm.Services;
@@ -10,7 +10,7 @@ using Crs.Llm.Services;
 namespace Crs.Api.Controllers;
 
 /// <summary>
-/// Controller for triggering LLM-based resource ingestion from sources.
+/// Controller for triggering LLM-based content ingestion from sources.
 /// </summary>
 [Authorize]
 [ApiController]
@@ -19,23 +19,23 @@ public class IngestionController : ControllerBase
 {
     private readonly IIngestionAgent _ingestionAgent;
     private readonly ISourceService _sourceService;
-    private readonly IResourceService _resourceService;
+    private readonly IContentService _contentService;
     private readonly ILogger<IngestionController> _logger;
 
     public IngestionController(
         IIngestionAgent ingestionAgent,
         ISourceService sourceService,
-        IResourceService resourceService,
+        IContentService contentService,
         ILogger<IngestionController> logger)
     {
         _ingestionAgent = ingestionAgent;
         _sourceService = sourceService;
-        _resourceService = resourceService;
+        _contentService = contentService;
         _logger = logger;
     }
 
     /// <summary>
-    /// Ingests resources from a URL using the LLM agent.
+    /// Ingests content from a URL using the LLM agent.
     /// </summary>
     [HttpPost("ingest-url")]
     [ProducesResponseType(StatusCodes.Status200OK)]
@@ -71,9 +71,9 @@ public class IngestionController : ControllerBase
         {
             success = true,
             totalFound = result.TotalFound,
-            newResources = result.NewResources,
+            newContent = result.NewContent,
             duplicatesSkipped = result.DuplicatesSkipped,
-            resources = result.Resources.Select(r => new
+            content = result.Content.Select(r => new
             {
                 r.Title,
                 r.Url,
@@ -84,7 +84,7 @@ public class IngestionController : ControllerBase
     }
 
     /// <summary>
-    /// Ingests and saves resources from a source by source ID.
+    /// Ingests and saves content from a source by source ID.
     /// </summary>
     [HttpPost("ingest-source/{sourceId}")]
     [ProducesResponseType(StatusCodes.Status200OK)]
@@ -132,43 +132,43 @@ public class IngestionController : ControllerBase
             });
         }
 
-        // Save new resources to database
-        var savedResources = new List<ResourceResponse>();
-        foreach (var extractedResource in result.Resources)
+        // Save new content to database
+        var savedContent = new List<ContentResponse>();
+        foreach (var extractedContent in result.Content)
         {
             try
             {
-                var createRequest = new CreateResourceRequest
+                var createRequest = new CreateContentRequest
                 {
-                    Title = extractedResource.Title,
-                    Url = extractedResource.Url,
-                    Description = extractedResource.Description,
+                    Title = extractedContent.Title,
+                    Url = extractedContent.Url,
+                    Description = extractedContent.Description,
                     SourceId = sourceId,
-                    ResourceType = extractedResource.Type
+                    ContentType = extractedContent.Type
                 };
 
-                var saved = await _resourceService.CreateResourceAsync(createRequest, cancellationToken);
-                savedResources.Add(saved);
+                var saved = await _contentService.CreateContentAsync(createRequest, cancellationToken);
+                savedContent.Add(saved);
             }
             catch (Exception ex)
             {
-                _logger.LogWarning(ex, "Failed to save resource: {Title}", extractedResource.Title);
+                _logger.LogWarning(ex, "Failed to save content: {Title}", extractedContent.Title);
             }
         }
 
         // Log successful ingestion
         _logger.LogInformation(
-            "Successfully ingested {Count} resources from source {SourceId}",
-            savedResources.Count, sourceId);
+            "Successfully ingested {Count} content from source {SourceId}",
+            savedContent.Count, sourceId);
 
         return Ok(new
         {
             success = true,
             totalFound = result.TotalFound,
-            newResources = result.NewResources,
+            newContent = result.NewContent,
             duplicatesSkipped = result.DuplicatesSkipped,
-            savedCount = savedResources.Count,
-            resources = savedResources
+            savedCount = savedContent.Count,
+            content = savedContent
         });
     }
 

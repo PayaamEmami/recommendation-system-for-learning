@@ -1,4 +1,4 @@
-using Crs.Api.DTOs.Resources.Responses;
+using Crs.Api.DTOs.Content.Responses;
 
 namespace Crs.Api.DTOs.Recommendations.Responses;
 
@@ -13,9 +13,9 @@ public class RecommendationResponse
     public Guid Id { get; set; }
 
     /// <summary>
-    /// The recommended resource.
+    /// The recommended content.
     /// </summary>
-    public ResourceResponse Resource { get; set; } = null!;
+    public ContentResponse Content { get; set; } = null!;
 
     /// <summary>
     /// The position/rank in the feed (1 = top).

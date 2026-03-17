@@ -30,7 +30,7 @@ public class UpdateSourceRequest
     /// <summary>
     /// The category/type of content this source provides.
     /// </summary>
-    public ResourceType? Category { get; set; }
+    public ContentType? Category { get; set; }
 
     /// <summary>
     /// Whether this source is active.

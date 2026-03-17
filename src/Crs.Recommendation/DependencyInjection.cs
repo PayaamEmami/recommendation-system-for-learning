@@ -17,13 +17,13 @@ public static class DependencyInjection
     public static IServiceCollection AddRecommendationEngine(this IServiceCollection services)
     {
         // Scorers
-        services.AddScoped<IResourceScorer, SourceScorer>();
-        services.AddScoped<IResourceScorer, RecencyScorer>();
-        services.AddScoped<IResourceScorer, VoteHistoryScorer>();
+        services.AddScoped<IContentScorer, SourceScorer>();
+        services.AddScoped<IContentScorer, RecencyScorer>();
+        services.AddScoped<IContentScorer, VoteHistoryScorer>();
         services.AddScoped<CompositeScorer>();
 
         // Filters
-        services.AddScoped<IRecommendationFilter, SeenResourceFilter>();
+        services.AddScoped<IRecommendationFilter, SeenContentFilter>();
         services.AddScoped<IRecommendationFilter, DiversityFilter>();
 
         // Services

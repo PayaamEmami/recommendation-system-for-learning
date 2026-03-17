@@ -42,7 +42,7 @@ public sealed class UserServiceTests
             UserId = userId,
             Name = "Source",
             Url = "https://example.com",
-            Resources = new List<Resource> { new BlogPost { Id = Guid.NewGuid() } }
+            Content = new List<Content> { new BlogPost { Id = Guid.NewGuid() } }
         };
 
         userRepository.Setup(repo => repo.GetByIdAsync(userId, It.IsAny<CancellationToken>()))
@@ -58,7 +58,7 @@ public sealed class UserServiceTests
 
         Assert.IsNotNull(result);
         Assert.HasCount(1, result.Sources);
-        Assert.AreEqual(1, result.Sources[0].ResourceCount);
+        Assert.AreEqual(1, result.Sources[0].ContentCount);
     }
 
     [TestMethod]

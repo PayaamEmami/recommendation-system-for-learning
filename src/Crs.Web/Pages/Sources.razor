@@ -12,7 +12,7 @@
 <div class="page-container">
   <div class="page-header">
     <h1>@GetPageTitle()</h1>
-    <p class="subtitle">Manage your learning resource sources</p>
+    <p class="subtitle">Manage your learning content sources</p>
   </div>
 
   <!-- Category Filter Pills -->
@@ -20,12 +20,12 @@
     <a href="/sources" class="filter-pill @(string.IsNullOrEmpty(CategoryFilter) ? "active" : "")">
       All
     </a>
-    @foreach (var type in Enum.GetValues<ResourceType>())
+    @foreach (var type in Enum.GetValues<ContentType>())
     {
       var typeName = type.ToString().ToLower();
       <a href="/sources/@typeName"
         class="filter-pill @(CategoryFilter?.Equals(typeName, StringComparison.OrdinalIgnoreCase) == true ? "active" : "")">
-        @GetResourceTypeIcon(type) @GetResourceTypeDisplay(type)
+        @GetContentTypeIcon(type) @GetContentTypeDisplay(type)
       </a>
     }
 
@@ -80,9 +80,9 @@
                 <label for="category">Category</label>
                 <InputSelect id="category" @bind-Value="_newSource.Category" class="form-input">
                   <option value="">Select...</option>
-                  @foreach (var type in Enum.GetValues<ResourceType>())
+                  @foreach (var type in Enum.GetValues<ContentType>())
                   {
-                    <option value="@type">@GetResourceTypeDisplay(type)</option>
+                    <option value="@type">@GetContentTypeDisplay(type)</option>
                   }
                 </InputSelect>
                 <ValidationMessage For="@(() => _newSource.Category)" />
@@ -196,9 +196,9 @@
                     </div>
                     <div class="form-group">
                       <InputSelect @bind-Value="_editModel.Category" class="form-input">
-                        @foreach (var type in Enum.GetValues<ResourceType>())
+                        @foreach (var type in Enum.GetValues<ContentType>())
                         {
-                          <option value="@type">@GetResourceTypeDisplay(type)</option>
+                          <option value="@type">@GetContentTypeDisplay(type)</option>
                         }
                       </InputSelect>
                     </div>
@@ -221,7 +221,7 @@
             {
               <!-- View Mode -->
               <div class="source-icon">
-                @GetResourceTypeIcon(source.Category)
+                @GetContentTypeIcon(source.Category)
               </div>
               <div class="source-info">
                 <div class="source-name-row">
@@ -238,9 +238,9 @@
                 }
               </div>
               <div class="source-meta">
-                @if (source.ResourceCount > 0)
+                @if (source.ContentCount > 0)
                 {
-                  <span class="meta-item" title="Resources fetched">@source.ResourceCount items</span>
+                  <span class="meta-item" title="Content fetched">@source.ContentCount items</span>
                 }
                 @if (source.LastFetchedAt.HasValue)
                 {
@@ -334,7 +334,7 @@
     {
       _filteredSources = _sources.ToList();
     }
-    else if (Enum.TryParse<ResourceType>(CategoryFilter, ignoreCase: true, out var parsedType))
+    else if (Enum.TryParse<ContentType>(CategoryFilter, ignoreCase: true, out var parsedType))
     {
       _filteredSources = _sources.Where(s => s.Category == parsedType).ToList();
     }
@@ -480,24 +480,24 @@
   private string GetPageTitle()
   {
     if (string.IsNullOrEmpty(CategoryFilter)) return "My Sources";
-    if (Enum.TryParse<ResourceType>(CategoryFilter, ignoreCase: true, out var type))
-      return $"{GetResourceTypeDisplay(type)} Sources";
+    if (Enum.TryParse<ContentType>(CategoryFilter, ignoreCase: true, out var type))
+      return $"{GetContentTypeDisplay(type)} Sources";
     return "My Sources";
   }
 
-  private static string GetResourceTypeDisplay(ResourceType type) => type switch
+  private static string GetContentTypeDisplay(ContentType type) => type switch
   {
-    ResourceType.Paper => "Papers",
-    ResourceType.Video => "Videos",
-    ResourceType.BlogPost => "Blogs",
+    ContentType.Paper => "Papers",
+    ContentType.Video => "Videos",
+    ContentType.BlogPost => "Blogs",
     _ => type.ToString()
   };
 
-  private static string GetResourceTypeIcon(ResourceType type) => type switch
+  private static string GetContentTypeIcon(ContentType type) => type switch
   {
-    ResourceType.Paper => "📄",
-    ResourceType.Video => "🎬",
-    ResourceType.BlogPost => "📝",
+    ContentType.Paper => "📄",
+    ContentType.Video => "🎬",
+    ContentType.BlogPost => "📝",
     _ => "📎"
   };
 
@@ -533,7 +533,7 @@
     public string Url { get; set; } = string.Empty;
 
     [Required(ErrorMessage = "Category is required")]
-    public ResourceType Category { get; set; }
+    public ContentType Category { get; set; }
 
     public string? Description { get; set; }
   }
@@ -542,7 +542,7 @@
   {
     [Required] public string Name { get; set; } = string.Empty;
     [Required][Url] public string Url { get; set; } = string.Empty;
-    [Required] public ResourceType Category { get; set; }
+    [Required] public ContentType Category { get; set; }
     public string? Description { get; set; }
   }
 }

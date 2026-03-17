@@ -4,10 +4,10 @@ using Crs.Recommendation.Models;
 namespace Crs.Recommendation.Scorers;
 
 /// <summary>
-/// Scores resources based on recency/freshness.
+/// Scores content based on recency/freshness.
 /// Newer content gets higher scores with exponential decay.
 /// </summary>
-public class RecencyScorer : IResourceScorer
+public class RecencyScorer : IContentScorer
 {
     public double Weight => 0.3; // 30% of final score
 
@@ -15,11 +15,11 @@ public class RecencyScorer : IResourceScorer
     private const double HalfLifeDays = 30.0;
 
     public Task<double> ScoreAsync(
-        Resource resource,
+        Content content,
         RecommendationContext context,
         CancellationToken cancellationToken = default)
     {
-        var publishedDate = resource.CreatedAt;
+        var publishedDate = content.CreatedAt;
         var today = context.Date.ToDateTime(TimeOnly.MinValue);
         var ageInDays = (today - publishedDate).TotalDays;
 

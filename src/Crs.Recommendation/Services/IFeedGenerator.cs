@@ -18,7 +18,7 @@ public interface IFeedGenerator
     /// <returns>List of generated recommendations</returns>
     Task<List<Core.Entities.Recommendation>> GenerateFeedAsync(
         Guid userId,
-        ResourceType feedType,
+        ContentType feedType,
         DateOnly date,
         int count = 5,
         CancellationToken cancellationToken = default);

@@ -12,10 +12,10 @@ public sealed class SourceScorerTests
     public async Task ScoreAsync_WhenNoProfile_ReturnsNeutral()
     {
         var scorer = new SourceScorer();
-        var resource = new BlogPost
+        var content = new BlogPost
         {
             Id = Guid.NewGuid(),
-            Title = "Resource",
+            Title = "Content",
             Url = "https://example.com",
             CreatedAt = DateTime.UtcNow,
             UpdatedAt = DateTime.UtcNow,
@@ -25,11 +25,11 @@ public sealed class SourceScorerTests
         var context = new RecommendationContext
         {
             UserId = Guid.NewGuid(),
-            FeedType = ResourceType.BlogPost,
+            FeedType = ContentType.BlogPost,
             Date = DateOnly.FromDateTime(DateTime.UtcNow)
         };
 
-        var score = await scorer.ScoreAsync(resource, context);
+        var score = await scorer.ScoreAsync(content, context);
 
         Assert.AreEqual(0.5, score, 0.0001);
     }
@@ -39,10 +39,10 @@ public sealed class SourceScorerTests
     {
         var scorer = new SourceScorer();
         var sourceId = Guid.NewGuid();
-        var resource = new BlogPost
+        var content = new BlogPost
         {
             Id = Guid.NewGuid(),
-            Title = "Resource",
+            Title = "Content",
             Url = "https://example.com",
             CreatedAt = DateTime.UtcNow,
             UpdatedAt = DateTime.UtcNow,
@@ -55,12 +55,12 @@ public sealed class SourceScorerTests
         var context = new RecommendationContext
         {
             UserId = profile.UserId,
-            FeedType = ResourceType.BlogPost,
+            FeedType = ContentType.BlogPost,
             Date = DateOnly.FromDateTime(DateTime.UtcNow),
             UserProfile = profile
         };
 
-        var score = await scorer.ScoreAsync(resource, context);
+        var score = await scorer.ScoreAsync(content, context);
 
         Assert.AreEqual(0.82, score, 0.0001);
     }

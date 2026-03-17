@@ -45,7 +45,7 @@ public class UserConfiguration : IEntityTypeConfiguration<User>
             .HasForeignKey(s => s.UserId)
             .OnDelete(DeleteBehavior.Cascade);
 
-        // One-to-Many relationship with ResourceVotes
+        // One-to-Many relationship with ContentVotes
         builder.HasMany(u => u.Votes)
             .WithOne(v => v.User)
             .HasForeignKey(v => v.UserId)

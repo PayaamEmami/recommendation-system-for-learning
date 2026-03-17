@@ -2,7 +2,7 @@ namespace Crs.Recommendation.Models;
 
 /// <summary>
 /// Represents a user's interest profile based on their interaction history.
-/// Used to score resources based on topic alignment and semantic similarity.
+/// Used to score content based on topic alignment and semantic similarity.
 /// </summary>
 public class UserInterestProfile
 {
@@ -19,7 +19,7 @@ public class UserInterestProfile
     public Dictionary<Guid, double> TopicScores { get; set; } = new();
 
     /// <summary>
-    /// User preference embedding vector built from aggregating embeddings of liked resources.
+    /// User preference embedding vector built from aggregating embeddings of liked content.
     /// This is the primary representation for semantic similarity matching.
     /// </summary>
     public float[]? UserEmbedding { get; set; }

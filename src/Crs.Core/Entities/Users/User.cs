@@ -40,9 +40,9 @@ public class User
     public List<Source> Sources { get; set; } = new();
 
     /// <summary>
-    /// Votes the user has cast on resources.
+    /// Votes the user has cast on content.
     /// </summary>
-    public List<ResourceVote> Votes { get; set; } = new();
+    public List<ContentVote> Votes { get; set; } = new();
 
     /// <summary>
     /// Recommendations generated for this user.

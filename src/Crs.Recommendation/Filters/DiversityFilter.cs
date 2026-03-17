@@ -8,35 +8,35 @@ namespace Crs.Recommendation.Filters;
 /// </summary>
 public class DiversityFilter : IRecommendationFilter
 {
-    // Maximum number of resources from the same source
+    // Maximum number of content from the same source
     private const int MaxPerSource = 3;
 
-    public Task<List<ScoredResource>> FilterAsync(
-        List<ScoredResource> candidates,
+    public Task<List<ScoredContent>> FilterAsync(
+        List<ScoredContent> candidates,
         RecommendationContext context,
         CancellationToken cancellationToken = default)
     {
         var sourceCounts = new Dictionary<Guid, int>();
-        var diversified = new List<ScoredResource>();
+        var diversified = new List<ScoredContent>();
 
         // Sort by score descending (best first)
         var sortedCandidates = candidates.OrderByDescending(sr => sr.FinalScore).ToList();
 
         foreach (var candidate in sortedCandidates)
         {
-            // Check if this resource has a source
-            if (candidate.Resource.SourceId.HasValue)
+            // Check if this content has a source
+            if (candidate.Content.SourceId.HasValue)
             {
-                var sourceId = candidate.Resource.SourceId.Value;
+                var sourceId = candidate.Content.SourceId.Value;
                 var currentCount = sourceCounts.GetValueOrDefault(sourceId, 0);
 
                 // Check if source is at max count
                 if (currentCount >= MaxPerSource)
                 {
-                    continue; // Skip this resource
+                    continue; // Skip this content
                 }
 
-                // Add this resource
+                // Add this content
                 diversified.Add(candidate);
                 sourceCounts[sourceId] = currentCount + 1;
 

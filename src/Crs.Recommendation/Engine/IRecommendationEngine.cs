@@ -13,8 +13,8 @@ public interface IRecommendationEngine
     /// </summary>
     /// <param name="context">Recommendation context</param>
     /// <param name="cancellationToken">Cancellation token</param>
-    /// <returns>List of recommended resources with scores</returns>
-    Task<List<ScoredResource>> GenerateRecommendationsAsync(
+    /// <returns>List of recommended content with scores</returns>
+    Task<List<ScoredContent>> GenerateRecommendationsAsync(
         RecommendationContext context,
         CancellationToken cancellationToken = default);
 }

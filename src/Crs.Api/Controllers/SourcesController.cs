@@ -85,7 +85,7 @@ public class SourcesController : ControllerBase
     /// </summary>
     [HttpGet("category/{category}")]
     [ProducesResponseType(StatusCodes.Status200OK)]
-    public async Task<IActionResult> GetSourcesByCategory(ResourceType category, CancellationToken cancellationToken)
+    public async Task<IActionResult> GetSourcesByCategory(ContentType category, CancellationToken cancellationToken)
     {
         var sources = await _sourceService.GetSourcesByCategoryAsync(category, cancellationToken);
         return Ok(sources);

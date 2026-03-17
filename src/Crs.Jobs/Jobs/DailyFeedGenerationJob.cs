@@ -63,8 +63,8 @@ public class DailyFeedGenerationJob
                 {
                     _logger.LogInformation("Generating feeds for user: {Email}", user.Email);
 
-                    // Generate feeds for all resource types
-                    var feedTypes = Enum.GetValues<ResourceType>();
+                    // Generate feeds for all content types
+                    var feedTypes = Enum.GetValues<ContentType>();
                     int userFeedCount = 0;
 
                     foreach (var feedType in feedTypes)

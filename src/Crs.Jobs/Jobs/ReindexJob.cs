@@ -6,7 +6,7 @@ using Crs.Core.Models;
 namespace Crs.Jobs.Jobs;
 
 /// <summary>
-/// One-time job to reindex all existing resources in the vector store.
+/// One-time job to reindex all existing content in the vector store.
 /// Use this to fix missing publishedDate or other index schema changes.
 /// </summary>
 public class ReindexJob
@@ -24,32 +24,32 @@ public class ReindexJob
     }
 
     /// <summary>
-    /// Reindex all resources in the vector store.
+    /// Reindex all content in the vector store.
     /// </summary>
     public async Task ExecuteAsync(CancellationToken cancellationToken = default)
     {
         _logger.LogInformation("Starting reindex job");
 
         using var scope = _serviceProvider.CreateScope();
-        var resourceRepository = scope.ServiceProvider.GetRequiredService<IResourceRepository>();
+        var contentRepository = scope.ServiceProvider.GetRequiredService<IContentRepository>();
         var embeddingService = scope.ServiceProvider.GetRequiredService<IEmbeddingService>();
         var vectorStore = scope.ServiceProvider.GetRequiredService<IVectorStore>();
 
         try
         {
-            // Get all resources from database
-            var allResources = (await resourceRepository.GetAllAsync(cancellationToken)).ToList();
+            // Get all content from database
+            var allContent = (await contentRepository.GetAllAsync(cancellationToken)).ToList();
 
-            if (!allResources.Any())
+            if (!allContent.Any())
             {
-                _logger.LogInformation("No resources found to reindex");
+                _logger.LogInformation("No content found to reindex");
                 return;
             }
 
-            _logger.LogInformation("Found {Count} resources to reindex", allResources.Count);
+            _logger.LogInformation("Found {Count} content to reindex", allContent.Count);
 
             int totalReindexed = 0;
-            var batches = allResources.Chunk(BatchSize).ToList();
+            var batches = allContent.Chunk(BatchSize).ToList();
 
             for (int i = 0; i < batches.Count; i++)
             {
@@ -60,7 +60,7 @@ public class ReindexJob
                 }
 
                 var batch = batches[i].ToList();
-                _logger.LogInformation("Processing batch {BatchNumber}/{TotalBatches} ({Count} resources)",
+                _logger.LogInformation("Processing batch {BatchNumber}/{TotalBatches} ({Count} content)",
                     i + 1, batches.Count, batch.Count);
 
                 try
@@ -72,18 +72,18 @@ public class ReindexJob
 
                     var embeddings = await embeddingService.GenerateEmbeddingsAsync(texts, cancellationToken);
 
-                    // Create resource documents with correct publishedDate
-                    var documents = batch.Zip(embeddings, (resource, embedding) => new ResourceDocument
+                    // Create content documents with correct publishedDate
+                    var documents = batch.Zip(embeddings, (content, embedding) => new ContentDocument
                     {
-                        Id = resource.Id,
-                        Title = resource.Title,
-                        Description = resource.Description,
-                        Url = resource.Url,
-                        Type = resource.Type,
-                        SourceId = resource.SourceId,
-                        PublishedDate = resource.CreatedAt, // Set publishedDate to CreatedAt
-                        CreatedAt = resource.CreatedAt,
-                        UpdatedAt = resource.UpdatedAt,
+                        Id = content.Id,
+                        Title = content.Title,
+                        Description = content.Description,
+                        Url = content.Url,
+                        Type = content.Type,
+                        SourceId = content.SourceId,
+                        PublishedDate = content.CreatedAt, // Set publishedDate to CreatedAt
+                        CreatedAt = content.CreatedAt,
+                        UpdatedAt = content.UpdatedAt,
                         Embedding = embedding
                     }).ToList();
 
@@ -91,7 +91,7 @@ public class ReindexJob
                     await vectorStore.UpsertDocumentsAsync(documents, cancellationToken);
 
                     totalReindexed += documents.Count;
-                    _logger.LogInformation("Batch {BatchNumber} completed: {Count} resources reindexed",
+                    _logger.LogInformation("Batch {BatchNumber} completed: {Count} content reindexed",
                         i + 1, documents.Count);
                 }
                 catch (Exception ex)
@@ -101,7 +101,7 @@ public class ReindexJob
                 }
             }
 
-            _logger.LogInformation("Reindex job completed: {Total} resources reindexed", totalReindexed);
+            _logger.LogInformation("Reindex job completed: {Total} content reindexed", totalReindexed);
         }
         catch (Exception ex)
         {

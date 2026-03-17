@@ -63,7 +63,7 @@ builder.Services.AddLlmServices(builder.Configuration);
 builder.Services.AddScoped<Crs.Api.Services.IAuthService, Crs.Api.Services.AuthService>();
 builder.Services.AddScoped<Crs.Api.Services.IUserService, Crs.Api.Services.UserService>();
 builder.Services.AddScoped<Crs.Api.Services.ISourceService, Crs.Api.Services.SourceService>();
-builder.Services.AddScoped<Crs.Api.Services.IResourceService, Crs.Api.Services.ResourceService>();
+builder.Services.AddScoped<Crs.Api.Services.IContentService, Crs.Api.Services.ContentService>();
 builder.Services.AddScoped<Crs.Api.Services.IVoteService, Crs.Api.Services.VoteService>();
 builder.Services.AddScoped<Crs.Api.Services.IRecommendationService, Crs.Api.Services.RecommendationService>();
 builder.Services.AddScoped<Crs.Api.Services.IXAccountService, Crs.Api.Services.XAccountService>();

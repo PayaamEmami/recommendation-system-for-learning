@@ -18,9 +18,9 @@ public class OpenSearchSettings
     public string Endpoint { get; set; } = string.Empty;
 
     /// <summary>
-    /// Name of the index for resource vectors.
+    /// Name of the index for content vectors.
     /// </summary>
-    public string IndexName { get; set; } = "crs-resources";
+    public string IndexName { get; set; } = "crs-content";
 
     /// <summary>
     /// Embedding model dimensions (default for text-embedding-3-small).

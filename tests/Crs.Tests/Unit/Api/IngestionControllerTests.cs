@@ -4,8 +4,8 @@ using Microsoft.Extensions.Logging.Abstractions;
 using Moq;
 using Crs.Api.Controllers;
 using Crs.Api.DTOs.Ingestion.Requests;
-using Crs.Api.DTOs.Resources.Requests;
-using Crs.Api.DTOs.Resources.Responses;
+using Crs.Api.DTOs.Content.Requests;
+using Crs.Api.DTOs.Content.Responses;
 using Crs.Api.DTOs.Sources.Responses;
 using Crs.Api.Services;
 using Crs.Core.Enums;
@@ -20,15 +20,15 @@ public sealed class IngestionControllerTests
     private static IngestionController CreateController(
         out Mock<IIngestionAgent> ingestionAgent,
         out Mock<ISourceService> sourceService,
-        out Mock<IResourceService> resourceService)
+        out Mock<IContentService> contentService)
     {
         ingestionAgent = new Mock<IIngestionAgent>(MockBehavior.Strict);
         sourceService = new Mock<ISourceService>(MockBehavior.Strict);
-        resourceService = new Mock<IResourceService>(MockBehavior.Strict);
+        contentService = new Mock<IContentService>(MockBehavior.Strict);
         return new IngestionController(
             ingestionAgent.Object,
             sourceService.Object,
-            resourceService.Object,
+            contentService.Object,
             NullLogger<IngestionController>.Instance);
     }
 
@@ -55,7 +55,7 @@ public sealed class IngestionControllerTests
                 Success = false,
                 ErrorMessage = "LLM error",
                 TotalFound = 1,
-                NewResources = 0,
+                NewContent = 0,
                 DuplicatesSkipped = 1
             });
 
@@ -75,11 +75,11 @@ public sealed class IngestionControllerTests
         {
             Success = true,
             TotalFound = 2,
-            NewResources = 2,
+            NewContent = 2,
             DuplicatesSkipped = 0,
-            Resources = new List<ExtractedResource>
+            Content = new List<ExtractedContent>
             {
-                new() { Title = "One", Url = "https://example.com/1", Description = "Desc", Type = ResourceType.Paper }
+                new() { Title = "One", Url = "https://example.com/1", Description = "Desc", Type = ContentType.Paper }
             }
         };
 
@@ -145,7 +145,7 @@ public sealed class IngestionControllerTests
     [TestMethod]
     public async Task IngestFromSource_WhenSuccess_ReturnsOk()
     {
-        var controller = CreateController(out var ingestionAgent, out var sourceService, out var resourceService);
+        var controller = CreateController(out var ingestionAgent, out var sourceService, out var contentService);
         var userId = Guid.NewGuid();
         ControllerTestHelpers.SetUser(controller, userId);
         var sourceId = Guid.NewGuid();
@@ -163,21 +163,21 @@ public sealed class IngestionControllerTests
             {
                 Success = true,
                 TotalFound = 1,
-                NewResources = 1,
+                NewContent = 1,
                 DuplicatesSkipped = 0,
-                Resources = new List<ExtractedResource>
+                Content = new List<ExtractedContent>
                 {
-                    new() { Title = "One", Url = "https://example.com/1", Description = "Desc", Type = ResourceType.Video }
+                    new() { Title = "One", Url = "https://example.com/1", Description = "Desc", Type = ContentType.Video }
                 }
             });
 
-        resourceService.Setup(service => service.CreateResourceAsync(It.IsAny<CreateResourceRequest>(), It.IsAny<CancellationToken>()))
-            .ReturnsAsync(new ResourceResponse
+        contentService.Setup(service => service.CreateContentAsync(It.IsAny<CreateContentRequest>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new ContentResponse
             {
                 Id = Guid.NewGuid(),
                 Title = "One",
                 Url = "https://example.com/1",
-                Type = ResourceType.Video,
+                Type = ContentType.Video,
                 CreatedAt = DateTime.UtcNow,
                 UpdatedAt = DateTime.UtcNow
             });

@@ -18,9 +18,9 @@ public class VectorSearchRequest
     public int TopK { get; set; } = 10;
 
     /// <summary>
-    /// Filter by resource type (optional).
+    /// Filter by content type (optional).
     /// </summary>
-    public ResourceType? ResourceType { get; set; }
+    public ContentType? ContentType { get; set; }
 
     /// <summary>
     /// Filter by source IDs (optional).
@@ -28,19 +28,19 @@ public class VectorSearchRequest
     public HashSet<Guid>? SourceIds { get; set; }
 
     /// <summary>
-    /// Filter to resources published after this date (optional).
+    /// Filter to content published after this date (optional).
     /// </summary>
     public DateTime? PublishedAfter { get; set; }
 
     /// <summary>
-    /// Filter to resources published before this date (optional).
+    /// Filter to content published before this date (optional).
     /// </summary>
     public DateTime? PublishedBefore { get; set; }
 
     /// <summary>
-    /// Exclude these resource IDs from results (optional).
+    /// Exclude these content IDs from results (optional).
     /// </summary>
-    public HashSet<Guid>? ExcludeResourceIds { get; set; }
+    public HashSet<Guid>? ExcludeContentIds { get; set; }
 
     /// <summary>
     /// Minimum similarity score threshold (0.0 to 1.0, optional).

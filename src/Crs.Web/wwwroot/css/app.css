@@ -1241,8 +1241,8 @@ textarea.form-input {
     font-weight: 600;
 }
 
-/* Resource Table Layout */
-.resource-table {
+/* Content Table Layout */
+.content-table {
     display: flex;
     flex-direction: column;
     gap: 0;
@@ -1252,7 +1252,7 @@ textarea.form-input {
     overflow: hidden;
 }
 
-.resource-row {
+.content-row {
     display: flex;
     align-items: flex-start;
     gap: 1rem;
@@ -1261,16 +1261,16 @@ textarea.form-input {
     transition: background-color 0.15s ease;
 }
 
-.resource-row:last-child {
+.content-row:last-child {
     border-bottom: none;
 }
 
-.resource-row:hover {
+.content-row:hover {
     background-color: var(--bg-secondary);
 }
 
 /* Vote Controls */
-.resource-vote-controls {
+.content-vote-controls {
     display: flex;
     flex-direction: column;
     align-items: center;
@@ -1318,62 +1318,62 @@ textarea.form-input {
     line-height: 1;
 }
 
-/* Resource Content */
-.resource-content {
+/* Content Content */
+.content-content {
     flex: 1;
     min-width: 0;
 }
 
-.resource-meta {
+.content-meta {
     display: flex;
     align-items: center;
     gap: 0.75rem;
     margin-bottom: 0.375rem;
 }
 
-.resource-type-badge {
+.content-type-badge {
     font-size: 1rem;
     line-height: 1;
 }
 
-.resource-date {
+.content-date {
     font-size: 0.8rem;
     color: var(--text-tertiary);
 }
 
-.resource-row-title {
+.content-row-title {
     margin: 0 0 0.375rem 0;
     font-size: 1rem;
     font-weight: 600;
     line-height: 1.4;
 }
 
-.resource-row-title a {
+.content-row-title a {
     color: var(--text-primary);
     text-decoration: none;
     transition: color 0.15s ease;
 }
 
-.resource-row-title a:hover {
+.content-row-title a:hover {
     color: var(--accent-color);
 }
 
-.resource-row-description {
+.content-row-description {
     margin: 0;
     font-size: 0.9rem;
     line-height: 1.5;
     color: var(--text-secondary);
 }
 
-/* Resource Actions */
-.resource-actions {
+/* Content Actions */
+.content-actions {
     display: flex;
     align-items: flex-start;
     padding-top: 0.25rem;
     flex-shrink: 0;
 }
 
-.resource-open-btn {
+.content-open-btn {
     display: flex;
     align-items: center;
     justify-content: center;
@@ -1388,20 +1388,20 @@ textarea.form-input {
     transition: all 0.15s ease;
 }
 
-.resource-open-btn:hover {
+.content-open-btn:hover {
     background-color: var(--accent-color);
     border-color: var(--accent-color);
     color: white;
 }
 
 /* Legacy styles kept for compatibility */
-.resources-list {
+.content-list {
     display: flex;
     flex-direction: column;
     gap: 1.5rem;
 }
 
-.resource-card {
+.content-card {
     background-color: var(--bg-primary);
     border: 1px solid var(--border-color);
     border-radius: 8px;
@@ -1409,18 +1409,18 @@ textarea.form-input {
     transition: box-shadow 0.2s ease;
 }
 
-.resource-card:hover {
+.content-card:hover {
     box-shadow: 0 4px 8px var(--shadow);
 }
 
-.resource-header {
+.content-header {
     display: flex;
     justify-content: space-between;
     align-items: center;
     margin-bottom: 0.75rem;
 }
 
-.resource-type {
+.content-type {
     background-color: var(--bg-tertiary);
     padding: 0.25rem 0.75rem;
     border-radius: 4px;
@@ -1429,40 +1429,40 @@ textarea.form-input {
     color: var(--text-secondary);
 }
 
-.resource-title {
+.content-title {
     margin-bottom: 0.75rem;
 }
 
-.resource-title a {
+.content-title a {
     color: var(--text-primary);
     font-size: 1.25rem;
     font-weight: 600;
 }
 
-.resource-description {
+.content-description {
     color: var(--text-secondary);
     margin-bottom: 1rem;
 }
 
-.resource-footer {
+.content-footer {
     display: flex;
     justify-content: space-between;
     align-items: center;
 }
 
-.resource-link {
+.content-link {
     color: var(--accent-color);
     font-weight: 500;
     font-size: 0.9rem;
 }
 
-/* Responsive adjustments for resource table */
+/* Responsive adjustments for content table */
 @media (max-width: 640px) {
-    .resource-row {
+    .content-row {
         padding: 0.875rem 1rem;
     }
 
-    .resource-vote-controls {
+    .content-vote-controls {
         padding-top: 0;
     }
 
@@ -1471,15 +1471,15 @@ textarea.form-input {
         height: 34px;
     }
 
-    .resource-row-title {
+    .content-row-title {
         font-size: 0.95rem;
     }
 
-    .resource-row-description {
+    .content-row-description {
         font-size: 0.85rem;
     }
 
-    .resource-open-btn {
+    .content-open-btn {
         width: 28px;
         height: 28px;
         font-size: 0.9rem;

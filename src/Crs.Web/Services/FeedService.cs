@@ -8,7 +8,7 @@ using Crs.Core.Enums;
 namespace Crs.Web.Services;
 
 /// <summary>
-/// Service for managing feeds and resources that integrates with the CRS API.
+/// Service for managing feeds and content that integrates with the CRS API.
 /// </summary>
 public class FeedService
 {
@@ -68,7 +68,7 @@ public class FeedService
         return response;
     }
 
-    public async Task<List<ResourceItem>> GetFeedAsync(ResourceType? type = null)
+    public async Task<List<ContentItem>> GetFeedAsync(ContentType? type = null)
     {
         try
         {
@@ -76,13 +76,13 @@ public class FeedService
             if (response == null)
             {
                 _logger.LogWarning("User not authenticated, cannot fetch feed");
-                return new List<ResourceItem>();
+                return new List<ContentItem>();
             }
 
             if (!response.IsSuccessStatusCode)
             {
                 _logger.LogWarning("Failed to fetch recommendations: {StatusCode}", response.StatusCode);
-                return new List<ResourceItem>();
+                return new List<ContentItem>();
             }
 
             var feedRecommendations = await response.Content.ReadFromJsonAsync<List<FeedRecommendationsResponse>>(JsonOptions);
@@ -90,11 +90,11 @@ public class FeedService
             if (feedRecommendations == null || !feedRecommendations.Any())
             {
                 _logger.LogInformation("No recommendations available");
-                return new List<ResourceItem>();
+                return new List<ContentItem>();
             }
 
             // Flatten all recommendations into a single list
-            var resources = new List<ResourceItem>();
+            var content = new List<ContentItem>();
 
             foreach (var feed in feedRecommendations)
             {
@@ -103,24 +103,24 @@ public class FeedService
 
                 foreach (var rec in feed.Recommendations)
                 {
-                    resources.Add(new ResourceItem
+                    content.Add(new ContentItem
                     {
-                        Id = rec.Resource.Id,
-                        Title = rec.Resource.Title,
-                        Url = rec.Resource.Url,
-                        Type = rec.Resource.Type,
-                        Description = rec.Resource.Description,
-                        PublishedAt = rec.Resource.PublishedDate ?? rec.Resource.CreatedAt
+                        Id = rec.Content.Id,
+                        Title = rec.Content.Title,
+                        Url = rec.Content.Url,
+                        Type = rec.Content.Type,
+                        Description = rec.Content.Description,
+                        PublishedAt = rec.Content.PublishedDate ?? rec.Content.CreatedAt
                     });
                 }
             }
 
-            return resources.OrderByDescending(r => r.PublishedAt).ToList();
+            return content.OrderByDescending(r => r.PublishedAt).ToList();
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error fetching feed");
-            return new List<ResourceItem>();
+            return new List<ContentItem>();
         }
     }
 
@@ -150,13 +150,13 @@ public class FeedService
         }
     }
 
-    public async Task<VoteItem?> VoteAsync(Guid resourceId, VoteType voteType)
+    public async Task<VoteItem?> VoteAsync(Guid contentId, VoteType voteType)
     {
         try
         {
             var request = new { voteType = voteType };
             var response = await SendAuthorizedAsync(() =>
-                _httpClient.PostAsJsonAsync($"/api/v1/resources/{resourceId}/vote", request, JsonOptions));
+                _httpClient.PostAsJsonAsync($"/api/v1/content/{contentId}/vote", request, JsonOptions));
             if (response == null)
             {
                 return null;
@@ -164,27 +164,27 @@ public class FeedService
 
             if (!response.IsSuccessStatusCode)
             {
-                _logger.LogWarning("Failed to vote on resource {ResourceId}: {StatusCode}", resourceId, response.StatusCode);
+                _logger.LogWarning("Failed to vote on content {ContentId}: {StatusCode}", contentId, response.StatusCode);
                 return null;
             }
 
             var vote = await response.Content.ReadFromJsonAsync<VoteItem>(JsonOptions);
-            _logger.LogInformation("Successfully voted {VoteType} on resource {ResourceId}", voteType, resourceId);
+            _logger.LogInformation("Successfully voted {VoteType} on content {ContentId}", voteType, contentId);
             return vote;
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error voting on resource {ResourceId}", resourceId);
+            _logger.LogError(ex, "Error voting on content {ContentId}", contentId);
             return null;
         }
     }
 
-    public async Task<bool> RemoveVoteAsync(Guid resourceId)
+    public async Task<bool> RemoveVoteAsync(Guid contentId)
     {
         try
         {
             var response = await SendAuthorizedAsync(() =>
-                _httpClient.DeleteAsync($"/api/v1/resources/{resourceId}/vote"));
+                _httpClient.DeleteAsync($"/api/v1/content/{contentId}/vote"));
             if (response == null)
             {
                 return false;
@@ -192,27 +192,27 @@ public class FeedService
 
             if (!response.IsSuccessStatusCode)
             {
-                _logger.LogWarning("Failed to remove vote from resource {ResourceId}: {StatusCode}", resourceId, response.StatusCode);
+                _logger.LogWarning("Failed to remove vote from content {ContentId}: {StatusCode}", contentId, response.StatusCode);
                 return false;
             }
 
-            _logger.LogInformation("Successfully removed vote from resource {ResourceId}", resourceId);
+            _logger.LogInformation("Successfully removed vote from content {ContentId}", contentId);
             return true;
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error removing vote from resource {ResourceId}", resourceId);
+            _logger.LogError(ex, "Error removing vote from content {ContentId}", contentId);
             return false;
         }
     }
 }
 
-public class ResourceItem
+public class ContentItem
 {
     public Guid Id { get; set; }
     public string Title { get; set; } = string.Empty;
     public string Url { get; set; } = string.Empty;
-    public ResourceType Type { get; set; }
+    public ContentType Type { get; set; }
     public string? Description { get; set; }
     public DateTime PublishedAt { get; set; }
 }
@@ -221,7 +221,7 @@ public class VoteItem
 {
     public Guid Id { get; set; }
     public Guid UserId { get; set; }
-    public Guid ResourceId { get; set; }
+    public Guid ContentId { get; set; }
     public VoteType VoteType { get; set; }
     public DateTime CreatedAt { get; set; }
     public DateTime? UpdatedAt { get; set; }
@@ -230,7 +230,7 @@ public class VoteItem
 // API Response DTOs
 public class FeedRecommendationsResponse
 {
-    public ResourceType FeedType { get; set; }
+    public ContentType FeedType { get; set; }
     public DateOnly Date { get; set; }
     public List<RecommendationItemResponse> Recommendations { get; set; } = new();
 }
@@ -238,20 +238,20 @@ public class FeedRecommendationsResponse
 public class RecommendationItemResponse
 {
     public Guid Id { get; set; }
-    public ResourceItemResponse Resource { get; set; } = null!;
+    public ContentItemResponse Content { get; set; } = null!;
     public int Position { get; set; }
     public double Score { get; set; }
     public DateTime GeneratedAt { get; set; }
 }
 
-public class ResourceItemResponse
+public class ContentItemResponse
 {
     public Guid Id { get; set; }
     public string Title { get; set; } = string.Empty;
     public string Description { get; set; } = string.Empty;
     public string Url { get; set; } = string.Empty;
     public DateTime? PublishedDate { get; set; }
-    public ResourceType Type { get; set; }
+    public ContentType Type { get; set; }
     public DateTime CreatedAt { get; set; }
     public DateTime UpdatedAt { get; set; }
 }

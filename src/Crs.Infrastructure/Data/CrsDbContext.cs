@@ -17,11 +17,11 @@ public class CrsDbContext : DbContext, IDataProtectionKeyContext
     // Entity DbSets
     public DbSet<User> Users { get; set; }
     public DbSet<Source> Sources { get; set; }
-    public DbSet<Resource> Resources { get; set; }
+    public DbSet<Content> Content { get; set; }
     public DbSet<Paper> Papers { get; set; }
     public DbSet<Video> Videos { get; set; }
     public DbSet<BlogPost> BlogPosts { get; set; }
-    public DbSet<ResourceVote> ResourceVotes { get; set; }
+    public DbSet<ContentVote> ContentVotes { get; set; }
     public DbSet<Recommendation> Recommendations { get; set; }
     public DbSet<XConnection> XConnections { get; set; }
     public DbSet<XFollowedAccount> XFollowedAccounts { get; set; }
