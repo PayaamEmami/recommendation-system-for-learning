@@ -46,7 +46,7 @@ chmod +x deploy.sh
 ```
 
 Optional flags:
-- `ENABLE_OPENSEARCH=true ./deploy.sh` creates OpenSearch (default is skipped) and enables ingestion/feed schedules.
+- `ENABLE_OPENSEARCH=true ./deploy.sh` creates OpenSearch (default is skipped) and enables AWS ingestion/feed schedules.
 
 This creates all AWS resources:
 - VPC and networking (`crs-vpc`, `crs-subnet-*`)
@@ -96,8 +96,8 @@ All resources are prefixed with `crs-` for clear separation from other projects:
 | S3 Bucket | `crs-web-{account-id}` |
 | App Runner | `crs-api` |
 | ECS Cluster | `crs-cluster` |
-| ECS Tasks | `crs-ingestion-task`, `crs-feed-task`, `crs-x-ingestion-task` |
-| EventBridge Rules | `crs-ingestion-schedule`, `crs-feed-schedule`, `crs-x-ingestion-schedule` |
+| ECS Tasks | `crs-ingestion-task`, `crs-feed-task` |
+| EventBridge Rules | `crs-ingestion-schedule`, `crs-feed-schedule` |
 | OpenSearch | `crs-search` |
 | Secrets | `crs-secrets/*` |
 | Log Groups | `/aws/apprunner/crs-api/*` for API, `/crs/*` for ECS jobs |
@@ -124,18 +124,6 @@ aws ecs run-task \
   --network-configuration 'awsvpcConfiguration={subnets=[SUBNET_ID],securityGroups=[SG_ID],assignPublicIp=ENABLED}' \
   --region us-west-2
 
-# Run X ingestion job
-aws ecs run-task \
-  --cluster crs-cluster \
-  --task-definition crs-x-ingestion-task \
-  --launch-type FARGATE \
-  --network-configuration 'awsvpcConfiguration={subnets=[SUBNET_ID],securityGroups=[SG_ID],assignPublicIp=ENABLED}' \
-  --region us-west-2
-```
-
-### View logs
-
-```bash
 # API logs
 SERVICE_ARN=$(aws apprunner list-services --query "ServiceSummaryList[?ServiceName=='crs-api'].ServiceArn" --output text --region us-west-2)
 SERVICE_ID=$(aws apprunner describe-service --service-arn "$SERVICE_ARN" --query 'Service.ServiceId' --output text --region us-west-2)
@@ -144,7 +132,6 @@ aws logs tail /aws/apprunner/crs-api/$SERVICE_ID/application --follow --region u
 # Job logs
 aws logs tail /crs/ingestion --follow --region us-west-2
 aws logs tail /crs/feed --follow --region us-west-2
-aws logs tail /crs/x-ingestion --follow --region us-west-2
 ```
 
 ### Update App Runner service

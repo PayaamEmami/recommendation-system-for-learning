@@ -31,11 +31,10 @@ All resources prefixed with `crs-` for clear separation:
 
 - 1 App Runner service (API) - `crs-api`
 - 1 S3 bucket + CloudFront (Web) - `crs-web-*`
-- 1 ECS Cluster - `crs-cluster` (task: `crs-x-ingestion-task`)
+- 1 ECS Cluster - `crs-cluster`
 - RDS PostgreSQL - `crs-db`
 - ECR repositories - `crs-api`, `crs-jobs`
 - EventBridge Scheduler - `crs-cloudfront-invalidation` (daily CloudFront cache invalidation at 1 PM Pacific)
-- EventBridge Rule - `crs-x-ingestion-schedule` (daily at 1 AM UTC)
 - Secrets Manager - `crs-secrets/*`
 - CloudWatch logs - `/aws/apprunner/crs-api/*` for API, `/crs/*` for ECS jobs
 - OpenAI API (direct, not AWS Bedrock)
@@ -109,7 +108,7 @@ The CloudFront invalidation runs as an AWS EventBridge Scheduler (`crs-cloudfron
 
 ### ECS Fargate (available but not primary)
 
-ECS task definitions and EventBridge rules exist for running jobs in AWS (e.g. `crs-x-ingestion-task` with `crs-x-ingestion-schedule`). The ingestion and feed ECS tasks require OpenSearch to be enabled (`ENABLE_OPENSEARCH=true` in `deploy.sh`). Currently OpenSearch Serverless is not deployed.
+ECS task definitions and EventBridge rules can be created for the ingestion and feed jobs in AWS when OpenSearch is enabled (`ENABLE_OPENSEARCH=true` in `deploy.sh`). X ingestion is intended to run locally via Windows Task Scheduler, not via AWS. Currently OpenSearch Serverless is not deployed.
 
 Tasks run hidden (no terminal window). Manage via PowerShell:
 

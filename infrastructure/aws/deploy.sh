@@ -406,7 +406,7 @@ create_cloudwatch_logs() {
 
     log_info "App Runner API logs are managed under /aws/apprunner/${PREFIX}-api/<service-id>/application"
 
-    for LOG_NAME in "jobs" "ingestion" "feed" "x-ingestion"; do
+    for LOG_NAME in "jobs" "ingestion" "feed"; do
         LOG_GROUP="/crs/$LOG_NAME"
         EXISTING=$(aws logs describe-log-groups --log-group-name-prefix "$LOG_GROUP" --region $REGION --query "logGroups[?logGroupName=='$LOG_GROUP'].logGroupName" --output text 2>/dev/null || echo "")
         if [ -z "$EXISTING" ]; then
@@ -706,9 +706,9 @@ register_task_definitions() {
     CONNECTION_STRING="Host=${RDS_ENDPOINT};Database=crsdb;Username=${DB_USERNAME};Password=${DB_PASSWORD}"
 
     # Register task definitions using inline JSON
-    JOB_TASKS=("x-ingestion")
+    JOB_TASKS=()
     if [ "$ENABLE_OPENSEARCH" = "true" ]; then
-        JOB_TASKS=("ingestion" "feed" "x-ingestion")
+        JOB_TASKS=("ingestion" "feed")
     fi
 
     for TASK in "${JOB_TASKS[@]}"; do
@@ -836,21 +836,10 @@ create_eventbridge_rules() {
         fi
     fi
 
-    # X ingestion job - daily at 1 AM UTC
-    if ! aws events describe-rule --name ${PREFIX}-x-ingestion-schedule --region $REGION &> /dev/null; then
-        aws events put-rule \
-            --name ${PREFIX}-x-ingestion-schedule \
-            --schedule-expression "cron(0 1 * * ? *)" \
-            --state ENABLED \
-            --tags Key=Project,Value=${PROJECT_TAG} \
-            --region $REGION
-        log_info "Created EventBridge rule: ${PREFIX}-x-ingestion-schedule (daily at 1 AM UTC)"
-    fi
-
     # Add ECS targets using inline JSON
-    JOB_TASKS=("x-ingestion")
+    JOB_TASKS=()
     if [ "$ENABLE_OPENSEARCH" = "true" ]; then
-        JOB_TASKS=("ingestion" "feed" "x-ingestion")
+        JOB_TASKS=("ingestion" "feed")
     fi
 
     for TASK in "${JOB_TASKS[@]}"; do
@@ -906,12 +895,11 @@ print_summary() {
     fi
     echo ""
     echo "Scheduled Jobs:"
-    if [ "$ENABLE_OPENSEARCH" != "true" ]; then
-        echo "  - X ingestion: Daily at 1 AM UTC"
-    else
+    if [ "$ENABLE_OPENSEARCH" = "true" ]; then
         echo "  - Ingestion: Weekly on Sunday at midnight UTC"
         echo "  - Feed: Weekly on Sunday at 2 AM UTC"
-        echo "  - X ingestion: Daily at 1 AM UTC"
+    else
+        echo "  - None (AWS ingestion/feed schedules disabled)"
     fi
     echo "  - CloudFront invalidation: Daily at 10 AM Pacific"
     echo ""
