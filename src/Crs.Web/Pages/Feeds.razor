@@ -50,9 +50,10 @@
                 </div>
             }
         }
-        else
-        {
-            <div class="feed-sections">
+
+        <div class="feed-sections">
+            @if (_content != null && _content.Any())
+            {
                 @foreach (var type in Enum.GetValues<ContentType>())
                 {
                     var contentOfType = _contentByType.ContainsKey(type) ? _contentByType[type] : new List<ContentItem>();
@@ -71,14 +72,14 @@
                                                     aria-label="Upvote content"
                                                     aria-busy="@_syncingVoteContentIds.Contains(content.Id)"
                                                     title="Upvote">
-                                                <span class="vote-icon">â–²</span>
+                                                <span class="vote-icon">&#9650;</span>
                                             </button>
                                             <button class="vote-btn vote-down @(GetVoteState(content.Id) == VoteType.Downvote ? "active" : "")"
                                                     @onclick="() => HandleVote(content.Id, VoteType.Downvote)"
                                                     aria-label="Downvote content"
                                                     aria-busy="@_syncingVoteContentIds.Contains(content.Id)"
                                                     title="Downvote">
-                                                <span class="vote-icon">â–¼</span>
+                                                <span class="vote-icon">&#9660;</span>
                                             </button>
                                         </div>
                                         <div class="content-content">
@@ -96,7 +97,7 @@
                                         </div>
                                         <div class="content-actions">
                                             <a href="@content.Url" target="_blank" rel="noopener" class="content-open-btn" title="Open content">
-                                                â†—
+                                                &#8599;
                                             </a>
                                         </div>
                                     </div>
@@ -105,117 +106,117 @@
                         </div>
                     }
                 }
-            </div>
-        }
+            }
 
-        <div class="feed-section">
-            <h2 class="section-title">Socials</h2>
-            <div class="x-feed-container">
-                <div class="x-feed-header">
-                    @if (_followedAccounts.Any())
-                    {
-                        <button class="x-feed-settings-btn" @onclick="ToggleXSettings" aria-label="X feed settings">
-                            âš™
-                        </button>
-                    }
-                </div>
-
-                @if (!string.IsNullOrEmpty(_xError))
-                {
-                    <div class="x-feed-error">@_xError</div>
-                }
-
-                @if (_xLoading)
-                {
-                    <p>Loading X feed...</p>
-                }
-                else if (!_followedAccounts.Any())
-                {
-                    <div class="x-connect-prompt">
-                        <p>Connect your X account to see posts from people you follow in your feed.</p>
-                        <button class="btn-primary" @onclick="ConnectXAsync" disabled="@_xConnecting">
-                            @(_xConnecting ? "Connecting..." : "Connect X")
-                        </button>
+            <div class="feed-section">
+                <h2 class="section-title">Socials</h2>
+                <div class="x-feed-container">
+                    <div class="x-feed-header">
+                        @if (_followedAccounts.Any())
+                        {
+                            <button class="x-feed-settings-btn" @onclick="ToggleXSettings" aria-label="X feed settings">
+                                &#9881;
+                            </button>
+                        }
                     </div>
-                }
-                else
-                {
-                    @if (_showXSettings)
+
+                    @if (!string.IsNullOrEmpty(_xError))
                     {
-                        <div class="x-followed-section">
-                            <div class="x-followed-list">
-                                <div class="x-followed-header">
-                                    <h3>Settings</h3>
-                                    <div class="x-followed-controls">
-                                        <button class="btn-tertiary" @onclick="ConnectXAsync" disabled="@_xConnecting">
-                                            Reconnect X
-                                        </button>
-                                        <button class="btn-tertiary" @onclick="RefreshXAsync" disabled="@_xLoading">
-                                            Refresh
-                                        </button>
-                                        <button class="btn-tertiary btn-danger-text" @onclick="DisconnectXAsync" disabled="@_xDisconnecting">
-                                            @(_xDisconnecting ? "Disconnecting..." : "Disconnect X")
-                                        </button>
-                                        @if (_xSavingSelections)
-                                        {
-                                            <span class="x-followed-saving">Saving...</span>
-                                        }
-                                    </div>
-                                </div>
-                                <div class="x-followed-grid">
-                                    @foreach (var account in _followedAccounts)
-                                    {
-                                        <label class="x-followed-item">
-                                            <input type="checkbox"
-                                                   checked="@_selectedAccountIds.Contains(account.Id)"
-                                                   disabled="@_xSavingSelections"
-                                                   @onchange="async (e) => await ToggleSelectedAsync(account.Id, e)" />
-                                            <img src="@account.ProfileImageUrl" alt="@account.Handle" />
-                                            <div>
-                                            <div class="x-followed-name">@TruncateName(account.DisplayName)</div>
-                                                <div class="x-followed-handle">@($"@{account.Handle}")</div>
-                                            </div>
-                                        </label>
-                                    }
-                                </div>
-                            </div>
-                        </div>
+                        <div class="x-feed-error">@_xError</div>
                     }
 
-                    @if (_posts.Any())
+                    @if (_xLoading)
                     {
-                        <div class="x-post-carousel">
-                            @foreach (var post in _posts)
-                            {
-                                <div class="x-post-card">
-                                    <div class="x-post-header">
-                                        <img src="@post.AuthorProfileImageUrl" alt="@post.AuthorHandle" />
-                                        <div>
-                                            <div class="x-post-author">@post.AuthorName</div>
-                                            <div class="x-post-handle">@($"@{post.AuthorHandle}")</div>
-                                        </div>
-                                    </div>
-                                    <div class="x-post-text">@post.Text</div>
-                                    @if (!string.IsNullOrEmpty(GetPostMediaUrl(post)))
-                                    {
-                                        <img class="x-post-media" src="@GetPostMediaUrl(post)" alt="Post media" />
-                                    }
-                                    <div class="x-post-meta">
-                                        <span>@FormatDate(post.PostCreatedAt)</span>
-                                        <span>â¤ @post.LikeCount</span>
-                                        <span>ðŸ’¬ @post.ReplyCount</span>
-                                        <span>ðŸ” @post.RepostCount</span>
-                                    </div>
-                                    <a class="x-post-link" href="@post.Url" target="_blank" rel="noopener">View on X</a>
-                                </div>
-                            }
+                        <p>Loading X feed...</p>
+                    }
+                    else if (!_followedAccounts.Any())
+                    {
+                        <div class="x-connect-prompt">
+                            <p>Connect your X account to see posts from people you follow in your feed.</p>
+                            <button class="btn-primary" @onclick="ConnectXAsync" disabled="@_xConnecting">
+                                @(_xConnecting ? "Connecting..." : "Connect X")
+                            </button>
                         </div>
                     }
                     else
                     {
-                        <p class="x-empty-state">No posts available yet. Try refreshing after the next ingest.</p>
+                        @if (_showXSettings)
+                        {
+                            <div class="x-followed-section">
+                                <div class="x-followed-list">
+                                    <div class="x-followed-header">
+                                        <h3>Settings</h3>
+                                        <div class="x-followed-controls">
+                                            <button class="btn-tertiary" @onclick="ConnectXAsync" disabled="@_xConnecting">
+                                                Reconnect X
+                                            </button>
+                                            <button class="btn-tertiary" @onclick="RefreshXAsync" disabled="@_xLoading">
+                                                Refresh
+                                            </button>
+                                            <button class="btn-tertiary btn-danger-text" @onclick="DisconnectXAsync" disabled="@_xDisconnecting">
+                                                @(_xDisconnecting ? "Disconnecting..." : "Disconnect X")
+                                            </button>
+                                            @if (_xSavingSelections)
+                                            {
+                                                <span class="x-followed-saving">Saving...</span>
+                                            }
+                                        </div>
+                                    </div>
+                                    <div class="x-followed-grid">
+                                        @foreach (var account in _followedAccounts)
+                                        {
+                                            <label class="x-followed-item">
+                                                <input type="checkbox"
+                                                       checked="@_selectedAccountIds.Contains(account.Id)"
+                                                       disabled="@_xSavingSelections"
+                                                       @onchange="async (e) => await ToggleSelectedAsync(account.Id, e)" />
+                                                <img src="@account.ProfileImageUrl" alt="@account.Handle" />
+                                                <div>
+                                                    <div class="x-followed-name">@TruncateName(account.DisplayName)</div>
+                                                    <div class="x-followed-handle">@($"@{account.Handle}")</div>
+                                                </div>
+                                            </label>
+                                        }
+                                    </div>
+                                </div>
+                            </div>
+                        }
+
+                        @if (_posts.Any())
+                        {
+                            <div class="x-post-carousel">
+                                @foreach (var post in _posts)
+                                {
+                                    <div class="x-post-card">
+                                        <div class="x-post-header">
+                                            <img src="@post.AuthorProfileImageUrl" alt="@post.AuthorHandle" />
+                                            <div>
+                                                <div class="x-post-author">@post.AuthorName</div>
+                                                <div class="x-post-handle">@($"@{post.AuthorHandle}")</div>
+                                            </div>
+                                        </div>
+                                        <div class="x-post-text">@post.Text</div>
+                                        @if (!string.IsNullOrEmpty(GetPostMediaUrl(post)))
+                                        {
+                                            <img class="x-post-media" src="@GetPostMediaUrl(post)" alt="Post media" />
+                                        }
+                                        <div class="x-post-meta">
+                                            <span>@FormatDate(post.PostCreatedAt)</span>
+                                            <span>Likes @post.LikeCount</span>
+                                            <span>Replies @post.ReplyCount</span>
+                                            <span>Reposts @post.RepostCount</span>
+                                        </div>
+                                        <a class="x-post-link" href="@post.Url" target="_blank" rel="noopener">View on X</a>
+                                    </div>
+                                }
+                            </div>
+                        }
+                        else
+                        {
+                            <p class="x-empty-state">No posts available yet. Try refreshing after the next ingest.</p>
+                        }
                     }
-                }
+                </div>
             </div>
         </div>
     </div>
@@ -616,10 +617,10 @@
     {
         return type switch
         {
-            ContentType.Paper => "ðŸ“„",
-            ContentType.Video => "ðŸŽ¬",
-            ContentType.BlogPost => "ðŸ“",
-            _ => "ðŸ“Ž"
+            ContentType.Paper => "Paper",
+            ContentType.Video => "Video",
+            ContentType.BlogPost => "Blog",
+            _ => type.ToString()
         };
     }
 
