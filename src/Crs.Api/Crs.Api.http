@@ -9,7 +9,7 @@
 @accessToken = YOUR_ACCESS_TOKEN_HERE
 @userId = YOUR_USER_ID_HERE
 @topicId = YOUR_TOPIC_ID_HERE
-@contentId = YOUR_RESOURCE_ID_HERE
+@contentId = YOUR_CONTENT_ID_HERE
 
 ###############################################################################
 # Health Check
