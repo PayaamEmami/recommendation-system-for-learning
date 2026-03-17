@@ -4,6 +4,7 @@ using System.Net.Http.Json;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using Crs.Core.Enums;
+using Microsoft.JSInterop;
 
 namespace Crs.Web.Services;
 
@@ -15,6 +16,7 @@ public class SourceService
     private readonly HttpClient _httpClient;
     private readonly AuthService _authService;
     private readonly ILogger<SourceService> _logger;
+    private readonly IJSRuntime _jsRuntime;
 
     private static readonly JsonSerializerOptions JsonOptions = new()
     {
@@ -26,11 +28,21 @@ public class SourceService
     public SourceService(
         HttpClient httpClient,
         AuthService authService,
-        ILogger<SourceService> logger)
+        ILogger<SourceService> logger,
+        IJSRuntime jsRuntime)
     {
         _httpClient = httpClient;
         _authService = authService;
         _logger = logger;
+        _jsRuntime = jsRuntime;
+    }
+
+    public SourceService(
+        HttpClient httpClient,
+        AuthService authService,
+        ILogger<SourceService> logger)
+        : this(httpClient, authService, logger, new NoOpJsRuntime())
+    {
     }
 
     private void SetAuthHeader()
@@ -294,7 +306,7 @@ public class SourceService
         }
     }
 
-    public async Task<BulkImportResultModel> BulkImportSourcesAsync(string json)
+    public async Task<ImportResultModel> ImportSourcesAsync(string json)
     {
         try
         {
@@ -308,21 +320,21 @@ public class SourceService
             if (!response.IsSuccessStatusCode)
             {
                 var errorContent = await response.Content.ReadAsStringAsync();
-                _logger.LogWarning("Failed to bulk import sources: {StatusCode} - {Content}", response.StatusCode, errorContent);
+                _logger.LogWarning("Failed to import sources: {StatusCode} - {Content}", response.StatusCode, errorContent);
                 throw new HttpRequestException($"Failed to import sources: {response.StatusCode}");
             }
 
-            var result = await response.Content.ReadFromJsonAsync<BulkImportResultResponse>(JsonOptions);
+            var result = await response.Content.ReadFromJsonAsync<ImportResultResponse>(JsonOptions);
             if (result == null)
             {
-                throw new InvalidOperationException("Failed to parse bulk import response");
+                throw new InvalidOperationException("Failed to parse import response");
             }
 
-            return new BulkImportResultModel
+            return new ImportResultModel
             {
                 Imported = result.Imported,
                 Failed = result.Failed,
-                Errors = result.Errors.Select(e => new BulkImportErrorModel
+                Errors = result.Errors.Select(e => new ImportErrorModel
                 {
                     Url = e.Url,
                     Error = e.Error
@@ -331,9 +343,38 @@ public class SourceService
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error during bulk import");
+            _logger.LogError(ex, "Error during source import");
             throw;
         }
+    }
+
+    public Task<ImportResultModel> BulkImportSourcesAsync(string json)
+    {
+        return ImportSourcesAsync(json);
+    }
+
+    public async Task ExportSourcesAsync(IEnumerable<SourceItem> sources)
+    {
+        var exportPayload = sources
+            .OrderBy(s => s.Name)
+            .Select(s => new SourceExportItem
+            {
+                Name = s.Name,
+                Url = s.Url,
+                Category = s.Category,
+                Description = s.Description
+            })
+            .ToList();
+
+        var json = JsonSerializer.Serialize(exportPayload, new JsonSerializerOptions
+        {
+            WriteIndented = true,
+            PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
+            Converters = { new JsonStringEnumConverter() }
+        });
+
+        var fileName = $"crs-sources-{DateTime.UtcNow:yyyy-MM-dd}.json";
+        await _jsRuntime.InvokeVoidAsync("downloadFile", fileName, "application/json", json);
     }
 }
 
@@ -385,28 +426,49 @@ public class SourceResponse
     public int ContentCount { get; set; }
 }
 
-public class BulkImportResultResponse
+public class ImportResultResponse
 {
     public int Imported { get; set; }
     public int Failed { get; set; }
-    public List<BulkImportErrorResponse> Errors { get; set; } = new();
+    public List<ImportErrorResponse> Errors { get; set; } = new();
 }
 
-public class BulkImportErrorResponse
+public class ImportErrorResponse
 {
     public string Url { get; set; } = string.Empty;
     public string Error { get; set; } = string.Empty;
 }
 
-public class BulkImportResultModel
+public class ImportResultModel
 {
     public int Imported { get; set; }
     public int Failed { get; set; }
-    public List<BulkImportErrorModel> Errors { get; set; } = new();
+    public List<ImportErrorModel> Errors { get; set; } = new();
 }
 
-public class BulkImportErrorModel
+public class ImportErrorModel
 {
     public string Url { get; set; } = string.Empty;
     public string Error { get; set; } = string.Empty;
+}
+
+public class SourceExportItem
+{
+    public string Name { get; set; } = string.Empty;
+    public string Url { get; set; } = string.Empty;
+    public ContentType Category { get; set; }
+    public string? Description { get; set; }
+}
+
+internal sealed class NoOpJsRuntime : IJSRuntime
+{
+    public ValueTask<TValue> InvokeAsync<TValue>(string identifier, object?[]? args)
+    {
+        return ValueTask.FromResult(default(TValue)!);
+    }
+
+    public ValueTask<TValue> InvokeAsync<TValue>(string identifier, CancellationToken cancellationToken, object?[]? args)
+    {
+        return ValueTask.FromResult(default(TValue)!);
+    }
 }

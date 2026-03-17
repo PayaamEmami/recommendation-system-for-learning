@@ -46,8 +46,11 @@
         <button class="tab-btn @(_activeTab == "single" ? "active" : "")" @onclick="SetTabSingle">
           Single Source
         </button>
-        <button class="tab-btn @(_activeTab == "bulk" ? "active" : "")" @onclick="SetTabBulk">
-          Bulk Import
+        <button class="tab-btn @(_activeTab == "import" ? "active" : "")" @onclick="SetTabImport">
+          Import
+        </button>
+        <button class="tab-btn @(_activeTab == "export" ? "active" : "")" @onclick="SetTabExport">
+          Export
         </button>
       </div>
 
@@ -100,9 +103,9 @@
           </EditForm>
         </div>
       }
-      else
+      else if (_activeTab == "import")
       {
-        <div class="bulk-import-form">
+        <div class="import-export-form">
           <p class="bulk-hint">Paste JSON array of sources. <button type="button" class="link-btn"
               @onclick="() => _showJsonExample = !_showJsonExample">@(_showJsonExample ? "Hide" : "Show") format</button>
           </p>
@@ -115,32 +118,47 @@
                               ]</pre>
           }
 
-          @if (!string.IsNullOrEmpty(_bulkImportError))
+          @if (!string.IsNullOrEmpty(_importError))
           {
-            <div class="error-message">@_bulkImportError</div>
+            <div class="error-message">@_importError</div>
           }
-          @if (!string.IsNullOrEmpty(_bulkImportSuccess))
+          @if (!string.IsNullOrEmpty(_importSuccess))
           {
-            <div class="success-message">@_bulkImportSuccess</div>
+            <div class="success-message">@_importSuccess</div>
           }
 
-          <textarea @bind="_bulkImportJson" class="form-input bulk-textarea" rows="6"
+          <textarea @bind="_importJson" class="form-input bulk-textarea" rows="6"
             placeholder='{"sources": [{"name": "...", "url": "...", "category": "Paper|Video|BlogPost"}]}'></textarea>
 
-          <button @onclick="HandleBulkImport" class="btn-primary" disabled="@_isBulkImporting">
-            @(_isBulkImporting ? "Importing..." : "Import Sources")
+          <button @onclick="HandleImport" class="btn-primary" disabled="@_isImporting">
+            @(_isImporting ? "Importing..." : "Import")
           </button>
 
-          @if (_bulkImportResult != null)
+          @if (_importResult != null)
           {
             <div class="import-results">
-              <span class="result-success">✓ @_bulkImportResult.Imported imported</span>
-              @if (_bulkImportResult.Failed > 0)
+              <span class="result-success">✓ @_importResult.Imported imported</span>
+              @if (_importResult.Failed > 0)
               {
-                <span class="result-fail">✗ @_bulkImportResult.Failed failed</span>
+                <span class="result-fail">✗ @_importResult.Failed failed</span>
               }
             </div>
           }
+        </div>
+      }
+      else
+      {
+        <div class="import-export-form">
+          <p class="bulk-hint">Download your current sources as a JSON file you can keep or import later.</p>
+
+          @if (!string.IsNullOrEmpty(_exportSuccessMessage))
+          {
+            <div class="success-message">@_exportSuccessMessage</div>
+          }
+
+          <button @onclick="HandleExport" class="btn-primary" disabled="@_isExporting || _sources == null || !_sources.Any()">
+            @(_isExporting ? "Exporting..." : "Export")
+          </button>
         </div>
       }
     </div>
@@ -275,12 +293,14 @@
   private string _activeTab = "single";
   private bool _showJsonExample;
 
-  // Bulk import fields
-  private string _bulkImportJson = "";
-  private string? _bulkImportError;
-  private string? _bulkImportSuccess;
-  private bool _isBulkImporting;
-  private BulkImportResultModel? _bulkImportResult;
+  // Import fields
+  private string _importJson = "";
+  private string? _importError;
+  private string? _importSuccess;
+  private bool _isImporting;
+  private ImportResultModel? _importResult;
+  private bool _isExporting;
+  private string? _exportSuccessMessage;
 
   protected override async Task OnAfterRenderAsync(bool firstRender)
   {
@@ -427,37 +447,58 @@
     await LoadSources();
   }
 
-  private async Task HandleBulkImport()
+  private async Task HandleImport()
   {
-    _isBulkImporting = true;
-    _bulkImportError = null;
-    _bulkImportSuccess = null;
-    _bulkImportResult = null;
+    _isImporting = true;
+    _importError = null;
+    _importSuccess = null;
+    _importResult = null;
 
     try
     {
-      var result = await SourceService.BulkImportSourcesAsync(_bulkImportJson);
-      _bulkImportResult = result;
+      var result = await SourceService.ImportSourcesAsync(_importJson);
+      _importResult = result;
 
       if (result.Imported > 0)
       {
-        _bulkImportSuccess = $"Imported {result.Imported} source(s)";
+        _importSuccess = $"Imported {result.Imported} source(s)";
         await LoadSources();
-        if (result.Failed == 0) _bulkImportJson = "";
+        if (result.Failed == 0) _importJson = "";
       }
 
       if (result.Failed > 0)
       {
-        _bulkImportError = $"{result.Failed} failed to import";
+        _importError = $"{result.Failed} failed to import";
       }
     }
     catch (Exception ex)
     {
-      _bulkImportError = $"Import failed: {ex.Message}";
+      _importError = $"Import failed: {ex.Message}";
     }
     finally
     {
-      _isBulkImporting = false;
+      _isImporting = false;
+    }
+  }
+
+  private async Task HandleExport()
+  {
+    if (_sources == null || !_sources.Any())
+    {
+      return;
+    }
+
+    _isExporting = true;
+    _exportSuccessMessage = null;
+
+    try
+    {
+      await SourceService.ExportSourcesAsync(_sources);
+      _exportSuccessMessage = $"Exported {_sources.Count} source(s)";
+    }
+    finally
+    {
+      _isExporting = false;
     }
   }
 
@@ -470,7 +511,8 @@
   }
 
   private void SetTabSingle() => _activeTab = "single";
-  private void SetTabBulk() => _activeTab = "bulk";
+  private void SetTabImport() => _activeTab = "import";
+  private void SetTabExport() => _activeTab = "export";
 
   private string GetPageTitle()
   {
