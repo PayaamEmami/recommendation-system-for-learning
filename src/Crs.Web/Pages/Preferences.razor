@@ -1,0 +1,277 @@
+@page "/preferences"
+@using Crs.Core.Enums
+@inject AuthService AuthService
+@inject PreferencesService PreferencesService
+@inject NavigationManager Navigation
+
+<PageTitle>Preferences - CRS</PageTitle>
+
+<div class="page-container preferences-page">
+    <div class="page-header">
+        <h1>Preferences</h1>
+        <p class="subtitle">Add content manually to steer recommendations, even if it never appeared in your feed.</p>
+    </div>
+
+    <div class="preferences-layout">
+        <div class="preferences-editor-card">
+            <h2>@(_editingPreferenceId.HasValue ? "Edit Preference" : "Add Preference")</h2>
+
+            @if (!string.IsNullOrWhiteSpace(_errorMessage))
+            {
+                <div class="error-message">@_errorMessage</div>
+            }
+
+            @if (!string.IsNullOrWhiteSpace(_successMessage))
+            {
+                <div class="success-message">@_successMessage</div>
+            }
+
+            <EditForm Model="_formModel" OnValidSubmit="HandleSubmitAsync">
+                <DataAnnotationsValidator />
+                <div class="form-grid">
+                    <div class="form-group form-group-wide">
+                        <label for="preference-title">Title</label>
+                        <InputText id="preference-title" @bind-Value="_formModel.Title" class="form-input" placeholder="e.g. Distill article on transformers" />
+                        <ValidationMessage For="@(() => _formModel.Title)" />
+                    </div>
+
+                    <div class="form-group">
+                        <label for="preference-type">Content Type <span class="optional">(optional)</span></label>
+                        <InputSelect id="preference-type" @bind-Value="_formModel.ContentType" class="form-input">
+                            <option value="">Select...</option>
+                            @foreach (var type in Enum.GetValues<ContentType>())
+                            {
+                                <option value="@type">@GetContentTypeDisplay(type)</option>
+                            }
+                        </InputSelect>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="preference-vote">Preference</label>
+                        <InputSelect id="preference-vote" @bind-Value="_formModel.VoteType" class="form-input">
+                            <option value="@VoteType.Upvote">Upvote</option>
+                            <option value="@VoteType.Downvote">Downvote</option>
+                        </InputSelect>
+                    </div>
+
+                    <div class="form-group form-group-wide">
+                        <label for="preference-url">URL <span class="optional">(optional)</span></label>
+                        <InputText id="preference-url" @bind-Value="_formModel.Url" class="form-input" placeholder="https://example.com/article" />
+                        <ValidationMessage For="@(() => _formModel.Url)" />
+                    </div>
+
+                    <div class="form-group form-group-wide">
+                        <label for="preference-description">Description <span class="optional">(optional)</span></label>
+                        <InputTextArea id="preference-description" @bind-Value="_formModel.Description" class="form-input preference-textarea" placeholder="What about this content did you like or dislike?" />
+                        <ValidationMessage For="@(() => _formModel.Description)" />
+                    </div>
+                </div>
+
+                <div class="preferences-form-actions">
+                    <button type="submit" class="btn-primary" disabled="@_isSaving">
+                        @(_isSaving ? "Saving..." : _editingPreferenceId.HasValue ? "Save Changes" : "Add Preference")
+                    </button>
+                    @if (_editingPreferenceId.HasValue)
+                    {
+                        <button type="button" class="btn-secondary" @onclick="ResetForm" disabled="@_isSaving">Cancel</button>
+                    }
+                </div>
+            </EditForm>
+        </div>
+
+        <div class="preferences-list-card">
+            <div class="preferences-list-header">
+                <h2>Saved Preferences</h2>
+                <span class="preferences-count">@_preferences.Count item@(_preferences.Count == 1 ? "" : "s")</span>
+            </div>
+
+            @if (_isLoading)
+            {
+                <p>Loading preferences...</p>
+            }
+            else if (!_preferences.Any())
+            {
+                <div class="empty-state">
+                    <h3>No preferences yet</h3>
+                    <p>Add a few liked or disliked examples to give the recommendation system more signal.</p>
+                </div>
+            }
+            else
+            {
+                <div class="preferences-list">
+                    @foreach (var preference in _preferences)
+                    {
+                        <div class="preference-row">
+                            <div class="preference-vote @GetVoteCss(preference.VoteType)">
+                                @(preference.VoteType == VoteType.Upvote ? "Upvote" : "Downvote")
+                            </div>
+                            <div class="preference-content">
+                                <div class="preference-meta">
+                                    @if (preference.ContentType.HasValue)
+                                    {
+                                        <span class="content-type-badge">@GetContentTypeDisplay(preference.ContentType.Value)</span>
+                                    }
+                                    <span class="content-date">@FormatDate(preference.UpdatedAt)</span>
+                                </div>
+                                <h3 class="content-row-title">
+                                    @if (!string.IsNullOrWhiteSpace(preference.Url))
+                                    {
+                                        <a href="@preference.Url" target="_blank" rel="noopener">@preference.Title</a>
+                                    }
+                                    else
+                                    {
+                                        <span>@preference.Title</span>
+                                    }
+                                </h3>
+                                @if (!string.IsNullOrWhiteSpace(preference.Description))
+                                {
+                                    <p class="content-row-description">@preference.Description</p>
+                                }
+                            </div>
+                            <div class="preference-actions">
+                                <button class="action-btn" @onclick="() => StartEdit(preference)" disabled="@_isSaving" title="Edit">Edit</button>
+                                <button class="action-btn danger-text" @onclick="() => DeletePreferenceAsync(preference.Id)" disabled="@_isSaving" title="Delete">Delete</button>
+                            </div>
+                        </div>
+                    }
+                </div>
+            }
+        </div>
+    </div>
+</div>
+
+@code {
+    private readonly List<PreferenceItem> _preferences = new();
+    private PreferenceFormModel _formModel = new();
+    private Guid? _editingPreferenceId;
+    private bool _isLoading = true;
+    private bool _isSaving;
+    private string? _errorMessage;
+    private string? _successMessage;
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (!await AuthService.EnsureAuthenticatedAsync())
+        {
+            Navigation.NavigateTo("/login");
+            return;
+        }
+
+        await LoadPreferencesAsync();
+    }
+
+    private async Task LoadPreferencesAsync()
+    {
+        _isLoading = true;
+        _preferences.Clear();
+        _preferences.AddRange(await PreferencesService.GetPreferencesAsync());
+        _isLoading = false;
+    }
+
+    private async Task HandleSubmitAsync()
+    {
+        _isSaving = true;
+        _errorMessage = null;
+        _successMessage = null;
+        var wasEditing = _editingPreferenceId.HasValue;
+
+        var request = new PreferenceUpsertRequest
+        {
+            Title = _formModel.Title,
+            Description = _formModel.Description,
+            Url = _formModel.Url,
+            ContentType = _formModel.ContentType,
+            VoteType = _formModel.VoteType
+        };
+
+        PreferenceItem? savedPreference = wasEditing
+            ? await PreferencesService.UpdatePreferenceAsync(_editingPreferenceId!.Value, request)
+            : await PreferencesService.CreatePreferenceAsync(request);
+
+        if (savedPreference == null)
+        {
+            _errorMessage = "We couldn't save that preference. Please try again.";
+            _isSaving = false;
+            return;
+        }
+
+        await LoadPreferencesAsync();
+        ResetForm();
+        _successMessage = wasEditing ? "Preference updated." : "Preference added.";
+        _isSaving = false;
+    }
+
+    private void StartEdit(PreferenceItem preference)
+    {
+        _editingPreferenceId = preference.Id;
+        _errorMessage = null;
+        _successMessage = null;
+        _formModel = new PreferenceFormModel
+        {
+            Title = preference.Title,
+            Description = preference.Description,
+            Url = preference.Url,
+            ContentType = preference.ContentType,
+            VoteType = preference.VoteType
+        };
+    }
+
+    private async Task DeletePreferenceAsync(Guid preferenceId)
+    {
+        _errorMessage = null;
+        _successMessage = null;
+
+        var deleted = await PreferencesService.DeletePreferenceAsync(preferenceId);
+        if (!deleted)
+        {
+            _errorMessage = "We couldn't delete that preference. Please try again.";
+            return;
+        }
+
+        if (_editingPreferenceId == preferenceId)
+        {
+            ResetForm();
+        }
+
+        await LoadPreferencesAsync();
+        _successMessage = "Preference deleted.";
+    }
+
+    private void ResetForm()
+    {
+        _editingPreferenceId = null;
+        _formModel = new PreferenceFormModel();
+    }
+
+    private static string GetContentTypeDisplay(ContentType type) => type switch
+    {
+        ContentType.BlogPost => "Blog Post",
+        _ => type.ToString()
+    };
+
+    private static string GetVoteCss(VoteType voteType) => voteType == VoteType.Upvote ? "vote-up" : "vote-down";
+
+    private static string FormatDate(DateTime dateTime)
+    {
+        var local = dateTime.ToLocalTime();
+        return local.ToString("MMM d, yyyy");
+    }
+
+    private sealed class PreferenceFormModel
+    {
+        [Required(ErrorMessage = "Title is required")]
+        [StringLength(500, ErrorMessage = "Title cannot exceed 500 characters")]
+        public string Title { get; set; } = string.Empty;
+
+        [StringLength(5000, ErrorMessage = "Description cannot exceed 5000 characters")]
+        public string? Description { get; set; }
+
+        [Url(ErrorMessage = "Invalid URL format")]
+        [StringLength(2000, ErrorMessage = "URL cannot exceed 2000 characters")]
+        public string? Url { get; set; }
+
+        public ContentType? ContentType { get; set; }
+
+        public VoteType VoteType { get; set; } = VoteType.Upvote;
+    }
+}

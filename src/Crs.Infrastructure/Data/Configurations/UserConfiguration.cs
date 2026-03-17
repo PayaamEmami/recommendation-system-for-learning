@@ -51,6 +51,12 @@ public class UserConfiguration : IEntityTypeConfiguration<User>
             .HasForeignKey(v => v.UserId)
             .OnDelete(DeleteBehavior.Cascade);
 
+        // One-to-Many relationship with ManualContentFeedback
+        builder.HasMany(u => u.ManualContentFeedback)
+            .WithOne(f => f.User)
+            .HasForeignKey(f => f.UserId)
+            .OnDelete(DeleteBehavior.Cascade);
+
         // One-to-Many relationship with Recommendations
         builder.HasMany(u => u.Recommendations)
             .WithOne(r => r.User)
@@ -58,4 +64,3 @@ public class UserConfiguration : IEntityTypeConfiguration<User>
             .OnDelete(DeleteBehavior.Cascade);
     }
 }
-

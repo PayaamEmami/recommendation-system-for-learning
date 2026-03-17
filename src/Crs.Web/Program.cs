@@ -35,6 +35,7 @@ builder.Services.AddScoped<AuthService>();
 builder.Services.AddScoped<ThemeService>();
 builder.Services.AddScoped<SourceService>();
 builder.Services.AddScoped<FeedService>();
+builder.Services.AddScoped<PreferencesService>();
 builder.Services.AddScoped<XFeedService>();
 
 await builder.Build().RunAsync();

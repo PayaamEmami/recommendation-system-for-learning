@@ -1,4 +1,5 @@
 using Microsoft.Extensions.Logging;
+using Crs.Core.Entities;
 using Crs.Core.Enums;
 using Crs.Core.Interfaces;
 using Crs.Recommendation.Models;
@@ -11,18 +12,18 @@ namespace Crs.Recommendation.Services;
 public class UserProfileService : IUserProfileService
 {
     private readonly IContentVoteRepository _voteRepository;
-    private readonly IContentRepository _contentRepository;
+    private readonly IManualContentFeedbackRepository _manualContentFeedbackRepository;
     private readonly IEmbeddingService _embeddingService;
     private readonly ILogger<UserProfileService> _logger;
 
     public UserProfileService(
         IContentVoteRepository voteRepository,
-        IContentRepository contentRepository,
+        IManualContentFeedbackRepository manualContentFeedbackRepository,
         IEmbeddingService embeddingService,
         ILogger<UserProfileService> logger)
     {
         _voteRepository = voteRepository;
-        _contentRepository = contentRepository;
+        _manualContentFeedbackRepository = manualContentFeedbackRepository;
         _embeddingService = embeddingService;
         _logger = logger;
     }
@@ -40,17 +41,18 @@ public class UserProfileService : IUserProfileService
         // Get all user votes
         var votes = await _voteRepository.GetByUserAsync(userId, cancellationToken);
         var votesList = votes.ToList();
+        var manualFeedback = (await _manualContentFeedbackRepository.GetByUserAsync(userId, cancellationToken)).ToList();
 
-        if (!votesList.Any())
+        if (!votesList.Any() && !manualFeedback.Any())
         {
-            _logger.LogInformation("No voting history for user {UserId}, returning empty profile", userId);
+            _logger.LogInformation("No voting history or manual feedback for user {UserId}, returning empty profile", userId);
             return profile;
         }
 
-        profile.TotalInteractions = votesList.Count;
+        profile.TotalInteractions = votesList.Count + manualFeedback.Count;
 
-        // Build user embedding from upvoted content
-        await BuildUserEmbeddingAsync(profile, votesList, cancellationToken);
+        // Build user embedding from voted content and manual preference entries.
+        await BuildUserEmbeddingAsync(profile, votesList, manualFeedback, cancellationToken);
 
         // Calculate source scores based on votes (legacy, kept for hybrid scoring)
         BuildSourceScores(profile, votesList);
@@ -65,31 +67,37 @@ public class UserProfileService : IUserProfileService
     }
 
     /// <summary>
-    /// Build user preference embedding by aggregating embeddings of upvoted content.
+    /// Build user preference embedding from both normal votes and manual preference entries.
     /// </summary>
     private async Task BuildUserEmbeddingAsync(
         UserInterestProfile profile,
         List<Core.Entities.ContentVote> votes,
+        List<ManualContentFeedback> manualFeedback,
         CancellationToken cancellationToken)
     {
         try
         {
-            // Filter to upvoted content only
-            var upvotedContent = votes
-                .Where(v => v.VoteType == VoteType.Upvote)
-                .Select(v => v.Content)
+            var preferenceSignals = votes
+                .Select(v => new PreferenceSignal
+                {
+                    Text = $"{v.Content.Title} {v.Content.Description}".Trim(),
+                    Weight = v.VoteType == VoteType.Upvote ? 1.0f : -0.5f
+                })
+                .Concat(manualFeedback.Select(f => new PreferenceSignal
+                {
+                    Text = $"{f.Title} {f.Description}".Trim(),
+                    Weight = f.VoteType == VoteType.Upvote ? 1.0f : -0.5f
+                }))
+                .Where(s => !string.IsNullOrWhiteSpace(s.Text))
                 .ToList();
 
-            if (!upvotedContent.Any())
+            if (!preferenceSignals.Any())
             {
-                _logger.LogInformation("No upvoted content for user {UserId}, cannot build embedding", profile.UserId);
+                _logger.LogInformation("No usable preference text for user {UserId}, cannot build embedding", profile.UserId);
                 return;
             }
 
-            // Generate embeddings for all upvoted content
-            var texts = upvotedContent
-                .Select(r => $"{r.Title} {r.Description}".Trim())
-                .ToList();
+            var texts = preferenceSignals.Select(s => s.Text).ToList();
 
             var embeddings = await _embeddingService.GenerateEmbeddingsAsync(texts, cancellationToken);
 
@@ -104,11 +112,14 @@ public class UserProfileService : IUserProfileService
             var dimensions = embeddingsList[0].Length;
             var averageEmbedding = new float[dimensions];
 
-            foreach (var embedding in embeddingsList)
+            for (var embeddingIndex = 0; embeddingIndex < embeddingsList.Count; embeddingIndex++)
             {
+                var embedding = embeddingsList[embeddingIndex];
+                var weight = preferenceSignals[embeddingIndex].Weight;
+
                 for (int i = 0; i < dimensions; i++)
                 {
-                    averageEmbedding[i] += embedding[i];
+                    averageEmbedding[i] += embedding[i] * weight;
                 }
             }
 
@@ -130,8 +141,8 @@ public class UserProfileService : IUserProfileService
             profile.UserEmbedding = averageEmbedding;
 
             _logger.LogDebug(
-                "Built user embedding from {Count} upvoted content for user {UserId}",
-                upvotedContent.Count,
+                "Built user embedding from {Count} preference signals for user {UserId}",
+                preferenceSignals.Count,
                 profile.UserId);
         }
         catch (Exception ex)
@@ -139,6 +150,12 @@ public class UserProfileService : IUserProfileService
             _logger.LogError(ex, "Error building user embedding for user {UserId}", profile.UserId);
             // Continue without embedding - other scorers can still work
         }
+    }
+
+    private sealed class PreferenceSignal
+    {
+        public string Text { get; set; } = string.Empty;
+        public float Weight { get; set; }
     }
 
     /// <summary>
@@ -188,5 +205,3 @@ public class UserProfileService : IUserProfileService
         }
     }
 }
-
-

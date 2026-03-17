@@ -22,6 +22,7 @@ public class CrsDbContext : DbContext, IDataProtectionKeyContext
     public DbSet<Video> Videos { get; set; }
     public DbSet<BlogPost> BlogPosts { get; set; }
     public DbSet<ContentVote> ContentVotes { get; set; }
+    public DbSet<ManualContentFeedback> ManualContentFeedback { get; set; }
     public DbSet<Recommendation> Recommendations { get; set; }
     public DbSet<XConnection> XConnections { get; set; }
     public DbSet<XFollowedAccount> XFollowedAccounts { get; set; }
@@ -39,4 +40,3 @@ public class CrsDbContext : DbContext, IDataProtectionKeyContext
         modelBuilder.ApplyConfigurationsFromAssembly(typeof(CrsDbContext).Assembly);
     }
 }
-

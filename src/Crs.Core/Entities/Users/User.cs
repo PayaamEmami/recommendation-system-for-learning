@@ -45,6 +45,11 @@ public class User
     public List<ContentVote> Votes { get; set; } = new();
 
     /// <summary>
+    /// Manual preference entries supplied by the user.
+    /// </summary>
+    public List<ManualContentFeedback> ManualContentFeedback { get; set; } = new();
+
+    /// <summary>
     /// Recommendations generated for this user.
     /// </summary>
     public List<Recommendation> Recommendations { get; set; } = new();
@@ -69,4 +74,3 @@ public class User
     /// </summary>
     public List<XPost> XPosts { get; set; } = new();
 }
-
