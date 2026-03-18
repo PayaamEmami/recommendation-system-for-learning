@@ -349,6 +349,71 @@ public class OpenSearchVectorStore : IVectorStore
         }
     }
 
+    public async Task<HashSet<Guid>> GetAllDocumentIdsAsync(CancellationToken cancellationToken = default)
+    {
+        const int pageSize = 1000;
+        var documentIds = new HashSet<Guid>();
+        object[]? searchAfter = null;
+
+        try
+        {
+            while (true)
+            {
+                var response = await _client.SearchAsync<ContentSearchDocument>(s =>
+                {
+                    var descriptor = s
+                        .Index(_settings.IndexName)
+                        .Size(pageSize)
+                        .Sort(sort => sort
+                            .Ascending(f => f.CreatedAt)
+                            .Ascending(f => f.Id));
+
+                    if (searchAfter != null)
+                    {
+                        descriptor = descriptor.SearchAfter(searchAfter);
+                    }
+
+                    return descriptor;
+                }, cancellationToken);
+
+                if (!response.IsValid)
+                {
+                    _logger.LogError("Failed to list indexed document IDs: {Error}", response.DebugInformation);
+                    throw new Exception($"Failed to list indexed document IDs: {response.DebugInformation}");
+                }
+
+                if (!response.Hits.Any())
+                {
+                    break;
+                }
+
+                foreach (var hit in response.Hits)
+                {
+                    if (Guid.TryParse(hit.Source.Id, out var contentId))
+                    {
+                        documentIds.Add(contentId);
+                    }
+                }
+
+                var lastSort = response.Hits.Last().Sorts;
+                if (lastSort == null || lastSort.Count == 0)
+                {
+                    break;
+                }
+
+                searchAfter = lastSort.ToArray();
+            }
+
+            _logger.LogInformation("Loaded {Count} indexed document IDs from OpenSearch", documentIds.Count);
+            return documentIds;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error listing indexed document IDs");
+            throw;
+        }
+    }
+
     private static ContentSearchDocument ToSearchDocument(ContentDocument document)
     {
         return new ContentSearchDocument

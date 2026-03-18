@@ -45,4 +45,10 @@ public interface IVectorStore
     /// Get the total count of documents in the vector index.
     /// </summary>
     Task<long> GetDocumentCountAsync(CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Get all content IDs currently stored in the vector index.
+    /// Useful for reconciliation when the vector index is treated as a rebuildable cache.
+    /// </summary>
+    Task<HashSet<Guid>> GetAllDocumentIdsAsync(CancellationToken cancellationToken = default);
 }

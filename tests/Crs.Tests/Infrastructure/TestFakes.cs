@@ -61,6 +61,11 @@ public sealed class InMemoryVectorStore : IVectorStore
     {
         return Task.FromResult((long)_documents.Count);
     }
+
+    public Task<HashSet<Guid>> GetAllDocumentIdsAsync(CancellationToken cancellationToken = default)
+    {
+        return Task.FromResult(_documents.Keys.ToHashSet());
+    }
 }
 
 public sealed class FakeLlmClient : ILlmClient

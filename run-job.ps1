@@ -1,6 +1,6 @@
 param(
     [Parameter(Mandatory=$true)]
-    [ValidateSet("ingestion", "x-ingestion", "feed")]
+    [ValidateSet("ingestion", "x-ingestion", "feed", "reindex", "sync-index")]
     [string]$JobName
 )
 
