@@ -1,4 +1,5 @@
 @inject AuthService AuthService
+@inject IJSRuntime JSRuntime
 @inject NavigationManager NavigationManager
 
 <header class="app-header">
@@ -11,7 +12,7 @@
         </nav>
 
         <div class="header-actions">
-            <div class="user-menu" tabindex="0" @onfocusout="HandleUserMenuFocusOut" @onkeydown="HandleUserMenuKeyDown">
+            <div class="user-menu" tabindex="0" @ref="_userMenuRef" @onfocusout="HandleUserMenuFocusOut" @onkeydown="HandleUserMenuKeyDown">
                 <button class="user-menu-trigger" @onclick="ToggleUserMenu" aria-expanded="@_isUserMenuOpen" aria-haspopup="menu">
                     <span class="user-name">@AuthService.CurrentState.DisplayName</span>
                 </button>
@@ -30,6 +31,7 @@
 
 @code {
     private bool _isUserMenuOpen;
+    private ElementReference _userMenuRef;
 
     private void ToggleUserMenu()
     {
@@ -41,9 +43,20 @@
         _isUserMenuOpen = false;
     }
 
-    private void HandleUserMenuFocusOut(FocusEventArgs _)
+    private async Task HandleUserMenuFocusOut(FocusEventArgs _)
     {
-        _isUserMenuOpen = false;
+        if (!_isUserMenuOpen)
+        {
+            return;
+        }
+
+        await Task.Yield();
+
+        var hasFocusWithin = await JSRuntime.InvokeAsync<bool>("userMenu.hasFocusWithin", _userMenuRef);
+        if (!hasFocusWithin)
+        {
+            _isUserMenuOpen = false;
+        }
     }
 
     private void HandleUserMenuKeyDown(KeyboardEventArgs args)
