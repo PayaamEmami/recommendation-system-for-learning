@@ -76,6 +76,39 @@ public class RecommendationRepository : IRecommendationRepository
         return recommendationsList;
     }
 
+    public async Task ReplaceFeedAsync(
+        Guid userId,
+        DateOnly date,
+        ContentType feedType,
+        IEnumerable<Recommendation> recommendations,
+        CancellationToken cancellationToken = default)
+    {
+        var recommendationsList = recommendations.ToList();
+        var strategy = _context.Database.CreateExecutionStrategy();
+
+        await strategy.ExecuteAsync(async () =>
+        {
+            await using var transaction = await _context.Database.BeginTransactionAsync(cancellationToken);
+
+            var existing = await _context.Recommendations
+                .Where(r => r.UserId == userId && r.Date == date && r.FeedType == feedType)
+                .ToListAsync(cancellationToken);
+
+            if (existing.Any())
+            {
+                _context.Recommendations.RemoveRange(existing);
+            }
+
+            if (recommendationsList.Any())
+            {
+                await _context.Recommendations.AddRangeAsync(recommendationsList, cancellationToken);
+            }
+
+            await _context.SaveChangesAsync(cancellationToken);
+            await transaction.CommitAsync(cancellationToken);
+        });
+    }
+
     public async Task DeleteAsync(Guid id, CancellationToken cancellationToken = default)
     {
         var recommendation = await _context.Recommendations.FindAsync(new object[] { id }, cancellationToken);
@@ -119,4 +152,3 @@ public class RecommendationRepository : IRecommendationRepository
             .FirstOrDefaultAsync(cancellationToken);
     }
 }
-

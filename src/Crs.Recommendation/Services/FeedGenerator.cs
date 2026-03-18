@@ -43,15 +43,27 @@ public class FeedGenerator : IFeedGenerator
             userId, feedType, date, count);
 
         // Check if recommendations already exist for this date/feed
-        var existing = await _recommendationRepository.GetByUserDateAndTypeAsync(
-            userId, date, feedType, cancellationToken);
+        var existing = (await _recommendationRepository.GetByUserDateAndTypeAsync(
+            userId, date, feedType, cancellationToken))
+            .ToList();
+
+        if (IsCompleteFeed(existing, count))
+        {
+            _logger.LogInformation(
+                "Complete recommendations already exist for user {UserId}, feed {FeedType}, date {Date}",
+                userId, feedType, date);
+            return existing;
+        }
 
         if (existing.Any())
         {
-            _logger.LogInformation(
-                "Recommendations already exist for user {UserId}, feed {FeedType}, date {Date}",
-                userId, feedType, date);
-            return existing.ToList();
+            _logger.LogWarning(
+                "Found incomplete recommendation feed for user {UserId}, feed {FeedType}, date {Date}. Expected {ExpectedCount} items but found {ExistingCount}. Regenerating.",
+                userId,
+                feedType,
+                date,
+                count,
+                existing.Count);
         }
 
         // Build user profile
@@ -63,7 +75,7 @@ public class FeedGenerator : IFeedGenerator
 
         // Get recently recommended content (last 7 days) to avoid repetition
         var recentRecommendations = await _recommendationRepository.GetRecentByUserAsync(
-            userId, date.AddDays(-7), date, cancellationToken);
+            userId, date.AddDays(-7), date.AddDays(-1), cancellationToken);
         var recentlyRecommendedIds = recentRecommendations.Select(r => r.ContentId).ToHashSet();
 
         // Build recommendation context
@@ -107,15 +119,40 @@ public class FeedGenerator : IFeedGenerator
                 GeneratedAt = DateTime.UtcNow
             };
 
-            await _recommendationRepository.AddAsync(recommendation, cancellationToken);
             recommendations.Add(recommendation);
         }
+
+        await _recommendationRepository.ReplaceFeedAsync(
+            userId,
+            date,
+            feedType,
+            recommendations,
+            cancellationToken);
 
         _logger.LogInformation(
             "Generated and saved {Count} recommendations for user {UserId}, feed {FeedType}",
             recommendations.Count, userId, feedType);
 
         return recommendations;
+    }
+
+    private static bool IsCompleteFeed(
+        IReadOnlyCollection<Core.Entities.Recommendation> recommendations,
+        int expectedCount)
+    {
+        if (recommendations.Count != expectedCount)
+        {
+            return false;
+        }
+
+        var positions = recommendations
+            .Select(r => r.Position)
+            .OrderBy(position => position)
+            .ToList();
+
+        return positions.Distinct().Count() == expectedCount &&
+               positions.First() == 1 &&
+               positions.Last() == expectedCount;
     }
 
     public async Task<List<Core.Entities.Recommendation>> GenerateAllFeedsAsync(
@@ -145,4 +182,3 @@ public class FeedGenerator : IFeedGenerator
         return allRecommendations;
     }
 }
-

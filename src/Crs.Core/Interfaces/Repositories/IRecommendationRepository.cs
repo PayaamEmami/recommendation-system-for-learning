@@ -13,10 +13,15 @@ public interface IRecommendationRepository
     Task<IEnumerable<Recommendation>> GetByUserDateAndTypeAsync(Guid userId, DateOnly date, ContentType feedType, CancellationToken cancellationToken = default);
     Task<IEnumerable<Recommendation>> GetHistoryForUserAsync(Guid userId, ContentType? feedType = null, int pageSize = 30, int pageNumber = 1, CancellationToken cancellationToken = default);
     Task<IEnumerable<Recommendation>> CreateBatchAsync(IEnumerable<Recommendation> recommendations, CancellationToken cancellationToken = default);
+    Task ReplaceFeedAsync(
+        Guid userId,
+        DateOnly date,
+        ContentType feedType,
+        IEnumerable<Recommendation> recommendations,
+        CancellationToken cancellationToken = default);
     Task DeleteAsync(Guid id, CancellationToken cancellationToken = default);
     Task<bool> HasRecommendationsForDateAsync(Guid userId, DateOnly date, ContentType feedType, CancellationToken cancellationToken = default);
     Task<IEnumerable<Recommendation>> GetRecentByUserAsync(Guid userId, DateOnly startDate, DateOnly endDate, CancellationToken cancellationToken = default);
     Task AddAsync(Recommendation recommendation, CancellationToken cancellationToken = default);
     Task<DateOnly?> GetMostRecentDateWithRecommendationsAsync(Guid userId, ContentType feedType, CancellationToken cancellationToken = default);
 }
-
