@@ -1319,7 +1319,7 @@ textarea.form-input {
 
 .content-row {
     display: flex;
-    align-items: flex-start;
+    align-items: center;
     gap: 1rem;
     padding: 1rem 1.25rem;
     border-bottom: 1px solid var(--border-color);
@@ -1340,7 +1340,6 @@ textarea.form-input {
     flex-direction: column;
     align-items: center;
     gap: 0.375rem;
-    padding-top: 0.25rem;
     flex-shrink: 0;
 }
 
@@ -1412,7 +1411,6 @@ textarea.form-input {
     margin-left: 0.5rem;
 }
 .content-row-title .content-date::before {
-    content: "· ";
     margin-right: 0.125rem;
 }
 
@@ -1443,8 +1441,7 @@ textarea.form-input {
 /* Content Actions */
 .content-actions {
     display: flex;
-    align-items: flex-start;
-    padding-top: 0.25rem;
+    align-items: center;
     flex-shrink: 0;
 }
 
