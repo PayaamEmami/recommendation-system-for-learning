@@ -1406,6 +1406,16 @@ textarea.form-input {
     color: var(--text-tertiary);
 }
 
+/* Timestamp inline after title in feed content rows */
+.content-row-title .content-date {
+    font-weight: 400;
+    margin-left: 0.5rem;
+}
+.content-row-title .content-date::before {
+    content: "· ";
+    margin-right: 0.125rem;
+}
+
 .content-row-title {
     margin: 0 0 0.375rem 0;
     font-size: 1rem;

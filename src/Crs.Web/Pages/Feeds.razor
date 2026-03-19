@@ -83,12 +83,9 @@
                                             </button>
                                         </div>
                                         <div class="content-content">
-                                            <div class="content-meta">
-                                                <span class="content-type-badge">@GetContentTypeBadge(content.Type)</span>
-                                                <span class="content-date">@FormatDate(content.PublishedAt)</span>
-                                            </div>
                                             <h3 class="content-row-title">
                                                 <a href="@content.Url" target="_blank" rel="noopener">@content.Title</a>
+                                                <span class="content-date">@FormatDate(content.PublishedAt)</span>
                                             </h3>
                                             @if (!string.IsNullOrEmpty(content.Description))
                                             {
@@ -609,17 +606,6 @@
             ContentType.Paper => "Papers",
             ContentType.Video => "Videos",
             ContentType.BlogPost => "Blogs",
-            _ => type.ToString()
-        };
-    }
-
-    private static string GetContentTypeBadge(ContentType type)
-    {
-        return type switch
-        {
-            ContentType.Paper => "Paper",
-            ContentType.Video => "Video",
-            ContentType.BlogPost => "Blog",
             _ => type.ToString()
         };
     }
