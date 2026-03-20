@@ -5,6 +5,7 @@ using System.Text.Json;
 using System.Text.Json.Serialization;
 using Crs.Core.Interfaces;
 using Microsoft.Extensions.Options;
+using Microsoft.Extensions.Logging;
 using Crs.Core.Models;
 using Crs.Infrastructure.Configuration;
 
@@ -17,16 +18,18 @@ public class XApiClient : IXApiClient
 {
     private readonly HttpClient _httpClient;
     private readonly XApiSettings _settings;
+    private readonly ILogger<XApiClient> _logger;
 
     private static readonly JsonSerializerOptions JsonOptions = new()
     {
         PropertyNameCaseInsensitive = true
     };
 
-    public XApiClient(HttpClient httpClient, IOptions<XApiSettings> options)
+    public XApiClient(HttpClient httpClient, IOptions<XApiSettings> options, ILogger<XApiClient> logger)
     {
         _httpClient = httpClient;
         _settings = options.Value;
+        _logger = logger;
     }
 
     public async Task<XTokenResponse> ExchangeCodeAsync(string code, string codeVerifier, string redirectUri, CancellationToken cancellationToken = default)
@@ -47,7 +50,7 @@ public class XApiClient : IXApiClient
 
         AddClientAuthHeader(request);
 
-        var response = await _httpClient.SendAsync(request, cancellationToken);
+        var response = await SendAsync(request, "exchange authorization code", cancellationToken);
         await EnsureSuccessAsync(response, request, cancellationToken);
 
         var token = await response.Content.ReadFromJsonAsync<XTokenApiResponse>(JsonOptions, cancellationToken);
@@ -79,7 +82,7 @@ public class XApiClient : IXApiClient
 
         AddClientAuthHeader(request);
 
-        var response = await _httpClient.SendAsync(request, cancellationToken);
+        var response = await SendAsync(request, "refresh access token", cancellationToken);
         await EnsureSuccessAsync(response, request, cancellationToken);
 
         var token = await response.Content.ReadFromJsonAsync<XTokenApiResponse>(JsonOptions, cancellationToken);
@@ -120,16 +123,19 @@ public class XApiClient : IXApiClient
         using var request = new HttpRequestMessage(HttpMethod.Get, requestUri);
         request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", accessToken);
 
-        var response = await _httpClient.SendAsync(request, cancellationToken);
+        var response = await SendAsync(request, "get current user profile", cancellationToken);
         if (!response.IsSuccessStatusCode &&
             response.StatusCode == System.Net.HttpStatusCode.Forbidden &&
             requestUri.Contains("user.fields=profile_image_url", StringComparison.Ordinal))
         {
+            _logger.LogWarning(
+                "X denied profile lookup with optional user fields. Retrying without user.fields for {RequestUri}",
+                request.RequestUri);
             response.Dispose();
             using var fallbackRequest = new HttpRequestMessage(HttpMethod.Get, $"{_settings.BaseUrl}/2/users/me");
             fallbackRequest.Headers.Authorization = new AuthenticationHeaderValue("Bearer", accessToken);
 
-            var fallbackResponse = await _httpClient.SendAsync(fallbackRequest, cancellationToken);
+            var fallbackResponse = await SendAsync(fallbackRequest, "get current user profile fallback", cancellationToken);
             await EnsureSuccessAsync(fallbackResponse, fallbackRequest, cancellationToken);
             return await fallbackResponse.Content.ReadFromJsonAsync<XUserResponse>(JsonOptions, cancellationToken);
         }
@@ -154,7 +160,7 @@ public class XApiClient : IXApiClient
             using var request = new HttpRequestMessage(HttpMethod.Get, url);
             request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", accessToken);
 
-            var response = await _httpClient.SendAsync(request, cancellationToken);
+            var response = await SendAsync(request, "get followed accounts", cancellationToken);
             await EnsureSuccessAsync(response, request, cancellationToken);
 
             var payload = await response.Content.ReadFromJsonAsync<XFollowResponse>(JsonOptions, cancellationToken);
@@ -204,7 +210,7 @@ public class XApiClient : IXApiClient
             using var request = new HttpRequestMessage(HttpMethod.Get, url);
             request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", accessToken);
 
-            var response = await _httpClient.SendAsync(request, cancellationToken);
+            var response = await SendAsync(request, "get recent posts", cancellationToken);
             await EnsureSuccessAsync(response, request, cancellationToken);
 
             var payload = await response.Content.ReadFromJsonAsync<XPostResponse>(JsonOptions, cancellationToken);
@@ -275,6 +281,46 @@ public class XApiClient : IXApiClient
         }
     }
 
+    private async Task<HttpResponseMessage> SendAsync(
+        HttpRequestMessage request,
+        string operation,
+        CancellationToken cancellationToken)
+    {
+        _logger.LogInformation(
+            "Sending X API request for {Operation}: {Method} {RequestUri} using {AuthScheme} auth",
+            operation,
+            request.Method,
+            request.RequestUri,
+            request.Headers.Authorization?.Scheme ?? "None");
+
+        var response = await _httpClient.SendAsync(request, cancellationToken);
+
+        if (response.IsSuccessStatusCode)
+        {
+            _logger.LogInformation(
+                "X API request succeeded for {Operation}: {StatusCode} {Method} {RequestUri}",
+                operation,
+                (int)response.StatusCode,
+                request.Method,
+                request.RequestUri);
+
+            return response;
+        }
+
+        var body = await response.Content.ReadAsStringAsync(cancellationToken);
+        _logger.LogWarning(
+            "X API request failed for {Operation}: {StatusCode} {ReasonPhrase} on {Method} {RequestUri}. Response headers: {ResponseHeaders}. Body: {ResponseBody}",
+            operation,
+            (int)response.StatusCode,
+            response.ReasonPhrase,
+            request.Method,
+            request.RequestUri,
+            FormatResponseHeaders(response),
+            Truncate(body, 2048));
+
+        return response;
+    }
+
     private static async Task EnsureSuccessAsync(
         HttpResponseMessage response,
         HttpRequestMessage request,
@@ -288,9 +334,63 @@ public class XApiClient : IXApiClient
         var body = await response.Content.ReadAsStringAsync(cancellationToken);
         throw new HttpRequestException(
             $"X API request failed with {(int)response.StatusCode} {response.ReasonPhrase} " +
-            $"for {request.Method} {request.RequestUri}. Body: {body}",
+            $"for {request.Method} {request.RequestUri}. " +
+            $"Headers: {FormatResponseHeaders(response)}. Body: {body}",
             inner: null,
             statusCode: response.StatusCode);
+    }
+
+    private static string FormatResponseHeaders(HttpResponseMessage response)
+    {
+        var interestingHeaders = new[]
+        {
+            "x-request-id",
+            "x-client-trace-id",
+            "x-rate-limit-limit",
+            "x-rate-limit-remaining",
+            "x-rate-limit-reset",
+            "content-type",
+            "date"
+        };
+
+        var values = new List<string>();
+        foreach (var headerName in interestingHeaders)
+        {
+            if (TryGetHeaderValues(response, headerName, out var headerValues))
+            {
+                values.Add($"{headerName}={string.Join(",", headerValues)}");
+            }
+        }
+
+        return values.Count == 0 ? "<none>" : string.Join("; ", values);
+    }
+
+    private static bool TryGetHeaderValues(HttpResponseMessage response, string headerName, out IEnumerable<string> values)
+    {
+        if (response.Headers.TryGetValues(headerName, out var responseHeaderValues))
+        {
+            values = responseHeaderValues;
+            return true;
+        }
+
+        if (response.Content.Headers.TryGetValues(headerName, out var contentHeaderValues))
+        {
+            values = contentHeaderValues;
+            return true;
+        }
+
+        values = Array.Empty<string>();
+        return false;
+    }
+
+    private static string Truncate(string value, int maxLength)
+    {
+        if (string.IsNullOrEmpty(value) || value.Length <= maxLength)
+        {
+            return value;
+        }
+
+        return $"{value[..maxLength]}...";
     }
 
     private class XTokenApiResponse

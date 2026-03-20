@@ -1,5 +1,6 @@
 using System.Net;
 using System.Text;
+using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Options;
 using Moq;
 using Moq.Protected;
@@ -32,7 +33,7 @@ public class XApiClientTests
         };
 
         var options = Options.Create(_settings);
-        _client = new XApiClient(_httpClient, options);
+        _client = new XApiClient(_httpClient, options, NullLogger<XApiClient>.Instance);
     }
 
     [TestCleanup]
@@ -219,6 +220,58 @@ public class XApiClientTests
         // Assert
         Assert.IsNotNull(result);
         Assert.AreEqual(string.Empty, result.XUserId);
+    }
+
+    [TestMethod]
+    public async Task GetCurrentUserAsync_WhenProfileImageFieldIsForbidden_FallsBackToPlainUsersMe()
+    {
+        // Arrange
+        var accessToken = "test-access-token";
+        var fallbackResponseJson = @"{
+            ""data"": {
+                ""id"": ""123456"",
+                ""username"": ""testuser"",
+                ""name"": ""Test User""
+            }
+        }";
+
+        var requestUris = new List<string>();
+        _mockHttpMessageHandler
+            .Protected()
+            .Setup<Task<HttpResponseMessage>>(
+                "SendAsync",
+                ItExpr.IsAny<HttpRequestMessage>(),
+                ItExpr.IsAny<CancellationToken>())
+            .ReturnsAsync((HttpRequestMessage req, CancellationToken ct) =>
+            {
+                requestUris.Add(req.RequestUri!.ToString());
+
+                if (req.RequestUri!.ToString().Contains("user.fields=profile_image_url"))
+                {
+                    return new HttpResponseMessage
+                    {
+                        StatusCode = HttpStatusCode.Forbidden,
+                        Content = new StringContent("{\"title\":\"Forbidden\",\"detail\":\"Forbidden\"}", Encoding.UTF8, "application/json")
+                    };
+                }
+
+                return new HttpResponseMessage
+                {
+                    StatusCode = HttpStatusCode.OK,
+                    Content = new StringContent(fallbackResponseJson, Encoding.UTF8, "application/json")
+                };
+            });
+
+        // Act
+        var result = await _client.GetCurrentUserAsync(accessToken);
+
+        // Assert
+        Assert.IsNotNull(result);
+        Assert.AreEqual("123456", result.XUserId);
+        Assert.AreEqual("testuser", result.Handle);
+        Assert.HasCount(2, requestUris);
+        Assert.IsTrue(requestUris[0].Contains("/2/users/me?user.fields=profile_image_url", StringComparison.Ordinal));
+        Assert.IsTrue(requestUris[1].EndsWith("/2/users/me", StringComparison.Ordinal));
     }
 
     [TestMethod]
